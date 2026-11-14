@@ -1,39 +1,41 @@
 # Status
 
-Stand: 2026-11-14 · Phase 0 abgeschlossen
+Stand: 2026-11-14 · Phase 1a abgeschlossen (ein Punkt wartet auf Bestätigung durch den Nutzer, siehe unten)
 
-## Erledigt (Phase 0)
-- Werkzeuge geprüft: git 2.56, Node 26.13, npm 11.20, gh 2.104 (angemeldet, Scopes `repo`, `workflow`), clasp 3.4.1 (angemeldet; Apps Script API war entgegen dem ersten Befund noch nicht aktiviert – in Phase 1a nachgeholt).
-- Git-Repo mit `.gitignore` (private/, ARBEITSPLAN.md, ANLEITUNG.md, .clasp.json, .env*, node_modules, dist) und Ordnerstruktur laut AGENTS.md.
-- Alle «prüfen»-Punkte und Fallstricke §2.9 gegen die offizielle Doku geprüft; SPEC.md korrigiert; Begründungen in `docs/DECISIONS.md` (D1–D10). Wichtigste Änderungen:
-  - Gmail über Advanced Service mit `gmail.modify` statt `GmailApp` (D2).
-  - Gemini: `generateContent` bleibt, Modell `gemini-3.5-flash-lite`, Schema-Feld `responseJsonSchema` (D3, D4).
-  - ntfy per JSON-Body statt Header (D6).
-  - Stundenplan per ICS-Abo, `importTimetable()` entfällt (D8).
-  - Abnahme Phase 2 ohne Lighthouse-PWA-Kategorie (D9).
-- `shared/api-types.ts` (Vertrag) und `docs/mock-state.json` (frei erfunden, Referenzzeit Mo 16.11.2026 07:12) erstellt; `cd shared && npm test` prüft Typen und Mock (inkl. Gegenprobe mit absichtlich falschem Wert).
-- Öffentliches GitHub-Repo `cockpit` angelegt, erster Commit gepusht.
+## Erledigt
+### Phase 0
+- Werkzeuge: git 2.56, Node 26.13, npm 11.20, gh 2.104, clasp 3.4.1 (alle angemeldet). Die Apps Script API war entgegen dem ersten Befund noch nicht aktiviert und wurde in Phase 1a vom Nutzer eingeschaltet.
+- Repo-Struktur, `.gitignore`, Doku-Prüfung (DECISIONS.md D1–D10), `shared/api-types.ts` + `docs/mock-state.json` mit Typprüfung, öffentliches Repo.
 
-## Abnahme Phase 0 (SPEC §6)
+### Phase 1a – Backend-Grundgerüst
+- Apps-Script-Projekt «Cockpit» mit gebundenem Sheet angelegt (`clasp create`), Web-App ausgerollt. Deployment-ID und Schlüssel liegen nur lokal in `backend/.env.local` (git-ignoriert).
+- `src/lib` (reine Logik): Zürcher Zeitzone inkl. Sommer-/Winterzeit, To-do-Modell und Validierung, State/Widget-Aufbau, API-Dispatcher.
+- `src/gas`: `doPost`/`doGet`, alle `todo.*`-Aktionen, `getState` (60 s Cache, gestückelt), `getWidget`, `quickAdd` (vorerst ohne KI), `event.add`, Sperre für Schreibzugriffe, Drosselung nach 10 falschen Schlüsseln pro Stunde, `setup()`, `rotateKey()`, `tick` alle 10 Min. (vorerst nur Heartbeat und Log-Kürzung).
+- Persönliche Voreinstellungen in `backend/src/private.local.js` (git-ignoriert, D12). Haltestellen vom Nutzer bestätigt.
+- Entscheide D11–D13 (Briefing ohne eigenen Trigger, Testaufbau, Speicherformat im Sheet).
+
+## Abnahme Phase 1a (SPEC §6)
 | Kriterium | Ergebnis |
 |---|---|
-| Repo-Struktur steht | ✔ backend/, shared/, web/, widgets/, docs/, .github/workflows/ |
-| api-types.ts ↔ mock-state.json (Typprüfung) | ✔ `npm test` in `shared/` grün |
-| «prüfen»-Punkte geklärt, in DECISIONS.md | ✔ D1–D10 |
-| Keine persönlichen Daten im Repo | ✔ vor dem Commit per Suche geprüft (Namen, Orte, Module, Räume, Mail-Adresse, Schlüssel) |
+| `npm test` grün | ✔ 39 Unit-Tests (`cd backend && npm test`) |
+| `setup()` zweimal ohne Schaden | ⏳ vom Nutzer zweimal ausgeführt; Kontrolle im Sheet durch den Nutzer ausstehend (manuelle Schritte 1–2) |
+| `ping`, `getState`, alle `todo.*`, `event.add` per curl gegen die echte Web-App | ✔ 23/23 (`cd backend && npm run e2e`), inkl. Idempotenz und Cache-Invalidierung |
+| falscher Schlüssel, kaputtes JSON → saubere Fehlerantwort | ✔ `unauthorized` bzw. `bad_request`, immer JSON; GET liefert ebenfalls JSON |
+| Kalender der nächsten 21 Tage im State | ✔ 36 Termine (33 Lektionen mit Raum, 3 private), Zeitraum gestern bis +21 Tage, keine Duplikate, Offset `+01:00` |
 
-Nicht abschliessend prüfbar in Phase 0: CORS-Verhalten der Web-App (nicht offiziell dokumentiert) → Browser-Test in Phase 1a. Gemini-Gratis-Limits: vom Nutzer in AI Studio bestätigt (15 RPM, 250K TPM, 500 RPD).
+Zusätzlich geprüft: Die Antwort trägt `Access-Control-Allow-Origin: *`, `text/plain` ohne eigene Header funktioniert (D7). Umlaute, Sonderzeichen und Emojis kommen unverändert durch. Hinweis für Tests unter Windows: den Body per stdin an curl geben (`--data-binary @-`), nicht als Argument, sonst verfälscht Windows die Umlaute.
 
-## Offen / nächste Schritte
-- Phase 1a: Backend-Grundgerüst (`setup()`, Sheet, API, Kalender).
-- Fragen an den Nutzer: siehe `docs/OPEN-QUESTIONS.md`.
+Ein echter Browser-Test (CORS aus einer Web-Seite) folgt in Phase 2 mit der PWA.
 
 ## Manuelle Schritte für den Nutzer
-Für Phase 0 keine. Vorbereitung für Phase 1b (kann jetzt schon erledigt werden):
-1. https://aistudio.google.com öffnen und mit dem Gmail-Konto anmelden.
-2. Links auf **Get API key** klicken → **Create API key** → **Create API key in new project**.
-3. Schlüssel kopieren und **nirgends ins Repo** legen; er wird in Phase 1a/1b in den Script Properties eingetragen (Anleitung folgt dann).
-4. ~~Limits in AI Studio ablesen~~ – erledigt: 15 RPM, 250K TPM, 500 RPD.
+1. In der Tabelle **Cockpit** das Blatt **config** öffnen: Jeder Schlüssel (z. B. `mode`, `aiModel`) darf nur **einmal** vorkommen. Die Blätter `todos`, `mails`, `regeln`, `config`, `log` gibt es je genau einmal.
+2. Im Script-Editor links auf das **Wecker-Symbol (Trigger)** klicken: Es darf genau **ein** Trigger `tick` («Zeitgesteuert», alle 10 Minuten) stehen.
+3. In Google Kalender im Prüfungs-Kalender den Testtermin **«Cockpit-Test Pruefung (bitte loeschen)»** am **Fr 8.1.2027** öffnen → **Löschen** (Papierkorb-Symbol).
+
+## Offen / nächste Schritte
+- Phase 1b: Mail-Pipeline (Regeln, Gemini, To-dos aus Mails, Labels), ntfy-Push, Erinnerungen, Briefing, KI-Schnellerfassung.
+- Vorbereitung durch den Nutzer für Phase 1b: Gemini-API-Schlüssel in AI Studio und ntfy-App auf dem iPhone (Anleitung folgt mit Phase 1b).
 
 ## Bekannte Mängel
-- Keine.
+- `quickAdd` legt bis Phase 1b nur ein To-do mit dem ganzen Text als Titel an und ist bei Wiederholungen nicht idempotent (Payload hat keine id).
+- Die ersten zwei Commits tragen noch den Vornamen als Autor (siehe OPEN-QUESTIONS.md).
