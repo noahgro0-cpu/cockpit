@@ -16,3 +16,6 @@ coverage/
 .DS_Store
 Thumbs.db
 .mock-check/
+
+# Personal defaults for setup() (pushed to Apps Script, never to git)
+backend/src/private.local.js

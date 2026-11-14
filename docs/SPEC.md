@@ -23,7 +23,8 @@ Persönliche Angaben (Haltestellen, Stundenplan, Labels, Module) stehen in `priv
 - `appsscript.json`: `timeZone: "Europe/Zurich"`, `runtimeVersion: "V8"`, `webapp: {executeAs: "USER_DEPLOYING", access: "ANYONE_ANONYMOUS"}`, `oauthScopes` explizit und so eng wie möglich (geprüft 2026-11-14, siehe DECISIONS.md D2):
   - Gmail ausschliesslich über den Advanced Service «Gmail» (`Gmail.Users.Messages.*`, `Gmail.Users.Labels.*`) mit `https://www.googleapis.com/auth/gmail.modify`. `GmailApp` wird **nicht** verwendet, weil es den vollen Scope `https://mail.google.com/` verlangt (erlaubt endgültiges Löschen).
   - Weitere Scopes: `spreadsheets.currentonly`, `calendar` (Kalender anlegen und Termine schreiben), `script.external_request` (UrlFetchApp), `script.scriptapp` (Trigger).
-- Struktur: `src/lib/*.js` enthält reine Funktionen ohne Apps-Script-Globals (in Node testbar, `node --test`); `src/gas/*.js` enthält alles mit Google-Diensten. Apps Script kennt keine Module: `lib`-Dateien definieren globale Funktionen und exportieren für Node am Dateiende mit `if (typeof module !== "undefined") module.exports = {…}`.
+- Struktur: `src/lib/*.js` enthält reine Funktionen ohne Apps-Script-Globals (in Node testbar, `node --test`); `src/gas/*.js` enthält alles mit Google-Diensten. Apps Script kennt keine Module: alle Dateien teilen einen globalen Namensraum. Die Tests laden `src/lib/*.js` deshalb gemeinsam in einen `vm`-Kontext (`test/load.js`), ohne `module.exports`. Oberste Ebene enthält nur Deklarationen (keine Aufrufe von Funktionen aus anderen Dateien, die Ladereihenfolge ist nicht festgelegt). `test/project.test.js` prüft Syntax, doppelte globale Namen und das Manifest.
+- Persönliche Voreinstellungen für `setup()` (Kalendernamen, Haltestellen, Koordinaten, Kategorien, Web-App-URL) stehen in `src/private.local.js` (`var COCKPIT_PRIVATE = {…}`, in `.gitignore`, Vorlage `backend/private.local.example.js`). clasp lädt die Datei hoch, git nie. `setup()` übernimmt sie nur für noch fehlende `config`-Schlüssel.
 - `.clasp.json` steht in `.gitignore`.
 
 ### 2.2 Sheet-Tabellen
@@ -56,12 +57,12 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `todo.add` | `{id, title, notes?, category?, due?, dueHasTime?, remindAt?, priority?}` (id = UUID vom Client, macht Wiederholungen idempotent) | `Todo` |
 | `todo.update` | `{id, patch}` | `Todo` |
 | `todo.complete` | `{id, done}` | `Todo` |
-| `todo.delete` | `{id}` | `{id}` |
+| `todo.delete` | `{id}` | `{id}` (idempotent: unbekannte id ist kein Fehler, damit Wiederholungen aus der Outbox nicht hängen bleiben) |
 | `quickAdd` | `{text}` | `Todo` (KI zerlegt den Text; Fallback: To-do ohne Datum mit dem ganzen Text als Titel) |
 | `mail.toTodo` | `{id}` | `Todo` |
 | `mail.dismiss` | `{id}` | `{id}` |
 | `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel an) |
-| `event.add` | `{calendar: "exams", title, date, kind: "exam"\|"deadline"}` | `CalEvent` |
+| `event.add` | `{calendar: "exams", title, date, kind: "exam"\|"deadline"}` | `CalEvent` (ganztägig; idempotent über Titel + Datum; `kind` als Event-Tag gespeichert) |
 
 Typen (massgebend ist `shared/api-types.ts`):
 
@@ -101,7 +102,7 @@ interface Category { id: string; label: string; color: string; group: "schule" |
 | Funktion | Takt | Aufgabe |
 |---|---|---|
 | `tick` | alle 10 Min. | Mail-Pipeline, To-do-Erinnerungen, Aufräumen. `tryLock`: überlappende Läufe überspringen. |
-| `briefing` | täglich | Morgen-Briefing als Push und in `State.briefing` |
+| ~~`briefing`~~ | – | Entfällt als eigener Trigger: `tick` sendet das Briefing, sobald `briefingWeekday`/`briefingWeekend` erreicht und es heute noch nicht gesendet ist (DECISIONS.md D11) |
 
 Kontingente für Gratis-Konten (geprüft 2026-11-14): Trigger 90 Minuten Gesamtlaufzeit pro Tag, 6 Minuten pro Lauf, URL Fetch 20 000 Aufrufe pro Tag, Mail lesen/schreiben 20 000 pro Tag, 5 000 neue Kalendertermine pro Tag, 30 gleichzeitige Ausführungen. Ziel: `tick` im Mittel unter 20 s, hartes Zeitbudget 4 Min., höchstens 25 neue Mails pro Lauf (Rest im nächsten Lauf).
 
@@ -147,7 +148,7 @@ Das Briefing entsteht aus einer Textvorlage ohne KI: erste Lektion mit Raum, Anz
 React, Vite, TypeScript (strict), Tailwind, `vite-plugin-pwa`, `date-fns` (Locale de), `chrono-node` (Locale de) für die Vorschau der Schnellerfassung, Vitest. Keine schweren UI-Bibliotheken. Deployment per GitHub Actions auf GitHub Pages; `base` passend zum Repo-Namen; `<meta name="robots" content="noindex">`.
 
 ### 3.2 Verbindung
-- **Setup-Code** = base64url von `{"u": "<web-app-url>", "k": "<API_KEY>"}`. Eingabe im Setup-Bildschirm (Einfügen) oder über `#setup=<code>` in der URL. Speicherung in `localStorage`. Weder URL noch Schlüssel stehen im Repo.
+- **Setup-Code** = base64url ohne `=`-Auffüllung von `{"u": "<web-app-url>", "k": "<API_KEY>"}` (Clients akzeptieren beide Varianten). Eingabe im Setup-Bildschirm (Einfügen) oder über `#setup=<code>` in der URL. Speicherung in `localStorage`. Weder URL noch Schlüssel stehen im Repo.
 - Ohne Setup-Code zeigt die App nur den Setup-Bildschirm. Entwicklung: `VITE_MOCK=1` lädt `docs/mock-state.json`.
 - Start: zuletzt gespeicherten State sofort anzeigen, dann `getState`. Neu laden bei `visibilitychange`/`focus` und alle 60 s, solange sichtbar.
 - Änderungen optimistisch anzeigen; Aufträge in einer Outbox (IndexedDB) halten und wiederholen, bis das Backend bestätigt. Bei Konflikt gilt der Serverstand.

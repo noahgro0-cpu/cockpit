@@ -1,0 +1,9 @@
+{
+  "name": "@cockpit/backend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Google Apps Script backend (pure logic tested in Node)",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

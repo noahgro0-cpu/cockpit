@@ -3,7 +3,7 @@
 Stand: 2026-11-14 · Phase 0 abgeschlossen
 
 ## Erledigt (Phase 0)
-- Werkzeuge geprüft: git 2.56, Node 26.13, npm 11.20, gh 2.104 (angemeldet, Scopes `repo`, `workflow`), clasp 3.4.1 (angemeldet, Apps Script API erreichbar).
+- Werkzeuge geprüft: git 2.56, Node 26.13, npm 11.20, gh 2.104 (angemeldet, Scopes `repo`, `workflow`), clasp 3.4.1 (angemeldet; Apps Script API war entgegen dem ersten Befund noch nicht aktiviert – in Phase 1a nachgeholt).
 - Git-Repo mit `.gitignore` (private/, ARBEITSPLAN.md, ANLEITUNG.md, .clasp.json, .env*, node_modules, dist) und Ordnerstruktur laut AGENTS.md.
 - Alle «prüfen»-Punkte und Fallstricke §2.9 gegen die offizielle Doku geprüft; SPEC.md korrigiert; Begründungen in `docs/DECISIONS.md` (D1–D10). Wichtigste Änderungen:
   - Gmail über Advanced Service mit `gmail.modify` statt `GmailApp` (D2).

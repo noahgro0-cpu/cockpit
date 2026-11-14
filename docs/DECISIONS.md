@@ -50,3 +50,15 @@ Abweichungen von und Präzisierungen zu `SPEC.md`. Format: Datum, Entscheid, Beg
 ## D10 – API-Vertrag: Ergänzungen zu SPEC §2.4 (2026-11-14)
 **Entscheid:** `shared/api-types.ts` übernimmt die Typen aus SPEC §2.4 unverändert und ergänzt: `WidgetState` (mit `today: CalEvent[]` für die Tagesagenda des mittleren Widgets), `TodoPatch`, `ApiRequest`, `ApiResponse`, `ApiErrorCode`, `ApiActions`. TypeScript 7.0 (`strict`, `exactOptionalPropertyTypes`). Die Übereinstimmung mit `docs/mock-state.json` prüft `cd shared && npm test`.
 **Begründung:** SPEC beschrieb `WidgetState` und das Patch-Format nur in Worten; SPEC §4 verlangt für das mittlere Widget eine Tagesagenda.
+
+## D11 – Kein eigener Briefing-Trigger (2026-11-14)
+**Entscheid:** Nur ein Trigger (`tick`, alle 10 Min.). `tick` verschickt das Briefing, sobald die Briefing-Zeit des Tages erreicht ist und es noch nicht gesendet wurde.
+**Begründung:** Werktags und am Wochenende gelten verschiedene Zeiten (`briefingWeekday`, `briefingWeekend`); ein Tagestrigger kann nur eine feste Stunde. Genauigkeit ±10 Min. genügt, und ein Trigger weniger spart Laufzeit-Kontingent.
+
+## D12 – Tests ohne `module.exports`, private Voreinstellungen (2026-11-14)
+**Entscheid:** `src/lib` wird in den Tests per `vm`-Kontext geladen (wie der globale Scope von Apps Script). Persönliche Voreinstellungen liegen in der git-ignorierten Datei `backend/src/private.local.js`.
+**Begründung:** So laufen die Dateien in Node und Apps Script unverändert, und Fehler durch die Ladereihenfolge fallen schon im Test auf (ist in Phase 1a einmal passiert). Die private Datei erlaubt einen vollständigen `setup()` ohne persönliche Daten im Repo.
+
+## D13 – Speicherformat im Sheet (2026-11-14)
+**Entscheid:** Datenbereiche aller Tabs sind als Nur-Text formatiert; beim Lesen werden Datum-, Zahl- und Wahrheitswerte trotzdem tolerant umgewandelt (`normalizeDateCell`, `toBool`). Die Spaltenreihenfolge ist fest; `setup()` bricht mit einer klaren Meldung ab, wenn Spalten vertauscht wurden, und ergänzt fehlende Spalten am Ende.
+**Begründung:** Google Sheets wandelt «2026-11-20» sonst in ein Datum um. Der Nutzer pflegt Tabs (`regeln`, `config`) direkt; Lesen muss deshalb auch Werte vertragen, die Sheets selbst umgewandelt hat.
