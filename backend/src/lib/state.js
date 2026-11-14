@@ -21,6 +21,8 @@ var CONFIG_DEFAULTS = {
   mailCategories: '["Wichtig", "Info"]',
   sensitiveCategories: "[]",
   junkCategory: "Unwichtig",
+  // auto = Telegram when configured, else ntfy; or a list such as "telegram,ntfy" (D19)
+  pushChannels: "auto",
   setupCode: "",
 };
 

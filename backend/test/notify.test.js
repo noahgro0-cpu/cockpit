@@ -163,3 +163,38 @@ test("failure alert after 3 failed ticks in a row, at most once per 6 h", () => 
   assert.deepEqual(plain(L.failureTracking(9, false, 3 * h, 10 * h)), { fails: 10, alert: true });
   assert.deepEqual(plain(L.failureTracking(9, true, 3 * h, 10 * h)), { fails: 0, alert: false });
 });
+
+test("push channels: auto prefers Telegram, explicit list, unconfigured ones skipped", () => {
+  const ch = (t, n) => [{ name: "telegram", configured: t }, { name: "ntfy", configured: n }];
+  assert.deepEqual(plain(L.activeChannelNames("auto", ch(true, true))), ["telegram"]);
+  assert.deepEqual(plain(L.activeChannelNames("", ch(false, true))), ["ntfy"]);
+  assert.deepEqual(plain(L.activeChannelNames("auto", ch(false, false))), []);
+  assert.deepEqual(plain(L.activeChannelNames("telegram, ntfy", ch(true, true))), ["telegram", "ntfy"]);
+  assert.deepEqual(plain(L.activeChannelNames("ntfy,telegram", ch(false, true))), ["ntfy"]);
+});
+
+test("telegram body: plain text, link last, no preview, quiet for low priority", () => {
+  const b = plain(L.telegramBody({ title: "Dringend: Sekretariat", body: "Anmeldung · Frist 27.11.2026", priority: 4, clickUrl: "https://mail.google.com/x" }, 12345));
+  assert.deepEqual(b, {
+    chat_id: "12345",
+    text: "❗ Dringend: Sekretariat\nAnmeldung · Frist 27.11.2026\nhttps://mail.google.com/x",
+    link_preview_options: { is_disabled: true },
+    disable_notification: false,
+  });
+  assert.equal(b.parse_mode, undefined, "no markup parsing");
+  const low = plain(L.telegramBody({ title: "t", body: "x".repeat(5000), priority: 2, clickUrl: "javascript:x" }, 1));
+  assert.equal(low.disable_notification, true);
+  assert.equal(low.text.length, 4096);
+  assert.ok(!low.text.includes("javascript"));
+});
+
+test("telegram setup: latest private chat id from getUpdates", () => {
+  const resp = { ok: true, result: [
+    { update_id: 1, message: { chat: { id: 11, type: "private" }, text: "/start" } },
+    { update_id: 2, message: { chat: { id: -99, type: "group" }, text: "hi" } },
+    { update_id: 3, message: { chat: { id: 22, type: "private" }, text: "/start" } },
+  ] };
+  assert.equal(L.latestPrivateChatId(resp), 22);
+  assert.equal(L.latestPrivateChatId({ ok: true, result: [] }), null);
+  assert.equal(L.latestPrivateChatId(null), null);
+});

@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "2";
+var SCHEMA_VERSION = "3";
 
 function tick() {
   var lock = LockService.getDocumentLock();
@@ -57,7 +57,7 @@ function trackTickHealth_(ok, failedSteps) {
   var r = failureTracking(Number(p.getProperty("TICK_FAILS")) || 0, ok, Number(p.getProperty("LAST_FAILURE_ALERT")) || 0, now);
   p.setProperty("TICK_FAILS", String(r.fails));
   if (!r.alert) return;
-  var sent = ntfySend_({
+  var sent = sendViaChannels_({
     title: "Cockpit: Störung im Backend",
     body: r.fails + " Durchläufe in Folge fehlgeschlagen (" + failedSteps.join(", ") + "). Details im Sheet, Tab «log».",
     priority: 4,

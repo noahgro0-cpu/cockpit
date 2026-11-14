@@ -302,3 +302,52 @@ function failureTracking(prevFails, tickOk, lastAlertMs, nowMs) {
   var alert = fails >= FAILURE_ALERT_AFTER && (!lastAlertMs || nowMs - lastAlertMs >= FAILURE_ALERT_INTERVAL_MS);
   return { fails: fails, alert: alert };
 }
+
+// --- Channels -----------------------------------------------------------------
+
+var TELEGRAM_MAX_CHARS = 4096;
+
+/**
+ * config.pushChannels -> channel names to use. "auto" (default) = telegram when configured,
+ * otherwise ntfy. A comma list ("telegram,ntfy") uses every listed channel that is configured.
+ */
+function activeChannelNames(setting, channels) {
+  var configured = channels.filter(function (c) {
+    return c.configured;
+  }).map(function (c) {
+    return c.name;
+  });
+  var s = String(setting || "auto").trim().toLowerCase();
+  if (s === "" || s === "auto") {
+    return configured.indexOf("telegram") >= 0 ? ["telegram"] : configured.indexOf("ntfy") >= 0 ? ["ntfy"] : [];
+  }
+  return s.split(/[,\s]+/).filter(function (n) {
+    return configured.indexOf(n) >= 0;
+  });
+}
+
+/** Telegram sendMessage body: plain text (no parse_mode, so mail text cannot inject markup). */
+function telegramBody(msg, chatId) {
+  var p = Math.round(Number(msg.priority) || 3);
+  var head = (p >= 4 ? "❗ " : "") + cleanLine(msg.title || "Cockpit", 250);
+  var parts = [head, String(msg.body || "").trim()];
+  if (msg.clickUrl && /^https:\/\//.test(msg.clickUrl)) parts.push(msg.clickUrl);
+  var text = parts.filter(Boolean).join("\n");
+  if (text.length > TELEGRAM_MAX_CHARS) text = text.slice(0, TELEGRAM_MAX_CHARS - 1) + "…";
+  return {
+    chat_id: String(chatId),
+    text: text,
+    link_preview_options: { is_disabled: true },
+    disable_notification: p <= 2,
+  };
+}
+
+/** Chat id of the most recent private chat in a getUpdates response, or null. */
+function latestPrivateChatId(resp) {
+  var list = resp && Array.isArray(resp.result) ? resp.result : [];
+  for (var i = list.length - 1; i >= 0; i--) {
+    var m = list[i].message || list[i].edited_message;
+    if (m && m.chat && m.chat.type === "private" && m.chat.id) return m.chat.id;
+  }
+  return null;
+}
