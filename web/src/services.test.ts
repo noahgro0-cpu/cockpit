@@ -88,4 +88,14 @@ describe("quick capture", () => {
       capture("morgen um 14 Uhr lernen", new Date("2026-03-28T12:00:00Z")).due,
     ).toBe("2026-03-29T12:00:00.000Z");
   });
+  it("uses the current date in Zurich near midnight UTC", () => {
+    expect(
+      capture("morgen um 14 Uhr lernen", new Date("2026-11-16T23:30:00Z")).due,
+    ).toBe("2026-11-18T13:00:00.000Z");
+  });
+  it("previews a nonexistent spring transition time as a date-only deadline", () => {
+    expect(
+      capture("morgen um 02:30 lernen", new Date("2026-03-28T12:00:00Z")),
+    ).toMatchObject({ due: "2026-03-29", dueHasTime: false });
+  });
 });

@@ -13,3 +13,5 @@ Stand 2026-11-14. Geprüft wurde die bestehende PWA aus Schritt 2. Die lokale HI
 Die ursprüngliche Heute-Vorschau in 375 px liegt in `private/previews/today-375.png`. Für 834 px war nach der Überarbeitung kein separater Vorher-Screenshot mehr vorhanden. Der Arbeitsplan mit der vorgeschalteten Review-Freigabe wurde erst nach den ersten UI-Änderungen eingelesen. Die Überarbeitung beruht auf der bereits bestätigten direkten Verwendung der offiziellen HIG. Die Nachher-Screenshots liegen unter `private/previews/final-{375,834,1440}-{light,dark}.png`.
 
 Die Web-Dialoge unterstützen Schliessen und Escape. Native Ziehgesten zum Schliessen eines Sheets bleiben zurückgestellt. Die vorhandenen Wischaktionen an To-do-Zeilen bleiben bestehen. Home-Bildschirm, Tastatur, VoiceOver und die Wischaktionen brauchen die Kontrolle auf echten Geräten. Die Widget-Gestaltung folgt in Phase 3.
+
+Die vier Textfarb-Tokens wurden gegen die sechs Hintergrund-Tokens gemessen. Das Minimum beträgt 5,10:1 in Hell und 6,10:1 in Dunkel. Bei 375 px und 200 % Schriftgrösse entstand im geprüften To-do-Bildschirm kein horizontaler Überlauf.
