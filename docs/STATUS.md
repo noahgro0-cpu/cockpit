@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-14 · Phase 1a abgeschlossen. Schritte 2 und 2b implementiert und im Browser geprüft. Nächster Entwicklungsschritt ist Prompt 1b in Claude Code.
+Stand 2026-11-14 · Phase 1a abgeschlossen. Schritte 2 und 2b implementiert, geprüft und auf GitHub Pages veröffentlicht. Nächster Entwicklungsschritt ist Prompt 1b in Claude Code.
 
 ## Erledigt
 ### Phase 0
@@ -68,12 +68,12 @@ Keine offen (Kontrolle von Sheet und Trigger erledigt, Testtermin gelöscht).
 | Chrome-Installierbarkeit | ✔ Produktionsbuild: Service Worker kontrolliert die Seite; CDP `Page.getInstallabilityErrors` liefert keine Fehler |
 | 375 / 834 / 1440 px, hell/dunkel | ✔ Browser-Prüfung aller Ansichten ohne horizontalen Überlauf; Mock-Screenshots erstellt und visuell geprüft |
 | iPhone/iPad Home-Bildschirm, Vollbild | Offen: echte Geräte stehen für diese Prüfung nicht zur Verfügung |
-| Öffentliche GitHub-Pages-Auslieferung | GitHub Pages auf «GitHub Actions» eingestellt. Bereitstellung über den Workflow auf `main`. |
+| Öffentliche GitHub-Pages-Auslieferung | ✔ GitHub Actions, Lauf `43647229257` auf `2166c09`: Tests, Build und Deploy erfolgreich. Die veröffentlichte PWA liefert HTTPS 200. Setup und Laden des echten Backend-States sowie aktiver Service Worker und Installierbarkeit aus dem veröffentlichten Ursprung geprüft. |
 
 Zusätzliche Prüfung: 47 Unit-Tests grün (`cd web; npm test`), TypeScript/Produktionsbuild grün (`npm run build`). Tests decken Datum/DST, Gruppierung, API-Client, Setup, Outbox-Persistenz/Reihenfolge/Backoff/Konflikte, Schnellerfassung und ÖV-Auswahl ab. Der erste GitHub-Actions-Lauf deckte eine vom Host abhängige Uhrzeit in `chrono-node` auf. Die Schnellerfassung verwendet nun die Zürcher Referenzzeit und den Zürcher Offset des Zieldatums. UTC und America/New_York wurden separat getestet. Bei einer nicht existierenden Stunde zeigt die Vorschau nur das Datum. `npm audit --omit=dev` ergab keine Befunde. Die Entwicklungsabhängigkeiten melden vier niedrige Befunde in der Workbox-Kette für dasselbe `deepmerge`-Problem.
 
 ### Einschränkungen / offene API-Punkte
-- Die Phase-2-Abnahme auf echten iPhones und iPads bleibt offen. Claude Code kann parallel mit Prompt 1b beginnen, sobald Codex die Arbeit im gemeinsamen Ordner beendet hat.
+- Die Phase-2-Abnahme auf echten iPhones und iPads bleibt offen. Sie ist keine Voraussetzung für den Start von Prompt 1b. Im gemeinsamen Ordner immer nur einen Agenten gleichzeitig arbeiten lassen.
 - Die Mail-Handler fehlen im Phase-1a-Backend. Die PWA ruft die vertraglichen Aktionen auf; Mock-Aktionen funktionieren lokal. Echte Mail-Aktionen folgen nach Phase 1b.
 - Einstellungen gelten lokal pro Gerät; eine Backend-Schreibaktion fehlt. API-Wunsch in `OPEN-QUESTIONS.md`.
 - `quickAdd` sowie Mail-Erstellung/Feedback besitzen keine zugesicherte Request-Idempotenz. Schnellerfassung verwendet deshalb `todo.add`; unklar bestätigte Mail-Schreibaktionen warten in den Einstellungen auf manuelle Prüfung. Sie werden nicht automatisch doppelt versandt.
