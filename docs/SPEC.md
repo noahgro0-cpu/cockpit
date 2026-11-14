@@ -31,13 +31,13 @@ Persönliche Angaben (Haltestellen, Stundenplan, Labels, Module) stehen in `priv
 | Tab | Spalten |
 |---|---|
 | `todos` | id, title, notes, category, due, dueHasTime, remindAt, remindedAt, priority, status, source, mailId, createdAt, updatedAt, doneAt |
-| `mails` | id, threadId, receivedAt, fromName, fromEmail, subject, category, importance, summary, actionRequired, deadline, consequence, sensitive, classifiedBy, todoId, dismissed, notifiedAt |
+| `mails` | id, threadId, receivedAt, fromName, fromEmail, subject, category, importance, summary, actionRequired, deadline, consequence, sensitive, classifiedBy, todoId, dismissed, notifiedAt, aiAttempts |
 | `regeln` | aktiv, feld (`from`/`subject`), muster (Teilstring, ohne Gross-/Kleinschreibung; `/…/` = Regex), importance, kategorie, sensibel, push, kommentar |
 | `config` | key, value |
 | `log` | ts, level, area, message (höchstens 500 Zeilen, älteste löschen) |
 
 - Regeln werden von oben nach unten geprüft, der erste Treffer gilt. Der Nutzer pflegt sie direkt im Sheet.
-- `config`-Schlüssel: `mode` (`observe`/`active`), `archiveAfterLabel`, `quietFrom`, `quietTo`, `briefingWeekday`, `briefingWeekend`, `homeStop`, `campusStop`, `lat`, `lon`, `aiEnabled`, `aiModel` (Standard `gemini-3.5-flash-lite`), `mailRetentionDays` (30), `calLectures` (Name des Stundenplan-Kalenders), `calExams` (Name des Prüfungs-Kalenders), `setupCode`.
+- `config`-Schlüssel: `mode` (`observe`/`active`), `archiveAfterLabel`, `quietFrom`, `quietTo`, `briefingWeekday`, `briefingWeekend`, `homeStop`, `campusStop`, `lat`, `lon`, `aiEnabled`, `aiModel` (Standard `gemini-3.5-flash-lite`), `mailRetentionDays` (30), `calLectures` (Name des Stundenplan-Kalenders), `calExams` (Name des Prüfungs-Kalenders), `categories` (To-do-Kategorien, JSON), `mailCategories` (Mail-Kategorien = Gmail-Labels, JSON-Liste), `sensitiveCategories` (JSON-Liste), `junkCategory` (Kategorie für «War unwichtig»), `setupCode`.
 - Datenminimierung: Es wird nie der Volltext einer Mail gespeichert. Mail-Einträge älter als `mailRetentionDays` werden gelöscht.
 - Lesen und Schreiben immer gebündelt (`getValues`/`setValues`). Schreibzugriffe unter `LockService.getScriptLock()`.
 
@@ -58,10 +58,11 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `todo.update` | `{id, patch}` | `Todo` |
 | `todo.complete` | `{id, done}` | `Todo` |
 | `todo.delete` | `{id}` | `{id}` (idempotent: unbekannte id ist kein Fehler, damit Wiederholungen aus der Outbox nicht hängen bleiben) |
-| `quickAdd` | `{text}` | `Todo` (KI zerlegt den Text; Fallback: To-do ohne Datum mit dem ganzen Text als Titel) |
-| `mail.toTodo` | `{id}` | `Todo` |
-| `mail.dismiss` | `{id}` | `{id}` |
-| `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel an) |
+| `quickAdd` | `{text, id?}` (optionale Client-UUID macht Wiederholungen idempotent; Siri sendet nur `{text}`) | `Todo` (KI zerlegt den Text; Fallback: To-do ohne Datum mit dem ganzen Text als Titel) |
+| `mail.toTodo` | `{id}` | `Todo` (idempotent: vorhandenes To-do der Mail bzw. ihres Threads) |
+| `mail.dismiss` | `{id}` | `{id}` (idempotent) |
+| `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel zuoberst an; eine Wiederholung aktualisiert dieselbe Regel und liefert `ruleAdded: false`) |
+| `settings.update` | `Partial<Settings>`, mindestens ein Feld | `Settings` (schreibt in `config`; idempotent) |
 | `event.add` | `{calendar: "exams", title, date, kind: "exam"\|"deadline"}` | `CalEvent` (ganztägig; idempotent über Titel + Datum; `kind` als Event-Tag gespeichert) |
 
 Typen (massgebend ist `shared/api-types.ts`):
@@ -109,8 +110,8 @@ Kontingente für Gratis-Konten (geprüft 2026-11-14): Trigger 90 Minuten Gesamtl
 `setup()` (vom Nutzer einmal im Editor auszuführen) legt Tabs, Kopfzeilen, Standard-Config, Kalender, Schlüssel und Trigger an, schreibt den Setup-Code in `config` und ist beliebig oft wiederholbar, ohne Daten zu zerstören. `rotateKey()` erzeugt einen neuen `API_KEY` samt Setup-Code.
 
 ### 2.6 Mail-Pipeline (in `tick`)
-1. **Suchen:** `after:<letzter Sync − 1 h> -in:sent -in:drafts -in:spam -in:trash`, auch Archiviertes. Duplikate über die Gmail-Message-ID ausschliessen.
-2. **Regeln** aus dem Tab `regeln` anwenden. Treffer mit `sensibel` oder mit fester `importance` gehen nicht an die KI.
+1. **Suchen:** `after:<letzter Sync − 1 h> -in:drafts -in:spam -in:trash`, auch Archiviertes; der erste Lauf geht 3 Tage zurück. Reine Ausgangsmails (Label `SENT` ohne `INBOX`) werden übersprungen, Mails an sich selbst bleiben (DECISIONS.md D15). Duplikate über die Gmail-Message-ID ausschliessen.
+2. **Regeln** aus dem Tab `regeln` anwenden. Treffer mit `sensibel` oder mit fester `importance` gehen nicht an die KI. Trägt die Mail schon ein Gmail-Label aus `sensitiveCategories`, gilt sie ebenfalls als sensibel (D16).
 3. **KI** für den Rest (nur wenn `aiEnabled`): bis zu 8 Mails pro Anfrage. Eingabe je Mail: Absender, Betreff, Datum, höchstens 3000 Zeichen Klartext. Ausgabe als JSON nach Schema: `importance`, `category` (aus fester Liste), `summary` (≤ 240 Zeichen, Deutsch), `actionRequired`, `todoTitle`, `deadline`, `consequence`.
 4. **Validieren:** Enum-Werte, Längen, Frist zwischen heute und +365 Tagen. Ungültiges verwerfen → `classifiedBy: "none"`, importance 1.
 5. **To-do** anlegen, wenn `actionRequired` und importance ≥ 2. Höchstens ein To-do pro Thread.
