@@ -1,0 +1,15 @@
+{
+  "name": "@cockpit/shared",
+  "private": true,
+  "version": "0.1.0",
+  "description": "API contract between backend and clients",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "check:mock": "node scripts/check-mock.mjs",
+    "test": "npm run typecheck && npm run check:mock"
+  },
+  "devDependencies": {
+    "typescript": "~7.0.2"
+  }
+}

@@ -1,0 +1,713 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-11-16T07:12:00+01:00",
+  "health": {
+    "lastTick": "2026-11-16T07:10:00+01:00",
+    "lastMailSync": "2026-11-16T07:10:00+01:00",
+    "ai": "ok",
+    "mode": "observe",
+    "errors24h": 0
+  },
+  "events": [
+    {
+      "id": "evt-prv-1",
+      "calendar": "Privat",
+      "kind": "private",
+      "title": "Brunch mit Familie",
+      "start": "2026-11-15T10:30:00+01:00",
+      "end": "2026-11-15T13:00:00+01:00",
+      "allDay": false
+    },
+    {
+      "id": "evt-lec-1",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-11-16T08:15:00+01:00",
+      "end": "2026-11-16T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-2",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Programmieren",
+      "start": "2026-11-16T10:15:00+01:00",
+      "end": "2026-11-16T11:55:00+01:00",
+      "allDay": false,
+      "location": "Labor L 1.05"
+    },
+    {
+      "id": "evt-lec-3",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Physik mit Praktikum",
+      "start": "2026-11-17T13:15:00+01:00",
+      "end": "2026-11-17T16:45:00+01:00",
+      "allDay": false,
+      "location": "Raum A 3.02"
+    },
+    {
+      "id": "evt-prv-2",
+      "calendar": "Privat",
+      "kind": "private",
+      "title": "Training Unihockey",
+      "start": "2026-11-17T19:00:00+01:00",
+      "end": "2026-11-17T20:30:00+01:00",
+      "allDay": false,
+      "location": "Sporthalle Musterdorf"
+    },
+    {
+      "id": "evt-lec-4",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Lineare Algebra",
+      "start": "2026-11-18T08:15:00+01:00",
+      "end": "2026-11-18T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-5",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Technisches Englisch",
+      "start": "2026-11-18T10:15:00+01:00",
+      "end": "2026-11-18T11:55:00+01:00",
+      "allDay": false,
+      "location": "Raum C 0.11"
+    },
+    {
+      "id": "evt-lec-6",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Statistik",
+      "start": "2026-11-19T09:15:00+01:00",
+      "end": "2026-11-19T11:55:00+01:00",
+      "allDay": false,
+      "location": "Raum A 1.20"
+    },
+    {
+      "id": "evt-prv-3",
+      "calendar": "Privat",
+      "kind": "private",
+      "title": "Zahnarzt-Kontrolle",
+      "start": "2026-11-19T16:30:00+01:00",
+      "end": "2026-11-19T17:15:00+01:00",
+      "allDay": false
+    },
+    {
+      "id": "evt-lec-7",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-11-20T08:15:00+01:00",
+      "end": "2026-11-20T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-8",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Projektwerkstatt",
+      "start": "2026-11-20T13:15:00+01:00",
+      "end": "2026-11-20T14:55:00+01:00",
+      "allDay": false,
+      "location": "Werkstatt W 0.03"
+    },
+    {
+      "id": "evt-lec-9",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-11-23T08:15:00+01:00",
+      "end": "2026-11-23T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-10",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Programmieren",
+      "start": "2026-11-23T10:15:00+01:00",
+      "end": "2026-11-23T11:55:00+01:00",
+      "allDay": false,
+      "location": "Labor L 1.05"
+    },
+    {
+      "id": "evt-lec-11",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Physik mit Praktikum",
+      "start": "2026-11-24T13:15:00+01:00",
+      "end": "2026-11-24T16:45:00+01:00",
+      "allDay": false,
+      "location": "Raum A 3.02"
+    },
+    {
+      "id": "evt-prv-4",
+      "calendar": "Privat",
+      "kind": "private",
+      "title": "Training Unihockey",
+      "start": "2026-11-24T19:00:00+01:00",
+      "end": "2026-11-24T20:30:00+01:00",
+      "allDay": false,
+      "location": "Sporthalle Musterdorf"
+    },
+    {
+      "id": "evt-lec-12",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Lineare Algebra",
+      "start": "2026-11-25T08:15:00+01:00",
+      "end": "2026-11-25T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-13",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Technisches Englisch",
+      "start": "2026-11-25T10:15:00+01:00",
+      "end": "2026-11-25T11:55:00+01:00",
+      "allDay": false,
+      "location": "Raum C 0.11"
+    },
+    {
+      "id": "evt-lec-14",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Statistik",
+      "start": "2026-11-26T09:15:00+01:00",
+      "end": "2026-11-26T11:55:00+01:00",
+      "allDay": false,
+      "location": "Raum A 1.20"
+    },
+    {
+      "id": "evt-exm-1",
+      "calendar": "Prüfungen",
+      "kind": "deadline",
+      "title": "Abgabe Projektbericht Programmieren",
+      "start": "2026-11-27",
+      "end": "2026-11-28",
+      "allDay": true
+    },
+    {
+      "id": "evt-lec-15",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-11-27T08:15:00+01:00",
+      "end": "2026-11-27T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-16",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Projektwerkstatt",
+      "start": "2026-11-27T13:15:00+01:00",
+      "end": "2026-11-27T14:55:00+01:00",
+      "allDay": false,
+      "location": "Werkstatt W 0.03"
+    },
+    {
+      "id": "evt-prv-5",
+      "calendar": "Privat",
+      "kind": "private",
+      "title": "Wochenende in den Bergen",
+      "start": "2026-11-28",
+      "end": "2026-11-30",
+      "allDay": true
+    },
+    {
+      "id": "evt-lec-17",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-11-30T08:15:00+01:00",
+      "end": "2026-11-30T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-18",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Programmieren",
+      "start": "2026-11-30T10:15:00+01:00",
+      "end": "2026-11-30T11:55:00+01:00",
+      "allDay": false,
+      "location": "Labor L 1.05"
+    },
+    {
+      "id": "evt-lec-19",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Physik mit Praktikum",
+      "start": "2026-12-01T13:15:00+01:00",
+      "end": "2026-12-01T16:45:00+01:00",
+      "allDay": false,
+      "location": "Raum A 3.02"
+    },
+    {
+      "id": "evt-prv-6",
+      "calendar": "Privat",
+      "kind": "private",
+      "title": "Training Unihockey",
+      "start": "2026-12-01T19:00:00+01:00",
+      "end": "2026-12-01T20:30:00+01:00",
+      "allDay": false,
+      "location": "Sporthalle Musterdorf"
+    },
+    {
+      "id": "evt-lec-20",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Lineare Algebra",
+      "start": "2026-12-02T08:15:00+01:00",
+      "end": "2026-12-02T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-exm-2",
+      "calendar": "Prüfungen",
+      "kind": "exam",
+      "title": "Zwischenprüfung Analysis",
+      "start": "2026-12-02T08:15:00+01:00",
+      "end": "2026-12-02T09:45:00+01:00",
+      "allDay": false,
+      "location": "Aula"
+    },
+    {
+      "id": "evt-lec-21",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Technisches Englisch",
+      "start": "2026-12-02T10:15:00+01:00",
+      "end": "2026-12-02T11:55:00+01:00",
+      "allDay": false,
+      "location": "Raum C 0.11"
+    },
+    {
+      "id": "evt-lec-22",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Statistik",
+      "start": "2026-12-03T09:15:00+01:00",
+      "end": "2026-12-03T11:55:00+01:00",
+      "allDay": false,
+      "location": "Raum A 1.20"
+    },
+    {
+      "id": "evt-lec-23",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-12-04T08:15:00+01:00",
+      "end": "2026-12-04T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-24",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Projektwerkstatt",
+      "start": "2026-12-04T13:15:00+01:00",
+      "end": "2026-12-04T14:55:00+01:00",
+      "allDay": false,
+      "location": "Werkstatt W 0.03"
+    },
+    {
+      "id": "evt-exm-3",
+      "calendar": "Prüfungen",
+      "kind": "deadline",
+      "title": "Laborbericht Physik",
+      "start": "2026-12-05",
+      "end": "2026-12-06",
+      "allDay": true
+    },
+    {
+      "id": "evt-lec-25",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Analysis",
+      "start": "2026-12-07T08:15:00+01:00",
+      "end": "2026-12-07T09:55:00+01:00",
+      "allDay": false,
+      "location": "Raum B 2.14"
+    },
+    {
+      "id": "evt-lec-26",
+      "calendar": "Stundenplan",
+      "kind": "lecture",
+      "title": "Programmieren",
+      "start": "2026-12-07T10:15:00+01:00",
+      "end": "2026-12-07T11:55:00+01:00",
+      "allDay": false,
+      "location": "Labor L 1.05"
+    }
+  ],
+  "exams": [
+    {
+      "id": "evt-exm-1",
+      "calendar": "Prüfungen",
+      "kind": "deadline",
+      "title": "Abgabe Projektbericht Programmieren",
+      "start": "2026-11-27",
+      "end": "2026-11-28",
+      "allDay": true
+    },
+    {
+      "id": "evt-exm-2",
+      "calendar": "Prüfungen",
+      "kind": "exam",
+      "title": "Zwischenprüfung Analysis",
+      "start": "2026-12-02T08:15:00+01:00",
+      "end": "2026-12-02T09:45:00+01:00",
+      "allDay": false,
+      "location": "Aula"
+    },
+    {
+      "id": "evt-exm-3",
+      "calendar": "Prüfungen",
+      "kind": "deadline",
+      "title": "Laborbericht Physik",
+      "start": "2026-12-05",
+      "end": "2026-12-06",
+      "allDay": true
+    },
+    {
+      "id": "evt-exm-4",
+      "calendar": "Prüfungen",
+      "kind": "exam",
+      "title": "Modulprüfung Lineare Algebra",
+      "start": "2027-01-19T09:00:00+01:00",
+      "end": "2027-01-19T11:00:00+01:00",
+      "allDay": false,
+      "location": "Halle 2"
+    },
+    {
+      "id": "evt-exm-5",
+      "calendar": "Prüfungen",
+      "kind": "exam",
+      "title": "Modulprüfung Physik",
+      "start": "2027-01-26T13:30:00+01:00",
+      "end": "2027-01-26T15:30:00+01:00",
+      "allDay": false,
+      "location": "Halle 1"
+    }
+  ],
+  "todos": [
+    {
+      "id": "4f1c2a10-0001-4c3e-9a10-000000000001",
+      "title": "Übungsserie 7 Analysis lösen",
+      "category": "analysis",
+      "due": "2026-11-18",
+      "dueHasTime": false,
+      "priority": 1,
+      "status": "open",
+      "source": "manual",
+      "createdAt": "2026-11-13T18:40:00+01:00",
+      "updatedAt": "2026-11-13T18:40:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0002-4c3e-9a10-000000000002",
+      "title": "Semestergebühr bezahlen",
+      "notes": "Rechnung im Mail vom Studiensekretariat",
+      "category": "admin",
+      "due": "2026-11-14",
+      "dueHasTime": false,
+      "priority": 2,
+      "status": "open",
+      "source": "mail",
+      "mailId": "mail-0003",
+      "createdAt": "2026-11-09T09:05:00+01:00",
+      "updatedAt": "2026-11-09T09:05:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0003-4c3e-9a10-000000000003",
+      "title": "Projektbericht: Kapitel Messergebnisse schreiben",
+      "category": "programmieren",
+      "due": "2026-11-27",
+      "dueHasTime": false,
+      "priority": 2,
+      "status": "open",
+      "source": "manual",
+      "createdAt": "2026-11-11T20:15:00+01:00",
+      "updatedAt": "2026-11-14T21:02:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0004-4c3e-9a10-000000000004",
+      "title": "Bibliotheksbuch zurückgeben",
+      "category": "privat",
+      "due": "2026-11-16T12:00:00+01:00",
+      "dueHasTime": true,
+      "remindAt": "2026-11-16T11:00:00+01:00",
+      "priority": 1,
+      "status": "open",
+      "source": "mail",
+      "mailId": "mail-0001",
+      "createdAt": "2026-11-15T08:12:00+01:00",
+      "updatedAt": "2026-11-15T08:12:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0005-4c3e-9a10-000000000005",
+      "title": "Velo-Service buchen",
+      "category": "privat",
+      "dueHasTime": false,
+      "priority": 0,
+      "status": "open",
+      "source": "quick",
+      "createdAt": "2026-11-12T07:50:00+01:00",
+      "updatedAt": "2026-11-12T07:50:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0006-4c3e-9a10-000000000006",
+      "title": "Physik-Praktikum vorbereiten (Versuch 4 lesen)",
+      "category": "physik",
+      "due": "2026-11-16",
+      "dueHasTime": false,
+      "priority": 1,
+      "status": "open",
+      "source": "manual",
+      "createdAt": "2026-11-14T16:00:00+01:00",
+      "updatedAt": "2026-11-14T16:00:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0007-4c3e-9a10-000000000007",
+      "title": "Lernplan Zwischenprüfung erstellen",
+      "category": "analysis",
+      "due": "2026-11-20",
+      "dueHasTime": false,
+      "priority": 1,
+      "status": "open",
+      "source": "quick",
+      "createdAt": "2026-11-15T21:30:00+01:00",
+      "updatedAt": "2026-11-15T21:30:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0008-4c3e-9a10-000000000008",
+      "title": "Anmeldung Sprachkurs bestätigen",
+      "category": "admin",
+      "due": "2026-11-20T23:59:00+01:00",
+      "dueHasTime": true,
+      "priority": 2,
+      "status": "open",
+      "source": "mail",
+      "mailId": "mail-0002",
+      "createdAt": "2026-11-16T06:55:00+01:00",
+      "updatedAt": "2026-11-16T06:55:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0009-4c3e-9a10-000000000009",
+      "title": "Übungsserie 6 Analysis abgeben",
+      "category": "analysis",
+      "due": "2026-11-13",
+      "dueHasTime": false,
+      "priority": 1,
+      "status": "done",
+      "source": "manual",
+      "createdAt": "2026-11-07T17:00:00+01:00",
+      "updatedAt": "2026-11-12T22:10:00+01:00",
+      "doneAt": "2026-11-12T22:10:00+01:00"
+    },
+    {
+      "id": "4f1c2a10-0010-4c3e-9a10-000000000010",
+      "title": "Wohnungsversicherung: Police ablegen",
+      "category": "admin",
+      "dueHasTime": false,
+      "priority": 0,
+      "status": "done",
+      "source": "mail",
+      "mailId": "mail-0006",
+      "createdAt": "2026-11-10T10:00:00+01:00",
+      "updatedAt": "2026-11-11T19:30:00+01:00",
+      "doneAt": "2026-11-11T19:30:00+01:00"
+    }
+  ],
+  "mails": [
+    {
+      "id": "mail-0002",
+      "threadId": "thr-0002",
+      "receivedAt": "2026-11-16T06:41:00+01:00",
+      "fromName": "Sprachenzentrum",
+      "fromEmail": "kurse@sprachen.example.org",
+      "subject": "Ihre Anmeldung: Bitte bis Freitag bestätigen",
+      "category": "Studium",
+      "importance": 3,
+      "summary": "Der Platz im Abendkurs ist reserviert, muss aber bis Freitag online bestätigt werden, sonst verfällt er.",
+      "actionRequired": true,
+      "deadline": "2026-11-20",
+      "consequence": "Platz verfällt ohne Bestätigung",
+      "sensitive": false,
+      "classifiedBy": "ai",
+      "todoId": "4f1c2a10-0008-4c3e-9a10-000000000008"
+    },
+    {
+      "id": "mail-0001",
+      "threadId": "thr-0001",
+      "receivedAt": "2026-11-15T08:03:00+01:00",
+      "fromName": "Bibliothek",
+      "fromEmail": "noreply@bibliothek.example.org",
+      "subject": "Erinnerung: Ausleihfrist läuft ab",
+      "category": "Studium",
+      "importance": 2,
+      "summary": "Ein ausgeliehenes Buch ist morgen fällig. Verlängerung nicht möglich, da vorgemerkt.",
+      "actionRequired": true,
+      "deadline": "2026-11-16",
+      "consequence": "Mahngebühr ab übermorgen",
+      "sensitive": false,
+      "classifiedBy": "ai",
+      "todoId": "4f1c2a10-0004-4c3e-9a10-000000000004"
+    },
+    {
+      "id": "mail-0003",
+      "threadId": "thr-0003",
+      "receivedAt": "2026-11-09T08:57:00+01:00",
+      "fromName": "Studiensekretariat",
+      "fromEmail": "sekretariat@hochschule.example.ch",
+      "subject": "Rechnung Semestergebühr",
+      "category": "Finanzen",
+      "importance": 2,
+      "summary": "Rechnung für die Semestergebühr ist angehängt, zahlbar innert 30 Tagen.",
+      "actionRequired": true,
+      "deadline": "2026-11-14",
+      "sensitive": false,
+      "classifiedBy": "rule",
+      "todoId": "4f1c2a10-0002-4c3e-9a10-000000000002"
+    },
+    {
+      "id": "mail-0004",
+      "threadId": "thr-0004",
+      "receivedAt": "2026-11-14T17:22:00+01:00",
+      "fromName": "Mia Muster",
+      "fromEmail": "mia.muster@example.com",
+      "subject": "Lerngruppe am Donnerstag?",
+      "category": "Persönlich",
+      "importance": 2,
+      "summary": "Fragt, ob die Lerngruppe für die Zwischenprüfung am Donnerstagabend stattfinden kann.",
+      "actionRequired": false,
+      "sensitive": false,
+      "classifiedBy": "ai"
+    },
+    {
+      "id": "mail-0005",
+      "threadId": "thr-0005",
+      "receivedAt": "2026-11-13T11:15:00+01:00",
+      "fromName": "Gesundheit",
+      "fromEmail": "service@kasse.example.ch",
+      "subject": "Neue Nachricht in Ihrem Kundenkonto",
+      "category": "Gesundheit",
+      "importance": 2,
+      "summary": "Sensible Kategorie – Inhalt nicht ausgewertet.",
+      "actionRequired": false,
+      "sensitive": true,
+      "classifiedBy": "rule"
+    },
+    {
+      "id": "mail-0006",
+      "threadId": "thr-0006",
+      "receivedAt": "2026-11-10T09:40:00+01:00",
+      "fromName": "Versicherung",
+      "fromEmail": "kundendienst@versicherung.example.ch",
+      "subject": "Ihre neue Police",
+      "category": "Versicherung",
+      "importance": 1,
+      "summary": "Sensible Kategorie – Inhalt nicht ausgewertet.",
+      "actionRequired": false,
+      "sensitive": true,
+      "classifiedBy": "rule",
+      "todoId": "4f1c2a10-0010-4c3e-9a10-000000000010"
+    },
+    {
+      "id": "mail-0007",
+      "threadId": "thr-0007",
+      "receivedAt": "2026-11-12T14:05:00+01:00",
+      "fromName": "Bahn-Reisen",
+      "fromEmail": "tickets@reisen.example.com",
+      "subject": "Ihr Ticket für Samstag",
+      "category": "Reisen",
+      "importance": 1,
+      "summary": "Online-Ticket für die Hin- und Rückfahrt am Wochenende ist im Anhang.",
+      "actionRequired": false,
+      "sensitive": false,
+      "classifiedBy": "ai"
+    },
+    {
+      "id": "mail-0008",
+      "threadId": "thr-0008",
+      "receivedAt": "2026-11-11T10:30:00+01:00",
+      "fromName": "Online-Shop",
+      "fromEmail": "bestellung@shop.example.com",
+      "subject": "Ihre Bestellung wurde versandt",
+      "category": "Finanzen",
+      "importance": 1,
+      "summary": "Bestellung (Taschenrechner) ist unterwegs, Zustellung voraussichtlich Dienstag.",
+      "actionRequired": false,
+      "sensitive": false,
+      "classifiedBy": "none"
+    }
+  ],
+  "briefing": {
+    "date": "2026-11-16",
+    "text": "Guten Morgen! Heute 2 Termine, erste Lektion 08:15 Analysis in Raum B 2.14. 1 überfälliges To-do, 2 heute fällig. In 11 Tagen: Abgabe Projektbericht Programmieren. 1 dringende Mail seit gestern."
+  },
+  "settings": {
+    "categories": [
+      {
+        "id": "analysis",
+        "label": "Analysis",
+        "color": "#BFD7EA",
+        "group": "schule"
+      },
+      {
+        "id": "linalg",
+        "label": "Lineare Algebra",
+        "color": "#C9E4CA",
+        "group": "schule"
+      },
+      {
+        "id": "physik",
+        "label": "Physik",
+        "color": "#F6D6AD",
+        "group": "schule"
+      },
+      {
+        "id": "programmieren",
+        "label": "Programmieren",
+        "color": "#D7C9EA",
+        "group": "schule"
+      },
+      {
+        "id": "statistik",
+        "label": "Statistik",
+        "color": "#F3C6CF",
+        "group": "schule"
+      },
+      {
+        "id": "privat",
+        "label": "Privat",
+        "color": "#E8E2C8",
+        "group": "privat"
+      },
+      {
+        "id": "admin",
+        "label": "Administratives",
+        "color": "#D9DDE3",
+        "group": "privat"
+      }
+    ],
+    "homeStop": "Musterdorf, Bahnhof",
+    "campusStop": "Beispielstadt, Campus",
+    "lat": 46.8,
+    "lon": 8.2
+  }
+}

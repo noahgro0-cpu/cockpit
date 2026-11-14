@@ -1,0 +1,18 @@
+# Personal data and private working notes (never commit)
+private/
+ARBEITSPLAN.md
+ANLEITUNG.md
+
+# Secrets and local config
+.clasp.json
+.clasprc.json
+.env*
+
+# Build output and dependencies
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+.mock-check/
