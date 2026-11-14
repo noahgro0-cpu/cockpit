@@ -96,9 +96,24 @@ function parseConfigRows(rows) {
   var c = Object.assign({}, CONFIG_DEFAULTS);
   (rows || []).forEach(function (r) {
     var k = String(r[0] || "").trim();
-    if (k && r[1] !== "" && r[1] != null) c[k] = String(r[1]);
+    if (k && r[1] !== "" && r[1] != null) c[k] = configCellString_(r[1]);
   });
   return c;
+}
+
+/**
+ * Cell value -> string. Sheets turns a typed "6:30" into a time value (a Date on 30.12.1899);
+ * its wall-clock time in the script time zone is the intended "HH:MM". Booleans become "true"/"false".
+ */
+function configCellString_(v) {
+  if (v && typeof v === "object" && typeof v.getHours === "function") {
+    if (v.getFullYear() < 1901) return pad2_(v.getHours()) + ":" + pad2_(v.getMinutes());
+    return toZurichIso(v);
+  }
+  if (typeof v === "boolean") return v ? "true" : "false";
+  var s = String(v).trim();
+  if (/^(true|false)$/i.test(s)) return s.toLowerCase();
+  return /^\d:\d{2}$/.test(s) ? "0" + s : s;
 }
 
 function parseCategories(json) {

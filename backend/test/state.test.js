@@ -94,3 +94,18 @@ test("countRecentErrors", () => {
   ];
   assert.equal(L.countRecentErrors(rows, NOW), 2);
 });
+
+test("config cells: Sheets time values, short times and booleans are normalised", () => {
+  const c = L.parseConfigRows([
+    ["quietTo", new Date(1899, 11, 30, 6, 30)],
+    ["quietFrom", "0:00"],
+    ["aiEnabled", true],
+    ["archiveAfterLabel", "FALSE"],
+    ["briefingWeekday", " 07:15 "],
+  ]);
+  assert.equal(c.quietTo, "06:30");
+  assert.equal(c.quietFrom, "00:00");
+  assert.equal(c.aiEnabled, "true");
+  assert.equal(c.archiveAfterLabel, "false");
+  assert.equal(c.briefingWeekday, "07:15");
+});
