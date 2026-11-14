@@ -167,7 +167,7 @@ React, Vite, TypeScript (strict), Tailwind, `vite-plugin-pwa`, `date-fns` (Local
 - Wetter: Open-Meteo (`api.open-meteo.com`, ohne Schlüssel): jetzt, heute, 7 Tage. Höchstens alle 30 Min.
 
 ### 3.5 Gestaltung
-Ruhig, pastellfarben, minimalistisch; abgerundete Karten, viel Weissraum, Systemschrift. Farbvariablen als Design-Tokens, hell und dunkel. Kategorien in Pastelltönen. Rot nur für Überfälliges und Dringendes. Berührungsflächen ≥ 44 px. `prefers-reduced-motion` respektieren.
+Orientiert an den Apple Human Interface Guidelines (Skill `hig`, siehe AGENTS.md «Gestaltung»), damit sich die App auf iPhone und iPad nativ anfühlt: Tab-Leiste unten auf dem iPhone, Seitenleiste auf dem iPad, Typografie-Skala analog zu den iOS-Textstilen, gruppierte Listen, Bearbeiten in Bottom-Sheets. Ruhig, pastellfarben, minimalistisch; abgerundete Karten, viel Weissraum, Systemschrift. Farbvariablen als Design-Tokens, hell und dunkel. Kategorien in Pastelltönen. Rot nur für Überfälliges und Dringendes. Berührungsflächen ≥ 44 px. `prefers-reduced-motion` respektieren.
 
 iOS: `apple-touch-icon`, `viewport-fit=cover` mit Safe-Area-Abständen, `100dvh`, eigener Aktualisieren-Knopf (im Standalone-Modus gibt es kein Pull-to-Refresh), Tastatur darf die Schnellerfassung nicht verdecken.
 

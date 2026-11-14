@@ -54,6 +54,13 @@ private/    persönliche Angaben (in .gitignore)
 - Am Ende jeder Aufgabe `docs/STATUS.md` aktualisieren: erledigt, offen, **manuelle Schritte für den Nutzer** (nummeriert, klickgenau), bekannte Mängel.
 - Abnahmekriterien stehen in `docs/SPEC.md` §6. Eine Phase gilt erst als fertig, wenn alle Punkte geprüft sind; nicht prüfbare Punkte ausdrücklich nennen.
 
+## Gestaltung (web/, widgets/)
+
+- Vor jeder UI-Arbeit `.claude/skills/hig/SKILL.md` lesen und die Apple Human Interface Guidelines sinngemäss auf die Web-App übertragen: Systemschrift, Hierarchie, Abstände, Navigationsmuster (Tab-Leiste unten auf dem iPhone, Seitenleiste auf dem iPad), Berührungsflächen ≥ 44 pt, Dynamic-Type-ähnliche Skalierung, Hell/Dunkel, Barrierefreiheit.
+- Falls diese Skill-Datei lokal fehlt, direkt die offiziellen Apple-HIG unter `https://developer.apple.com/design/human-interface-guidelines/` verwenden (vom Nutzer am 2026-11-14 bestätigt).
+- Es ist eine Web-App, kein SwiftUI: Nur übertragbare Prinzipien anwenden, keine nativen APIs voraussetzen.
+- **Lizenz:** Keine SF Symbols und keine Apple-Schriftdateien einbetten (nur auf Apple-Plattform-Apps erlaubt). Schrift über `font-family: system-ui, -apple-system, …`, Icons aus Lucide.
+
 ## Befehle
 
 ```

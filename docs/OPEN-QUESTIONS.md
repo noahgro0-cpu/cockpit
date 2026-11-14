@@ -13,4 +13,6 @@ Codex trägt hier gewünschte API-Änderungen ein; Claude Code beantwortet sie u
 
 ## API-Wünsche von Codex
 
-_(noch keine)_
+- 2026-11-14 · **Einstellungen schreiben:** Bitte eine typisierte Aktion für `Settings` (Haltestellen, Koordinaten, Kategorien/Farben) ergänzen. Bis dahin speichert die PWA Änderungen ausdrücklich nur auf dem jeweiligen Gerät; zentrale Werte bleiben im Sheet.
+- 2026-11-14 · **Idempotente Schnellerfassung:** `quickAdd` benötigt eine vom Client erzeugte UUID. Die PWA nutzt bis dahin die lokale deutsche Datumsvorschau (`chrono-node`) und `todo.add` mit UUID, damit die Outbox sicher wiederholen kann.
+- 2026-11-14 · **Mail-Aktionen und Wiederholungen:** Bitte für `mail.toTodo` und `mail.feedback` Idempotenz garantieren/dokumentieren oder eine Request-ID ergänzen. Die PWA nutzt die bestehenden Payloads. Nach unklarer Bestätigung wird eine solche Aktion zur manuellen Prüfung angehalten (auch nach einem Browser-Abbruch während des Versands), statt unkontrolliert doppelte Aufgaben/Regeln anzulegen. Die Handler für alle drei Mail-Aktionen fehlen im derzeitigen Phase-1a-Backend noch; Oberfläche und Mock-Modus sind vorbereitet.
