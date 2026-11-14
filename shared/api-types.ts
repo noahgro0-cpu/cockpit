@@ -146,6 +146,9 @@ export interface TodoAddPayload {
   priority?: 0 | 1 | 2;
 }
 
+/** Fields a client may change via `settings.update` (at least one). `categories` replaces the whole list. */
+export type SettingsPatch = Partial<Settings>;
+
 /** Fields a client may change via `todo.update`. `null` clears an optional field. */
 export interface TodoPatch {
   title?: string;
@@ -166,10 +169,16 @@ export interface ApiActions {
   "todo.update": { payload: { id: string; patch: TodoPatch }; data: Todo };
   "todo.complete": { payload: { id: string; done: boolean }; data: Todo };
   "todo.delete": { payload: { id: string }; data: { id: string } };
-  quickAdd: { payload: { text: string }; data: Todo };
+  /** `id` (client UUID) is optional and makes retries idempotent; Siri sends only `{text}`. */
+  quickAdd: { payload: { text: string; id?: string }; data: Todo };
+  /** Idempotent: returns the existing to-do of the mail or its thread. */
   "mail.toTodo": { payload: { id: string }; data: Todo };
+  /** Idempotent. */
   "mail.dismiss": { payload: { id: string }; data: { id: string } };
+  /** Idempotent: a repeat updates the sender rule instead of adding one (`ruleAdded: false`). */
   "mail.feedback": { payload: { id: string; verdict: "wichtig" | "unwichtig" }; data: { ruleAdded: boolean } };
+  /** Writes the given fields to the sheet tab `config`; returns the new settings. Idempotent. */
+  "settings.update": { payload: SettingsPatch; data: Settings };
   "event.add": {
     payload: { calendar: "exams"; title: string; date: ISODate; kind: "exam" | "deadline" };
     data: CalEvent;
