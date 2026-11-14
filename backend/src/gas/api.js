@@ -108,9 +108,25 @@ function apiHandlers_() {
       return { id: p.id };
     },
     quickAdd: function (p) {
-      // Phase 1a: rule-free fallback. AI parsing follows in phase 1b.
-      var title = p.text.trim().slice(0, TODO_LIMITS.title);
-      return saveTodo_(newTodo({ id: Utilities.getUuid(), title: title }, nowIso_(), "quick"), "", 0);
+      return quickAdd_(p);
+    },
+    "mail.toTodo": function (p) {
+      return mailToTodo_(p.id);
+    },
+    "mail.dismiss": function (p) {
+      var rec = readMailIndex_().byId[p.id];
+      if (!rec) throw apiError("not_found", "Mail not found");
+      if (!rec.dismissed) setCells_("mails", rec.rowNum, { dismissed: true });
+      return { id: p.id };
+    },
+    "mail.feedback": function (p) {
+      return mailFeedback_(p.id, p.verdict);
+    },
+    "settings.update": function (p) {
+      settingsToConfigPairs(p).forEach(function (kv) {
+        setConfigValue_(kv[0], kv[1]);
+      });
+      return settingsFromConfig(readConfig_());
     },
     "event.add": function (p) {
       return addExamEvent_(p);
@@ -161,4 +177,86 @@ function buildCurrentState_() {
     briefing: briefing,
     settings: settingsFromConfig(config),
   });
+}
+
+// --- Phase 1b actions ---------------------------------------------------------
+
+/**
+ * quickAdd {text, id?}: AI splits the text into title/due/category; fallback = whole text as title.
+ * Idempotent when the client sends an id. The AI call runs outside the write lock.
+ */
+function quickAdd_(p) {
+  var id = p.id || Utilities.getUuid();
+  if (p.id) {
+    var existing = loadTodoRecord_(p.id);
+    if (existing) return existing.todo;
+  }
+  var text = p.text.trim();
+  var fields = null;
+  var config = readConfig_();
+  if (aiAvailable_(config) && !isSensitiveText(text, loadRules_())) {
+    var now = new Date();
+    var cats = settingsFromConfig(config).categories;
+    var res = callGemini_(buildQuickAddRequest(text, now, cats), config);
+    if (res.ok) fields = parseQuickAddResult(res.text, now, cats);
+    if (!fields) log_("info", "quickAdd", "AI result unusable, fallback used");
+  }
+  var payload = fields
+    ? Object.assign({ id: id }, fields)
+    : { id: id, title: text.slice(0, TODO_LIMITS.title) };
+  return withWriteLock_(function () {
+    var again = loadTodoRecord_(id);
+    if (again) return again.todo;
+    return saveTodo_(newTodo(payload, nowIso_(), "quick"), "", 0);
+  });
+}
+
+/** mail.toTodo: idempotent; reuses the mail's or the thread's existing to-do. */
+function mailToTodo_(mailId) {
+  var idx = readMailIndex_();
+  var rec = idx.byId[mailId];
+  if (!rec) throw apiError("not_found", "Mail not found");
+  var candidates = [rec.todoId].concat(idx.list.filter(function (m) {
+    return m.threadId === rec.threadId && m.todoId;
+  }).map(function (m) {
+    return m.todoId;
+  }));
+  for (var i = 0; i < candidates.length; i++) {
+    var existing = candidates[i] && loadTodoRecord_(candidates[i]);
+    if (existing) {
+      if (rec.todoId !== existing.todo.id) setCells_("mails", rec.rowNum, { todoId: existing.todo.id });
+      return existing.todo;
+    }
+  }
+  var todo = todoFromMail(rec, Utilities.getUuid(), nowIso_(), "");
+  saveTodo_(todo, "", 0);
+  setCells_("mails", rec.rowNum, { todoId: todo.id });
+  return todo;
+}
+
+/**
+ * mail.feedback: sender rule at the top of `regeln` (first match wins). Repeating the same
+ * feedback updates the existing rule for that sender instead of adding a second one.
+ */
+function mailFeedback_(mailId, verdict) {
+  var idx = readMailIndex_();
+  var rec = idx.byId[mailId];
+  if (!rec) throw apiError("not_found", "Mail not found");
+  if (!rec.fromEmail) throw apiError("bad_request", "Mail has no sender address");
+  var config = readConfig_();
+  var raw = readRowsRaw_("regeln");
+  var fr = feedbackRule(rec, verdict, raw.rows, mailConfig(config), toZurichDate(new Date()));
+  var sh = sheet_("regeln");
+  if (fr.matchIndex >= 0) {
+    sh.getRange(raw.rowNums[fr.matchIndex], 1, 1, fr.row.length).setValues([fr.row]);
+  } else {
+    sh.insertRowBefore(2);
+    sh.getRange(2, 1, 1, fr.row.length).setNumberFormat("@").setValues([fr.row]);
+  }
+  setCells_("mails", rec.rowNum, {
+    importance: verdict === "wichtig" ? Math.max(2, rec.importance) : 0,
+    category: fr.row[4] || rec.category,
+    classifiedBy: "rule",
+  });
+  return { ruleAdded: fr.matchIndex < 0 };
 }

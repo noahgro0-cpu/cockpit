@@ -89,3 +89,40 @@ function normalizeDateCell(value, dateOnly) {
   }
   return String(value);
 }
+
+/** "HH:MM" -> minutes since midnight, or null when malformed. */
+function parseHhmm(s) {
+  var m = /^(\d{1,2}):(\d{2})$/.exec(String(s || "").trim());
+  if (!m || +m[1] > 23 || +m[2] > 59) return null;
+  return +m[1] * 60 + +m[2];
+}
+
+/** Minutes since Zurich midnight for an instant. */
+function zurichMinuteOfDay(date) {
+  var iso = toZurichIso(date);
+  return +iso.slice(11, 13) * 60 + +iso.slice(14, 16);
+}
+
+/** 0 = Sunday .. 6 = Saturday, for an ISODate. */
+function weekdayOfIso(isoDate) {
+  var p = isoDate.split("-");
+  return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay();
+}
+
+/**
+ * Instant of local Zurich wall time `minutes` (since midnight) on isoDate. A time that does not
+ * exist (spring forward gap) resolves to the instant after the gap; an ambiguous time
+ * (autumn fall back) resolves to the earlier instant.
+ */
+function zurichInstant(isoDate, minutes) {
+  var p = isoDate.split("-");
+  var local = Date.UTC(+p[0], +p[1] - 1, +p[2], 0, minutes);
+  var candidates = [120, 60].map(function (off) {
+    return new Date(local - off * MS_PER_MIN);
+  });
+  for (var i = 0; i < candidates.length; i++) {
+    var c = candidates[i];
+    if (toZurichDate(c) === isoDate && zurichMinuteOfDay(c) === minutes) return c;
+  }
+  return candidates[1]; // gap: the CET reading lands just after the switch
+}

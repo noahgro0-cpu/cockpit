@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"results\":[{\"ref\":\"m1\",\"importance\":3,\"category\":\"Studium\",\"summary\":\"Anmeldung zum Labor bis Freitag, 27.11., bestätigen, sonst verfällt der Platz.\",\"actionRequired\":true,\"todoTitle\":\"Laboranmeldung bestätigen\",\"deadline\":\"2026-11-27\",\"consequence\":\"Laborplatz verfällt\"},{\"ref\":\"m2\",\"importance\":0,\"category\":\"Unwichtig\",\"summary\":\"Werbung: 20 % Rabatt auf Helme.\",\"actionRequired\":false,\"todoTitle\":\"\",\"deadline\":\"\",\"consequence\":\"\"},{\"ref\":\"m3\",\"importance\":0,\"category\":\"Unwichtig\",\"summary\":\"Verdächtige Mail mit Anweisungen an eine KI und Zahlungsaufforderung; vermutlich Phishing.\",\"actionRequired\":false,\"todoTitle\":\"\",\"deadline\":\"\",\"consequence\":\"\"}]}"
+          }
+        ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 912,
+    "candidatesTokenCount": 214,
+    "totalTokenCount": 1126
+  },
+  "modelVersion": "gemini-3.5-flash-lite"
+}

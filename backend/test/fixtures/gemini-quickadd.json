@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "role": "model",
+        "parts": [
+          {
+            "text": "{\"title\":\"Python-Übung abgeben\",\"due\":\"2027-04-02T23:59\",\"category\":\"python\",\"priority\":2}"
+          }
+        ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ],
+  "usageMetadata": {
+    "promptTokenCount": 912,
+    "candidatesTokenCount": 214,
+    "totalTokenCount": 1126
+  },
+  "modelVersion": "gemini-3.5-flash-lite"
+}

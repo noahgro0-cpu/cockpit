@@ -12,4 +12,15 @@ var COCKPIT_PRIVATE = {
     { id: "math", label: "Mathematik", color: "#BFD7EA", group: "schule" },
     { id: "privat", label: "Privat", color: "#E8E2C8", group: "privat" },
   ],
+  // Mail categories = your Gmail labels (exact names); sensitive ones never go to the AI.
+  mailCategories: ["Studium", "Privat", "Rechnungen", "Gesundheit", "Unwichtig"],
+  sensitiveCategories: ["Gesundheit"],
+  junkCategory: "Unwichtig",
+  // Starter rules for the tab "regeln" (only while it is empty). First match wins.
+  // [aktiv, feld, muster, importance, kategorie, sensibel, push, kommentar]
+  rules: [
+    ["ja", "subject", "/arztbericht|befund/", "", "Gesundheit", "ja", "nein", "never sent to the AI"],
+    ["ja", "from", "university.example", "", "Studium", "nein", "nein", "category fixed, AI rates importance"],
+    ["ja", "from", "newsletter", 0, "Unwichtig", "nein", "nein", ""],
+  ],
 };

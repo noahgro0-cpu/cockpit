@@ -34,7 +34,7 @@ test("no global name is defined twice across files", () => {
 test("all project files load together and expose the trigger and web app entry points", () => {
   const ctx = vm.createContext({});
   for (const f of files) vm.runInContext(fs.readFileSync(f, "utf8"), ctx, { filename: f });
-  for (const fn of ["doPost", "doGet", "setup", "rotateKey", "tick"]) assert.equal(typeof ctx[fn], "function", fn);
+  for (const fn of ["doPost", "doGet", "setup", "rotateKey", "tick", "sendTestNotification"]) assert.equal(typeof ctx[fn], "function", fn);
 });
 
 test("manifest: time zone, V8, narrow scopes, web app settings", () => {

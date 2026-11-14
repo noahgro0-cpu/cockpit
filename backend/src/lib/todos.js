@@ -133,6 +133,8 @@ function validateQuickAdd(p) {
   if (!isPlainObject(p)) return fail_("payload must be an object");
   if (typeof p.text !== "string" || p.text.trim() === "") return fail_("text is required");
   if (p.text.length > 500) return fail_("text is longer than 500 characters");
+  // Optional client UUID makes retries idempotent; Siri shortcuts may send only {text}.
+  if (p.id !== undefined && (typeof p.id !== "string" || !ID_PATTERN.test(p.id))) return fail_("id is invalid");
   return { ok: true, value: p };
 }
 

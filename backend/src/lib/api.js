@@ -52,11 +52,13 @@ function apiActions_() {
   "todo.update": { validate: validateTodoUpdate, write: true },
   "todo.complete": { validate: validateTodoComplete, write: true },
   "todo.delete": { validate: validateIdPayload, write: true },
-  quickAdd: { validate: validateQuickAdd, write: true },
+  // quickAdd takes the lock only around its write, so the AI call does not block other writers.
+  quickAdd: { validate: validateQuickAdd, write: false },
   "mail.toTodo": { validate: validateIdPayload, write: true },
   "mail.dismiss": { validate: validateIdPayload, write: true },
   "mail.feedback": { validate: validateMailFeedback, write: true },
   "event.add": { validate: validateEventAdd, write: true },
+  "settings.update": { validate: validateSettingsUpdate, write: true },
   };
 }
 

@@ -127,3 +127,65 @@ function cachePutChunked_(key, text, ttlSeconds) {
 function invalidateStateCache_() {
   CacheService.getScriptCache().remove(STATE_CACHE_KEY + ":n");
 }
+
+// --- Bulk helpers (phase 1b) -------------------------------------------------
+
+/** All non-empty data rows with their 1-based sheet row numbers (rows with an empty first cell included). */
+function readRowsRaw_(name) {
+  var sh = sheet_(name);
+  var last = sh.getLastRow();
+  var out = { rows: [], rowNums: [] };
+  if (last < 2) return out;
+  var width = tabSpecs_()[name].length;
+  sh.getRange(2, 1, last - 1, width).getValues().forEach(function (r, i) {
+    var empty = r.every(function (c) {
+      return c === "" || c === null;
+    });
+    if (empty) return;
+    out.rows.push(r);
+    out.rowNums.push(i + 2);
+  });
+  return out;
+}
+
+/** Appends several rows in one call. */
+function appendRows_(name, rows) {
+  if (!rows.length) return;
+  var sh = sheet_(name);
+  var start = sh.getLastRow() + 1;
+  var needed = start + rows.length - 1;
+  if (needed > sh.getMaxRows()) {
+    var add = needed - sh.getMaxRows() + 200;
+    sh.insertRowsAfter(sh.getMaxRows(), add);
+  }
+  var range = sh.getRange(start, 1, rows.length, rows[0].length);
+  range.setNumberFormat("@");
+  range.setValues(rows);
+}
+
+/** Sets single cells of one row: values = {columnName: value}. */
+function setCells_(name, rowNum, values) {
+  var cols = tabSpecs_()[name];
+  var sh = sheet_(name);
+  Object.keys(values).forEach(function (col) {
+    var c = cols.indexOf(col);
+    if (c < 0) throw new Error("unknown column " + col);
+    var v = values[col];
+    sh.getRange(rowNum, c + 1).setValue(v === undefined || v === null ? "" : typeof v === "boolean" ? String(v).toUpperCase() : v);
+  });
+}
+
+/** Mail rows as objects with row numbers: {list: [obj], byId: {id: obj}}; obj.rowNum is set. */
+function readMailIndex_() {
+  var raw = readRowsRaw_("mails");
+  var list = [];
+  var byId = {};
+  raw.rows.forEach(function (r, i) {
+    if (r[0] === "" || r[0] === null) return;
+    var o = mailRowObject(r);
+    o.rowNum = raw.rowNums[i];
+    list.push(o);
+    byId[o.id] = o;
+  });
+  return { list: list, byId: byId };
+}

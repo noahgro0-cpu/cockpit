@@ -17,14 +17,79 @@ var CONFIG_DEFAULTS = {
   calLectures: "",
   calExams: "Prüfungen",
   categories: "[]",
+  // Mail categories (= Gmail labels) as JSON lists; personal values come from private.local.js.
+  mailCategories: '["Wichtig", "Info"]',
+  sensitiveCategories: "[]",
+  junkCategory: "Unwichtig",
   setupCode: "",
 };
 
+// aiAttempts (not in SPEC §2.2) counts failed AI attempts for the retry limit of 3.
 var MAIL_COLUMNS = [
   "id", "threadId", "receivedAt", "fromName", "fromEmail", "subject", "category", "importance",
   "summary", "actionRequired", "deadline", "consequence", "sensitive", "classifiedBy", "todoId",
-  "dismissed", "notifiedAt",
+  "dismissed", "notifiedAt", "aiAttempts",
 ];
+
+var SETTINGS_LIMITS = { stop: 100, categories: 30, label: 40 };
+
+/** Validates a `settings.update` payload (all fields optional, at least one). */
+function validateSettingsUpdate(p) {
+  if (!isPlainObject(p)) return fail_("payload must be an object");
+  var allowed = ["homeStop", "campusStop", "lat", "lon", "categories"];
+  var keys = Object.keys(p);
+  if (!keys.length) return fail_("payload is empty");
+  for (var i = 0; i < keys.length; i++) {
+    if (allowed.indexOf(keys[i]) < 0) return fail_("field not allowed: " + keys[i]);
+  }
+  var stops = ["homeStop", "campusStop"];
+  for (var j = 0; j < stops.length; j++) {
+    var v = p[stops[j]];
+    if (v !== undefined && (typeof v !== "string" || v.length > SETTINGS_LIMITS.stop)) {
+      return fail_(stops[j] + " must be a string of at most 100 characters");
+    }
+  }
+  function coord(x, max) {
+    return typeof x === "number" && isFinite(x) && x >= -max && x <= max;
+  }
+  if (p.lat !== undefined && !coord(p.lat, 90)) return fail_("lat is invalid");
+  if (p.lon !== undefined && !coord(p.lon, 180)) return fail_("lon is invalid");
+  if (p.categories !== undefined) {
+    if (!Array.isArray(p.categories) || p.categories.length > SETTINGS_LIMITS.categories) {
+      return fail_("categories must be an array of at most 30");
+    }
+    var ids = {};
+    for (var k = 0; k < p.categories.length; k++) {
+      var c = p.categories[k];
+      if (!isPlainObject(c) || typeof c.id !== "string" || !ID_PATTERN.test(c.id) || ids[c.id]) {
+        return fail_("category id is invalid or duplicate");
+      }
+      ids[c.id] = true;
+      if (typeof c.label !== "string" || c.label.trim() === "" || c.label.length > SETTINGS_LIMITS.label) {
+        return fail_("category label is invalid");
+      }
+      if (typeof c.color !== "string" || !/^#[0-9A-Fa-f]{6}$/.test(c.color)) return fail_("category color must be #RRGGBB");
+      if (c.group !== "schule" && c.group !== "privat") return fail_("category group is invalid");
+    }
+  }
+  return { ok: true, value: p };
+}
+
+/** Validated settings patch -> [[configKey, value], ...]. */
+function settingsToConfigPairs(p) {
+  var out = [];
+  if (p.homeStop !== undefined) out.push(["homeStop", p.homeStop.trim()]);
+  if (p.campusStop !== undefined) out.push(["campusStop", p.campusStop.trim()]);
+  if (p.lat !== undefined) out.push(["lat", String(p.lat)]);
+  if (p.lon !== undefined) out.push(["lon", String(p.lon)]);
+  if (p.categories !== undefined) {
+    var cats = p.categories.map(function (c) {
+      return { id: c.id, label: c.label.trim(), color: c.color, group: c.group };
+    });
+    out.push(["categories", JSON.stringify(cats)]);
+  }
+  return out;
+}
 
 /** [[key, value], ...] -> object with defaults applied. Empty cells keep the default. */
 function parseConfigRows(rows) {

@@ -11,10 +11,12 @@ function setup() {
   var ss = ss_();
   ensureTabs_(ss);
   ensureConfig_();
+  seedRules_();
   ensureSecrets_();
   ensureCalendars_();
   writeSetupCode_();
   ensureTriggers_();
+  props_().setProperty("SCHEMA_VERSION", SCHEMA_VERSION);
   invalidateStateCache_();
   log_("info", "setup", "setup completed");
   Logger.log("Setup abgeschlossen. Setup-Code steht im Tab 'config' (Schlüssel setupCode).");
@@ -75,6 +77,19 @@ function ensureConfig_() {
     writeRow_("config", [key, typeof v === "string" ? v : JSON.stringify(v)], 0);
   });
   configCache_ = null;
+}
+
+/** Starter rules from private.local.js, only while the tab `regeln` is still empty. */
+function seedRules_() {
+  var rules = privateDefaults_().rules;
+  if (!Array.isArray(rules) || !rules.length) return;
+  if (readRowsRaw_("regeln").rows.length) return;
+  appendRows_("regeln", rules.map(function (r) {
+    return RULE_COLUMNS.map(function (_, i) {
+      return r[i] === undefined || r[i] === null ? "" : String(r[i]);
+    });
+  }));
+  log_("info", "setup", rules.length + " starter rules added");
 }
 
 function ensureSecrets_() {
