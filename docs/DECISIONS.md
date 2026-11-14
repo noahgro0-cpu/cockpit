@@ -23,7 +23,7 @@ Abweichungen von und Präzisierungen zu `SPEC.md`. Format: Datum, Entscheid, Beg
 **Quelle:** https://aistudio.google.com/docs/models ; https://aistudio.google.com/docs/pricing ; https://aistudio.google.com/docs/rate-limits ; https://aistudio.google.com/docs/structured-output
 
 ## D5 – Datenschutz Gemini-Gratisstufe (2026-11-14)
-**Entscheid:** Hinweis in SPEC §5 ergänzt. Bestehende Schutzmassnahmen (sensible Kategorien nie an die KI, max. 3000 Zeichen, abschaltbar) bleiben; der Nutzer entscheidet über `aiEnabled` (siehe OPEN-QUESTIONS.md).
+**Entscheid:** Hinweis in SPEC §5 ergänzt. Bestehende Schutzmassnahmen (sensible Kategorien nie an die KI, max. 3000 Zeichen, abschaltbar) bleiben; Der Nutzer hat am 2026-11-14 zugestimmt: Standard `aiEnabled = true` (Volumen ~5 Mails/Tag).
 **Begründung:** Die Preisseite markiert für alle Gratis-Modelle «Used to improve our products: Yes».
 **Quelle:** https://aistudio.google.com/docs/pricing
 
