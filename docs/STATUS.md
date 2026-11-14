@@ -1,6 +1,6 @@
 # Status
 
-Stand: 2026-11-14 · Phase 1a abgeschlossen (ein Punkt wartet auf Bestätigung durch den Nutzer, siehe unten)
+Stand: 2026-11-14 · Phase 1a abgeschlossen und abgenommen
 
 ## Erledigt
 ### Phase 0
@@ -18,7 +18,7 @@ Stand: 2026-11-14 · Phase 1a abgeschlossen (ein Punkt wartet auf Bestätigung d
 | Kriterium | Ergebnis |
 |---|---|
 | `npm test` grün | ✔ 39 Unit-Tests (`cd backend && npm test`) |
-| `setup()` zweimal ohne Schaden | ⏳ vom Nutzer zweimal ausgeführt; Kontrolle im Sheet durch den Nutzer ausstehend (manuelle Schritte 1–2) |
+| `setup()` zweimal ohne Schaden | ✔ zweimal ausgeführt; vom Nutzer bestätigt: jeder config-Schlüssel einmal, jeder Tab einmal, genau ein Trigger `tick` |
 | `ping`, `getState`, alle `todo.*`, `event.add` per curl gegen die echte Web-App | ✔ 23/23 (`cd backend && npm run e2e`), inkl. Idempotenz und Cache-Invalidierung |
 | falscher Schlüssel, kaputtes JSON → saubere Fehlerantwort | ✔ `unauthorized` bzw. `bad_request`, immer JSON; GET liefert ebenfalls JSON |
 | Kalender der nächsten 21 Tage im State | ✔ 36 Termine (33 Lektionen mit Raum, 3 private), Zeitraum gestern bis +21 Tage, keine Duplikate, Offset `+01:00` |
@@ -28,9 +28,14 @@ Zusätzlich geprüft: Die Antwort trägt `Access-Control-Allow-Origin: *`, `text
 Ein echter Browser-Test (CORS aus einer Web-Seite) folgt in Phase 2 mit der PWA.
 
 ## Manuelle Schritte für den Nutzer
-1. In der Tabelle **Cockpit** das Blatt **config** öffnen: Jeder Schlüssel (z. B. `mode`, `aiModel`) darf nur **einmal** vorkommen. Die Blätter `todos`, `mails`, `regeln`, `config`, `log` gibt es je genau einmal.
-2. Im Script-Editor links auf das **Wecker-Symbol (Trigger)** klicken: Es darf genau **ein** Trigger `tick` («Zeitgesteuert», alle 10 Minuten) stehen.
-3. In Google Kalender im Prüfungs-Kalender den Testtermin **«Cockpit-Test Pruefung (bitte loeschen)»** am **Fr 8.1.2027** öffnen → **Löschen** (Papierkorb-Symbol).
+Keine offen (Kontrolle von Sheet und Trigger erledigt, Testtermin gelöscht).
+
+## Hinweise für Codex (Phase 2, `web/`)
+- Vertrag: `shared/api-types.ts`; Entwicklung mit `VITE_MOCK=1` und `docs/mock-state.json` (Referenzzeit Mo 16.11.2026 07:12).
+- Requests: `POST` mit `Content-Type: text/plain;charset=utf-8`, keine eigenen Header, Weiterleitung folgen (`fetch` tut das). Antwort immer HTTP 200 + JSON, siehe SPEC §2.9.
+- Setup-Code: base64url **ohne** `=`-Auffüllung (beide Varianten akzeptieren), SPEC §3.2.
+- `todo.add`/`todo.delete`/`event.add` sind idempotent, `quickAdd` (noch) nicht.
+- API-Wünsche nur in `docs/OPEN-QUESTIONS.md` eintragen; `shared/` und `backend/` nicht ändern.
 
 ## Offen / nächste Schritte
 - Phase 1b: Mail-Pipeline (Regeln, Gemini, To-dos aus Mails, Labels), ntfy-Push, Erinnerungen, Briefing, KI-Schnellerfassung.
