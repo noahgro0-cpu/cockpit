@@ -22,7 +22,7 @@ Stand: 2026-11-14 · Phase 0 abgeschlossen
 | «prüfen»-Punkte geklärt, in DECISIONS.md | ✔ D1–D10 |
 | Keine persönlichen Daten im Repo | ✔ vor dem Commit per Suche geprüft (Namen, Orte, Module, Räume, Mail-Adresse, Schlüssel) |
 
-Nicht abschliessend prüfbar in Phase 0: CORS-Verhalten der Web-App (nicht offiziell dokumentiert) → Browser-Test in Phase 1a. Gemini-Gratis-Limits stehen nur in AI Studio → beim Anlegen des Schlüssels ablesen.
+Nicht abschliessend prüfbar in Phase 0: CORS-Verhalten der Web-App (nicht offiziell dokumentiert) → Browser-Test in Phase 1a. Gemini-Gratis-Limits: vom Nutzer in AI Studio bestätigt (15 RPM, 250K TPM, 500 RPD).
 
 ## Offen / nächste Schritte
 - Phase 1a: Backend-Grundgerüst (`setup()`, Sheet, API, Kalender).
@@ -33,7 +33,7 @@ Für Phase 0 keine. Vorbereitung für Phase 1b (kann jetzt schon erledigt werden
 1. https://aistudio.google.com öffnen und mit dem Gmail-Konto anmelden.
 2. Links auf **Get API key** klicken → **Create API key** → **Create API key in new project**.
 3. Schlüssel kopieren und **nirgends ins Repo** legen; er wird in Phase 1a/1b in den Script Properties eingetragen (Anleitung folgt dann).
-4. Auf der Seite **Rate limits** in AI Studio nachsehen, welche Limits für `gemini-3.5-flash-lite` angezeigt werden, und sie Claude mitteilen.
+4. ~~Limits in AI Studio ablesen~~ – erledigt: 15 RPM, 250K TPM, 500 RPD.
 
 ## Bekannte Mängel
 - Keine.
