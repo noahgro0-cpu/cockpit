@@ -52,7 +52,8 @@ function ntfySend_(msg) {
     var code = res.getResponseCode();
     return code >= 200 && code < 300 ? { ok: true } : { ok: false, reason: "HTTP " + code };
   } catch (e) {
-    return { ok: false, reason: String(e).slice(0, 120) };
+    // Network-level failure (e.g. "Address unavailable"): may hang long, so the caller stops for this tick.
+    return { ok: false, network: true, reason: String(e).slice(0, 120) };
   }
 }
 
@@ -64,10 +65,16 @@ function flushNotifications_() {
   if (!split.due.length) return [];
   var keep = split.rest;
   var delivered = [];
+  var networkDown = false;
   split.due.forEach(function (item) {
+    if (networkDown) {
+      keep.push(item); // not attempted: no attempt counted
+      return;
+    }
     var ok = notifyChannels_().every(function (ch) {
       var r = ch.send(item.msg);
       if (!r.ok) log_("warn", "notify", ch.name + " failed (attempt " + ((item.attempts || 0) + 1) + "): " + r.reason);
+      if (r.network) networkDown = true;
       return r.ok;
     });
     var next = afterSendAttempt(item, ok);
@@ -89,4 +96,36 @@ function sendTestNotification() {
   });
   log_(r.ok ? "info" : "warn", "notify", "test notification: " + (r.ok ? "sent" : r.reason));
   Logger.log(r.ok ? "Test-Mitteilung gesendet." : "Fehler: " + r.reason);
+}
+
+/**
+ * Run from the editor: checks from Google servers which requests to ntfy work (GET and POST variants).
+ * POSTs go to a random throw-away topic, never to NTFY_TOPIC. Results go to the execution log and tab "log".
+ */
+function diagnoseNtfy() {
+  var server = (props_().getProperty("NTFY_SERVER") || "https://ntfy.sh").replace(/\/+$/, "");
+  var topic = "diag-" + Utilities.getUuid();
+  var json = JSON.stringify({ topic: topic, title: "diag", message: "x", priority: 3 });
+  var cases = [
+    ["GET health", server + "/v1/health", { method: "get" }],
+    ["POST json root", server + "/", { method: "post", contentType: "application/json; charset=utf-8", payload: json }],
+    ["POST json root no slash", server, { method: "post", contentType: "application/json", payload: json }],
+    ["POST text topic", server + "/" + topic, { method: "post", contentType: "text/plain; charset=utf-8", payload: "x" }],
+    ["PUT text topic", server + "/" + topic, { method: "put", contentType: "text/plain; charset=utf-8", payload: "x" }],
+    ["POST httpbin", "https://httpbin.org/post", { method: "post", contentType: "application/json", payload: json }],
+  ];
+  var lines = cases.map(function (c) {
+    var t = Date.now();
+    var opts = Object.assign({ muteHttpExceptions: true, followRedirects: false }, c[2]);
+    try {
+      var res = UrlFetchApp.fetch(c[1], opts);
+      return c[0] + " -> HTTP " + res.getResponseCode() + " in " + (Date.now() - t) + " ms " + res.getContentText().slice(0, 60).replace(/\s+/g, " ");
+    } catch (e) {
+      return c[0] + " -> " + String(e).slice(0, 80) + " after " + (Date.now() - t) + " ms";
+    }
+  });
+  lines.forEach(function (l) {
+    Logger.log(l.replace(topic, "diag-…"));
+  });
+  log_("info", "notify", ("diagnose: " + lines.join(" | ")).split(topic).join("diag-…"));
 }
