@@ -31,6 +31,14 @@ function validateEventAdd(p) {
   return { ok: true, value: p };
 }
 
+/** briefing.preview {date?}: today up to +7 days, previewed as at the briefing time of that date. */
+function validateBriefingPreview(p) {
+  var v = noPayload_(p);
+  if (!v.ok || !p || p.date === undefined) return v;
+  if (!isIsoDate(p.date)) return { ok: false, message: "date must be ISODate" };
+  return { ok: true, value: { date: p.date } };
+}
+
 function validateMailFeedback(p) {
   var v = validateIdPayload(p);
   if (!v.ok) return v;
@@ -61,7 +69,7 @@ function apiActions_() {
   "settings.update": { validate: validateSettingsUpdate, write: true },
   // Sent by the iOS shortcut; stored in a script property, so no sheet lock needed.
   "location.update": { validate: validateLocationUpdate, write: false },
-  "briefing.preview": { validate: noPayload_, write: false },
+  "briefing.preview": { validate: validateBriefingPreview, write: false },
   };
 }
 

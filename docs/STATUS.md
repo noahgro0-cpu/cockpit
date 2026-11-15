@@ -158,14 +158,14 @@ Weitere Ergebnisse aus dem gemeinsamen Test:
   - **Ohne Lektionen (Wochenende):** ein Satz für den Rest des Tages am Aufenthaltsort.
   - **Startort:** Wohnort, ausser der iOS-Kurzbefehl hat in den letzten 12 h einen Standort > 5 km davon gemeldet.
   - Fällt Open-Meteo aus, geht das Briefing ohne Wetter hinaus (Log-Eintrag `weather`).
-- Neue API-Aktionen `location.update` und `briefing.preview` (`shared/api-types.ts`). Der Standort wird gerundet (~1 km), nur der letzte Wert bleibt, er erscheint weder im State noch im Log.
+- Neue API-Aktionen `location.update` und `briefing.preview` (`shared/api-types.ts`). Der Standort wird gerundet (~1 km), nur der letzte Wert bleibt, er erscheint nicht im State; im Log steht nur «location updated» ohne Koordinaten oder Ort. `briefing.preview` nimmt optional `{date}` (bis +7 Tage).
 - Neue `config`-Schlüssel `homeName`, `campusLat`, `campusLon`, `campusName`, `weatherInBriefing`; Werte aus `private.local.js`, werden vom nächsten `tick` ergänzt (Schema-Version 4).
 - Editor-Funktionen `previewBriefing()` und `shortcutSetup()`.
-- 101 Unit-Tests grün (u. a. Zeitfenster bei Sommer-/Winterzeit und am Umstellungstag, Kleidungsklassen, Regen/Schnee/Wind, Standort-Validierung und -Frische).
-- Live geprüft (Deployment @10, dieselbe ID): Open-Meteo aus Apps Script erreichbar; `briefing.preview` liefert Wetter; `location.update` mit einem entfernten Ort → Briefing nennt diesen Ort; ungültige Koordinaten → `bad_request`. Der Teststandort wurde danach auf den Wohnort zurückgesetzt.
+- 102 Unit-Tests grün (u. a. Zeitfenster bei Sommer-/Winterzeit und am Umstellungstag, Kleidungsklassen, Regen/Schnee/Wind, Standort-Validierung und -Frische).
+- Live geprüft (Deployment @13, dieselbe ID): Open-Meteo aus Apps Script erreichbar (bei einem Fehler ein zweiter Versuch nach 3 s); `briefing.preview` liefert Wetter, für Montag 16.11. mit Weg am Wohnort und Campus; wiederholter Regenhinweis wird verkürzt; `location.update` mit einem entfernten Ort → Briefing nennt diesen Ort; ungültige Koordinaten → `bad_request`. Der Teststandort wurde danach auf den Wohnort zurückgesetzt.
 
 ### Manuelle Schritte für den Nutzer (iOS-Kurzbefehl «Standort fürs Briefing»)
-Einmalig, ca. 10 Minuten. Danach läuft alles automatisch.
+Einmalig, ca. 10 Minuten. Danach läuft alles automatisch. Die Bezeichnungen in iOS sind nicht auf einem Gerät geprüft und können je nach iOS-Version leicht abweichen.
 
 **A. Werte bereitstellen (am PC)**
 1. Google Sheet «Cockpit» öffnen → **Erweiterungen → Apps Script**.
@@ -183,7 +183,7 @@ Einmalig, ca. 10 Minuten. Danach läuft alles automatisch.
    - `ORT` ebenso ersetzen, dabei **Stadt** wählen.
    - Die Anführungszeichen um die Variablen stehen lassen.
 6. Suchen: «URL abrufen» → **Inhalte von URL abrufen** antippen. Ins Feld **URL** den Wert neben **shortcutUrl** aus dem Sheet einsetzen.
-7. Bei dieser Aktion auf den Pfeil **›** tippen → **Methode: POST** → **Anfragetext: Datei** → bei **Datei** die Variable **Text** wählen.
+7. Bei dieser Aktion auf den Pfeil **›** tippen → **Methode: POST** → beim Feld für den Inhalt der Anfrage (je nach iOS-Version «Haupttext anfordern» oder «Anfragetext») **Datei** wählen → bei **Datei** die Variable **Text** wählen.
 8. Oben rechts **Fertig**.
 
 **C. Testen und Berechtigung**

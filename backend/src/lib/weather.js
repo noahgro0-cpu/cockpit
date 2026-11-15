@@ -201,6 +201,15 @@ function tempText_(s) {
   return t;
 }
 
+/** Precipitation level: "" (dry), "light", "rain", "snow", "thunder". */
+function rainLevel(s) {
+  if (s.thunder) return "thunder";
+  if (s.snow && (s.pMax >= 30 || s.pSum >= 0.3)) return "snow";
+  if (s.pMax >= 60 || s.pSum >= 2) return "rain";
+  if (s.pMax >= 30 || s.pSum >= 0.3) return "light";
+  return "";
+}
+
 /** Precipitation clause or "" (dry). Mentions the peak time on long segments. */
 function rainAdvice(s, longSegment) {
   var when = longSegment ? ", vor allem " + timeWord(s.pMaxAt) : "";
@@ -221,6 +230,7 @@ function rainAdvice(s, longSegment) {
 function buildWeatherText(segments) {
   var out = [];
   var prevClass = null;
+  var prevRain = "";
   segments.forEach(function (seg) {
     var s = seg.summary;
     if (!s) return;
@@ -232,8 +242,14 @@ function buildWeatherText(segments) {
     } else {
       sentence = head + " ist es " + cls + " (" + tempText_(s) + "), " + clothingAdvice(cls, s) + ".";
     }
-    var rain = rainAdvice(s, seg.to - seg.from > 4 * 60);
-    if (rain) sentence += " " + cap_(rain) + ".";
+    var level = rainLevel(s);
+    if (level && level === prevRain) {
+      // Same advice as the previous segment: do not repeat it.
+      sentence += " Auch dort " + (level === "light" ? "Regen möglich" : level === "rain" ? "Regen wahrscheinlich" : level === "snow" ? "Schnee möglich" : "Gewitter möglich") + " (" + Math.round(s.pMax) + " %).";
+    } else if (level) {
+      sentence += " " + cap_(rainAdvice(s, seg.to - seg.from > 4 * 60)) + ".";
+    }
+    prevRain = level;
     if (s.gustMax >= 50) sentence += " Windig, Böen bis " + Math.round(s.gustMax) + " km/h.";
     out.push(sentence);
     prevClass = cls;

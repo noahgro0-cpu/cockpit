@@ -64,8 +64,8 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel zuoberst an; eine Wiederholung aktualisiert dieselbe Regel und liefert `ruleAdded: false`) |
 | `settings.update` | `Partial<Settings>`, mindestens ein Feld | `Settings` (schreibt in `config`; idempotent) |
 | `event.add` | `{calendar: "exams", title, date, kind: "exam"\|"deadline"}` | `CalEvent` (ganztägig; idempotent über Titel + Datum; `kind` als Event-Tag gespeichert) |
-| `location.update` | `{lat, lon, name?}` (Zahlen oder Text mit Dezimalkomma) | `{at}` (nur letzter Standort, gerundet; nie im State oder Log; D20) |
-| `briefing.preview` | – | `{text}` (heutiges Briefing inkl. Wetter, ohne Versand) |
+| `location.update` | `{lat, lon, name?}` (Zahlen oder Text mit Dezimalkomma) | `{at}` (nur letzter Standort, gerundet; nie im State; im Log nur «location updated» ohne Koordinaten/Ort; D20) |
+| `briefing.preview` | `{date?}` (heute bis +7 Tage) | `{text}` (Briefing inkl. Wetter zur Briefing-Zeit des Tages, ohne Versand) |
 
 Typen (massgebend ist `shared/api-types.ts`):
 

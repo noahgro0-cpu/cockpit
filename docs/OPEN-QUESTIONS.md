@@ -23,3 +23,8 @@ Alle drei Wünsche vom 2026-11-14 sind am 2026-11-14 in Phase 1b umgesetzt (DECI
 - 2026-11-14 · **Einstellungen schreiben:** Bitte eine typisierte Aktion für `Settings` (Haltestellen, Koordinaten, Kategorien/Farben) ergänzen. Bis dahin speichert die PWA Änderungen ausdrücklich nur auf dem jeweiligen Gerät; zentrale Werte bleiben im Sheet.
 - 2026-11-14 · **Idempotente Schnellerfassung:** `quickAdd` benötigt eine vom Client erzeugte UUID. Die PWA nutzt bis dahin die lokale deutsche Datumsvorschau (`chrono-node`) und `todo.add` mit UUID, damit die Outbox sicher wiederholen kann.
 - 2026-11-14 · **Mail-Aktionen und Wiederholungen:** Bitte für `mail.toTodo` und `mail.feedback` Idempotenz garantieren/dokumentieren oder eine Request-ID ergänzen. Die PWA nutzt die bestehenden Payloads. Nach unklarer Bestätigung wird eine solche Aktion zur manuellen Prüfung angehalten (auch nach einem Browser-Abbruch während des Versands), statt unkontrolliert doppelte Aufgaben/Regeln anzulegen. Die Handler für alle drei Mail-Aktionen fehlen im derzeitigen Phase-1a-Backend noch; Oberfläche und Mock-Modus sind vorbereitet.
+
+## Hinweise an Codex
+
+- 2026-11-15 · **Briefing-Text mehrzeilig:** Das Briefing hat jetzt eine zusätzliche Wetterzeile (D20). `state.briefing.text` trennt die Zeilen mit `
+`; `web/src/Today.tsx` rendert es in einem `<p>` ohne `white-space: pre-line`, die Zeilen laufen deshalb ineinander. Bitte `.briefing p { white-space: pre-line; }` ergänzen (oder Zeilen einzeln rendern). Kein Vertragswechsel.

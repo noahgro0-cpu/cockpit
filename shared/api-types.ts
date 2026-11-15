@@ -189,8 +189,11 @@ export interface ApiActions {
    * lat/lon may be strings with a decimal comma (as iOS sends them). `name` = locality, optional.
    */
   "location.update": { payload: { lat: number | string; lon: number | string; name?: string }; data: { at: ISODateTime } };
-  /** Today's briefing text as it would be generated now (incl. weather); sends and stores nothing. */
-  "briefing.preview": { payload: Record<string, never> | undefined; data: { text: string } };
+  /**
+   * Briefing text as generated now (incl. weather); sends and stores nothing.
+   * `date` (today to +7 days) previews that day as at its briefing time.
+   */
+  "briefing.preview": { payload: { date?: ISODate } | undefined; data: { text: string } };
 }
 
 export type ApiAction = keyof ApiActions;

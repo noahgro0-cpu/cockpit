@@ -134,8 +134,16 @@ function apiHandlers_() {
     "location.update": function (p) {
       return saveLocation_(p);
     },
-    "briefing.preview": function () {
-      return { text: briefingTextNow_(new Date()) };
+    "briefing.preview": function (p) {
+      var now = new Date();
+      var today = toZurichDate(now);
+      if (p.date && (p.date < today || p.date > addDaysIso(today, 7))) {
+        throw apiError("bad_request", "date must be today to +7 days");
+      }
+      if (p.date && p.date !== today) {
+        now = zurichInstant(p.date, parseHhmm(briefingTimeFor(p.date, readConfig_())) || 390);
+      }
+      return { text: briefingTextNow_(now) };
     },
   };
 }

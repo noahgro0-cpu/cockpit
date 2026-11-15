@@ -26,18 +26,28 @@ function fetchForecasts_(places) {
     return {
       url:
         "https://api.open-meteo.com/v1/forecast?latitude=" + p.lat + "&longitude=" + p.lon +
-        "&hourly=" + OPEN_METEO_HOURLY + "&timezone=Europe%2FZurich&forecast_days=2",
+        "&hourly=" + OPEN_METEO_HOURLY + "&timezone=Europe%2FZurich&forecast_days=8",
       muteHttpExceptions: true,
     };
   });
-  var responses = UrlFetchApp.fetchAll(requests);
-  return responses.map(function (res, i) {
-    if (res.getResponseCode() !== 200) {
-      log_("warn", "weather", "Open-Meteo HTTP " + res.getResponseCode() + " for place " + i);
-      return null;
-    }
-    var body = JSON.parse(res.getContentText());
-    return body && body.hourly ? body.hourly : null;
+  function attempt() {
+    return UrlFetchApp.fetchAll(requests).map(function (res) {
+      if (res.getResponseCode() !== 200) return { error: "HTTP " + res.getResponseCode() };
+      var body = JSON.parse(res.getContentText());
+      return body && body.hourly ? { hourly: body.hourly } : { error: "no hourly data" };
+    });
+  }
+  var results = attempt();
+  var failed = results.some(function (r) {
+    return r.error;
+  });
+  if (failed) {
+    Utilities.sleep(3000); // one retry: Open-Meteo limits per IP and Apps Script shares IPs
+    results = attempt();
+  }
+  return results.map(function (r, i) {
+    if (r.error) log_("warn", "weather", "Open-Meteo " + r.error + " for place " + i);
+    return r.hourly || null;
   });
 }
 

@@ -123,6 +123,17 @@ test("same temperature class is not repeated; long segment names the rain peak",
   assert.match(text, /Tagsüber in Campusstadt ist es ähnlich \(8 °C\)\. Es regnet wahrscheinlich \(80 %, vor allem am Nachmittag\), nimm einen Regenschirm mit\./);
 });
 
+test("same rain level in both segments is mentioned briefly the second time", () => {
+  const s1 = L.summarizeHours(hourly("2026-11-16", () => ({ t: 6, feels: 6, p: 40 })), "2026-11-16", 360, 450);
+  const s2 = L.summarizeHours(hourly("2026-11-16", () => ({ t: 12, feels: 12, p: 35 })), "2026-11-16", 480, 1020);
+  const text = L.buildWeatherText([
+    { place: HOME, from: 360, to: 450, kind: "way", summary: s1 },
+    { place: CAMPUS, from: 480, to: 1020, kind: "campus", summary: s2 },
+  ]);
+  assert.ok(text.includes("Es könnte leicht regnen (40 %), wenn du noch Platz hast"));
+  assert.ok(text.endsWith("Tagsüber in Campusstadt ist es frisch (12 °C), eine leichte Jacke oder ein Pulli reicht. Auch dort Regen möglich (35 %)."));
+});
+
 test("weekend text: one sentence for the day", () => {
   const s = L.summarizeHours(hourly("2026-11-21", (i) => ({ t: i < 12 ? 1 : 4, feels: i < 12 ? -3 : 1, snow: i === 10 ? 0.4 : 0, p: i === 10 ? 50 : 0, gust: 55 })), "2026-11-21", 420, 1260);
   const text = L.buildWeatherText([{ place: HOME, from: 420, to: 1260, kind: "day", summary: s }]);
@@ -170,4 +181,8 @@ test("API accepts location.update and briefing.preview", () => {
   const actions = L.apiActions_();
   assert.ok(actions["location.update"]);
   assert.ok(actions["briefing.preview"]);
+  const v = actions["briefing.preview"].validate;
+  assert.equal(v(undefined).ok, true);
+  assert.equal(v({ date: "2026-11-16" }).ok, true);
+  assert.equal(v({ date: "16.11.2026" }).ok, false);
 });
