@@ -92,14 +92,18 @@ function previewBriefing() {
  * Delete both rows after setting up the shortcut.
  */
 function shortcutSetup() {
+  withWriteLock_(writeShortcutRows_);
+  console.log("Rows shortcutUrl and shortcutText written to tab config.");
+}
+
+/** Writes the rows (caller holds the write lock). Also run once automatically by tick (SHORTCUT_ROWS). */
+function writeShortcutRows_() {
   var p = props_();
   var url = p.getProperty("WEB_APP_URL");
   if (!url) throw new Error("WEB_APP_URL missing: run setup() first");
   var text = '{"key":"' + p.getProperty("API_KEY") + '","action":"location.update","payload":' +
     '{"lat":"LAT","lon":"LON","name":"ORT"}}';
-  withWriteLock_(function () {
-    setConfigValue_("shortcutUrl", url);
-    setConfigValue_("shortcutText", text);
-  });
-  console.log("Rows shortcutUrl and shortcutText written to tab config.");
+  setConfigValue_("shortcutUrl", url);
+  setConfigValue_("shortcutText", text);
+  p.setProperty("SHORTCUT_ROWS", "1");
 }

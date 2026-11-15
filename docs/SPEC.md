@@ -178,8 +178,8 @@ iOS: `apple-touch-icon`, `viewport-fit=cover` mit Safe-Area-Abständen, `100dvh`
 
 ## 4. Widgets und Kurzbefehl (`widgets/`)
 - Ein Scriptable-Skript `Cockpit.js`. Oben eine Konstante für den Setup-Code. Der Widget-Parameter wählt den Inhalt: `heute`, `todos`, `woche`.
-- Grössen: klein (nächster Termin + nächste Abfahrt), mittel (Tagesagenda + 3 dringendste To-dos), gross (Woche + wichtige Mails), Sperrbildschirm rechteckig (nächster Termin, nächste Abfahrt).
-- Daten über `getWidget`; ÖV direkt. Letzte Antwort lokal speichern und bei Fehlern mit «Stand hh:mm» anzeigen. `refreshAfterDate` = jetzt + 15 Min.
+- Grössen (geändert 2026-11-15 auf Wunsch des Nutzers, ohne ÖV, siehe D21): klein = wichtigste Mail (Absender, Betreff) + die 2 nächsten offenen To-dos; ohne Mail bis zu 3 To-dos; ohne beides der nächste Termin. Mittel = Tagesagenda + 3 dringendste To-dos. Gross = Woche + wichtige Mails. Sperrbildschirm rechteckig = nächster Termin + nächstes To-do.
+- Daten nur über `getWidget` (keine ÖV-Abfrage im Widget). Letzte Antwort lokal speichern und bei Fehlern mit «Stand hh:mm» anzeigen. `refreshAfterDate` = jetzt + 15 Min.
 - Antippen öffnet die PWA-URL.
 - `docs/SETUP-iOS.md`: klickgenaue Anleitung für Scriptable (Skript anlegen, Code einfügen, Widget hinzufügen, Parameter setzen), für den Siri-Kurzbefehl «Cockpit To-do» (Text diktieren → «Inhalte von URL abrufen», POST mit `quickAdd` → Ergebnis als Mitteilung anzeigen), für «Auf Rückseite tippen» und für die Installation der PWA auf dem Home-Bildschirm.
 

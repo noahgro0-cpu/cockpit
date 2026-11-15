@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "4";
+var SCHEMA_VERSION = "5";
 
 function tick() {
   var lock = LockService.getDocumentLock();
@@ -74,6 +74,8 @@ function ensureSchema_() {
     ensureTabs_(ss_());
     ensureConfig_();
     seedRules_();
+    // One-time: values for the iOS shortcuts, so no editor run is needed (D20).
+    if (props_().getProperty("SHORTCUT_ROWS") !== "1") writeShortcutRows_();
   });
   p.setProperty("SCHEMA_VERSION", SCHEMA_VERSION);
   log_("info", "setup", "schema updated to version " + SCHEMA_VERSION);

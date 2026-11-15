@@ -140,7 +140,7 @@ Weitere Ergebnisse aus dem gemeinsamen Test:
 
 ### Offen / nächste Schritte
 - PWA-Integration der Mail-Aktionen im echten Betrieb prüfen: Mail → To-do, Erledigt, «War (un)wichtig» → Sheet kontrollieren (STATUS «Übergabe 1b» Punkt 4). Backend-Handler sind fertig, aber noch nicht live mit der PWA getestet.
-- `quickAdd` mit KI live testen (z. B. «Python Übung Freitag 14 Uhr abgeben»).
+- ~~`quickAdd` mit KI live testen~~ ✔ 15.11.: «Python Übung Freitag 14 Uhr abgeben» → «Python Übung abgeben», Fr 20.11. 14:00, Kategorie Python; «morgen Mathe Serie 5 lösen» → 16.11., Mathe; «Zahnarzt anrufen nächste Woche» → ohne Datum (vage Angabe nicht aufgelöst). Testeinträge gelöscht.
 - Codex (Phase 2/3): optionale PWA-Anpassungen laut OPEN-QUESTIONS.md (`settings.update`, `quickAdd` mit `id`, Sperre bei Mail-Aktionen entfernen). Für das Siri-Kurzbefehl-Setup (Phase 3) bleibt `quickAdd {text}` gültig.
 - Phase 5: Web Push als weiterer Kanal (Schnittstelle vorhanden).
 
@@ -167,10 +167,9 @@ Weitere Ergebnisse aus dem gemeinsamen Test:
 ### Manuelle Schritte für den Nutzer (iOS-Kurzbefehl «Standort fürs Briefing»)
 Einmalig, ca. 10 Minuten. Danach läuft alles automatisch. Die Bezeichnungen in iOS sind nicht auf einem Gerät geprüft und können je nach iOS-Version leicht abweichen.
 
-**A. Werte bereitstellen (am PC)**
-1. Google Sheet «Cockpit» öffnen → **Erweiterungen → Apps Script**.
-2. Oben in der Funktionsauswahl **shortcutSetup** wählen → **Ausführen**.
-3. Im Sheet, Tab **config**, stehen jetzt zuunterst die Zeilen **shortcutUrl** und **shortcutText**.
+**A. Werte bereitstellen**
+1. Nichts zu tun: Das Backend schreibt seit Deployment @14 beim nächsten automatischen Lauf (alle 10 Min.) einmalig die Zeilen **shortcutUrl** und **shortcutText** zuunterst in den Tab **config**.
+2. Fehlen sie trotzdem: Google Sheet → **Erweiterungen → Apps Script** → links die Datei **gas/weather.gs** öffnen → oben in der Funktionsauswahl **shortcutSetup** wählen → **Ausführen**.
 
 **B. Kurzbefehl bauen (auf dem iPhone)**
 1. App **Kurzbefehle** öffnen → unten **Automation** → oben rechts **+**.
@@ -207,7 +206,7 @@ Einmalig, ca. 10 Minuten. Danach läuft alles automatisch. Die Bezeichnungen in 
 Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese Punkte erledigen. `backend/` und `shared/` nicht ändern; API-Wünsche in `docs/OPEN-QUESTIONS.md`.
 
 1. **Briefing-Zeilen in der PWA (Fehler, zuerst):** `web/src/Today.tsx` rendert `state.briefing.text` in einem `<p>`, die `\n`-Zeilenumbrüche gehen verloren und die Zeilen laufen ineinander. Lösung: in `web/src/style.css` bei `.briefing p` `white-space: pre-line;` ergänzen oder die Zeilen einzeln rendern. Auch im Dashboard-Modus (`.dashboard .briefing`) prüfen. Mock-Daten: `docs/mock-state.json` → `briefing.text` darf zur Prüfung eine Wetterzeile enthalten (frei erfundener Ort).
-2. **Widgets nach SPEC §4** über `getWidget` (Felder siehe `WidgetState` in `shared/api-types.ts`: `nextEvent`, `today`, `todos` (5), `mails` (3)).
+2. **Widgets nach SPEC §4 (Stand 2026-11-15, D21: kleines Widget und Sperrbildschirm ohne ÖV, stattdessen wichtigste Mail und To-dos; keine ÖV-Abfrage im Widget)** über `getWidget` (Felder siehe `WidgetState` in `shared/api-types.ts`: `nextEvent`, `today`, `todos` (5), `mails` (3)).
 3. **`docs/SETUP-iOS.md`:** den Standort-Kurzbefehl aus dem Abschnitt «Erweiterung: Wetter … → Manuelle Schritte» oben übernehmen, ebenso den Siri-Kurzbefehl `quickAdd`. URL und Schlüssel kommen für alle Kurzbefehle aus der Editor-Funktion `shortcutSetup()` (schreibt `shortcutUrl`/`shortcutText` in den Tab `config`). Für `quickAdd` den Text entsprechend anpassen: `action` `quickAdd`, `payload` `{text}`.
 4. **Optional (nicht dringend):** die PWA-Anpassungen aus `docs/OPEN-QUESTIONS.md` (`settings.update`, `quickAdd` mit `id`, Sperre bei Mail-Aktionen entfernen).
 5. Am Ende `cd web; npm test; npm run build` und `docs/STATUS.md` nachführen.
