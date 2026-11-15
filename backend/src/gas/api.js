@@ -228,9 +228,15 @@ function capture_(p, allowEvents) {
   var parsed = null;
   if (aiAvailable_(config) && !isSensitiveText(text, loadRules_())) {
     var cats = settingsFromConfig(config).categories;
-    var res = callGemini_(buildCaptureRequest(text, now, cats), config);
-    if (res.ok) parsed = parseCaptureResult(res.text, now, cats, text, allowEvents);
-    if (!parsed) log_("info", "capture", "AI result unusable, fallback used");
+    var req = buildCaptureRequest(text, now, cats);
+    // One retry: a failed or unusable answer would otherwise store the whole sentence as title.
+    for (var attempt = 0; attempt < 2 && !parsed; attempt++) {
+      if (attempt) Utilities.sleep(1500);
+      var res = callGemini_(req, config);
+      if (res.ok) parsed = parseCaptureResult(res.text, now, cats, text, allowEvents);
+      else if (res.status === 404 || res.reason === "no key") break;
+    }
+    if (!parsed) log_("info", "capture", "AI result unusable after retry, fallback used");
   }
   if (!parsed) parsed = captureFallback(text, now);
   if (!allowEvents) parsed = parsed.slice(0, 1); // quickAdd returns a single to-do

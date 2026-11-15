@@ -293,7 +293,12 @@ Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) un
   - «Zahnarzt Dienstag 15 Uhr» und «Velo flicken nächste Woche» bleiben je ein Eintrag.
   - «Prüfung Statistik am 3. Dezember, vorher Zusammenfassung schreiben» → ganztägiger Termin + To-do.
 - Echter Schreibtest: zwei To-dos aus einem Satz, derselbe Aufruf mit derselben `id` zweimal → dieselben IDs, nichts doppelt; Testeinträge gelöscht. `npm run e2e` 23/23, 123 Backend-Tests.
-- Der Siri-Kurzbefehl braucht **keine** Änderung: `data.message` enthält jetzt eine Zeile pro Eintrag.
+- Der Siri-Kurzbefehl sollte **keine** Änderung brauchen: `data.message` enthält eine Zeile pro Eintrag. Auf dem Gerät noch zu prüfen (Nutzer-Schritt unten), zusammen mit der offenen Mitteilungsanzeige aus Phase 3 (dort muss die Variable aus **Wörterbuchwert abrufen** mit Schlüssel `message` stehen, nicht `data`).
+- Ein fehlgeschlagener oder unbrauchbarer KI-Aufruf wird in `capture` einmal wiederholt (Deployment @23). Vorher fiel der Beispielsatz in ca. 1 von 7 Aufrufen auf «ganzer Satz als To-do» zurück; danach 8 von 8 korrekt.
+
+### Manuelle Schritte für den Nutzer
+1. Siri-Kurzbefehl «Cockpit» starten und diktieren: «Ich habe morgen um 9 Uhr ein Meeting und muss dafür heute Abend noch neue Schuhe kaufen». Erwartet: Mitteilung mit zwei Zeilen («Termin eingetragen: Meeting …», «To-do erfasst: Neue Schuhe kaufen …»), Termin im Google-Kalender, To-do in der PWA. Danach beide Testeinträge löschen.
+2. Zeigt die Mitteilung `{…}` mit vielen Feldern statt zwei Zeilen: Kurzbefehl öffnen, in **Mitteilung anzeigen** die Variable antippen und die Ausgabe der zweiten Aktion **Wörterbuchwert abrufen** (Schlüssel `message`) wählen.
 - Kalender wird bis +42 Tage gelesen (für die Monatsansicht der PWA).
 - Tick misst seine Laufzeit pro Tag (Script Property `TICK_STATS`); beim Tageswechsel schreibt er eine Log-Zeile «runtime <Datum>: <n> runs, <x> min» (für die Phase-4-Messung).
 
@@ -315,7 +320,7 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 ## Phase 4 – Integration und Abnahme (begonnen 2026-11-15, Claude Code)
 
 ### Erledigt
-- **Sicherheitsprüfung Repo und Git-Historie** (alle Commits, alle Branches): Abgleich gegen alle Werte aus `backend/.env.local`, `backend/src/private.local.js`, die Mailadressen in `private/PERSOENLICH.md`, Wohn- und Schulort sowie Muster für Google-API-Schlüssel, Telegram-Token, Deployment-IDs, ntfy-Topics und private Schlüssel. Ergebnis: keine Schlüssel, Tokens, Deployment-IDs, Web-App-URL, Koordinaten oder Adressen, weder im aktuellen Stand noch in der Historie. Treffer nur bei allgemeinen Wörtern (Kategorie-IDs, Farbcodes, «from»).
+- **Sicherheitsprüfung Repo und Git-Historie** (alle Commits, alle Branches): Abgleich gegen alle Werte aus `backend/.env.local`, `backend/src/private.local.js`, die Mailadressen in `private/PERSOENLICH.md`, Wohn- und Schulort sowie Muster für Google-API-Schlüssel, Telegram-Token, Deployment-IDs, ntfy-Topics und private Schlüssel. Ergebnis: keine Schlüssel, Tokens, Deployment-IDs, Web-App-URL, Koordinaten oder Adressen, weder im aktuellen Stand noch in der Historie. Treffer nur bei allgemeinen Wörtern (Kategorie-IDs, Farbcodes, «from»). Zusätzlich alle 157 Wörter ab 5 Zeichen aus `private/PERSOENLICH.md` gegen Repo und Historie geprüft: Überschneidungen sind nur allgemeine Begriffe (z. B. «Python», «Krankenkasse», «Stundenplan»); einziger identifizierender Treffer ist Befund 1.
   - Befund 1 (behoben): Kurzname der Hochschule in STATUS.md (seit Commit `48a9293`). Im aktuellen Stand ersetzt; **in der Historie bleibt er**, siehe offene Entscheide.
   - Befund 2 (bekannt seit Phase 0): Die ersten zwei Commits tragen den Vornamen als Autorname.
 - **Eingabevalidierung:** Alle Aktionen haben Validatoren (`src/lib/api.js`), `npm run e2e` prüft falschen Schlüssel, kaputtes JSON und fehlende Felder (23/23).
