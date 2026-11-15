@@ -109,7 +109,7 @@ test("to-do and push decisions", () => {
   const t = plain(L.todoFromMail(e, "id1", "2026-11-16T10:00:00+01:00", e.todoTitle));
   assert.deepEqual([t.title, t.due, t.priority, t.source, t.mailId, t.dueHasTime], ["Laboranmeldung bestätigen", "2026-11-27", 2, "mail", "18c0aa", false]);
   const n = plain(L.mailNotification(e));
-  assert.deepEqual(n, { title: "Dringend: Studiensekretariat", body: "Anmeldung Labor – Frist · Frist 27.11.2026", priority: 4, clickUrl: "https://mail.google.com/mail/u/0/#all/18c0a0", tag: "mail" });
+  assert.deepEqual(n, { title: "Dringend: Studiensekretariat", body: "Anmeldung Labor – Frist · bis 27.11.2026", priority: 4, clickUrl: "https://mail.google.com/mail/u/0/#all/18c0a0", tag: "mail" });
   const info = L.finalizeMail(parsed(), local, Object.assign({}, AI, { importance: 1 }), "ok", 0, MCFG);
   assert.equal(L.wantsAutoTodo(info), false);
   assert.equal(L.wantsPush(info), false);

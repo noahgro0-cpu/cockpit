@@ -263,7 +263,7 @@ function mailNotification(entry) {
     };
   }
   var body = entry.subject;
-  if (entry.deadline) body += " · Frist " + formatDateCh(entry.deadline);
+  if (entry.deadline) body += " · bis " + formatDateCh(entry.deadline);
   return {
     title: (urgent ? "Dringend: " : "Mail: ") + (entry.fromName || entry.fromEmail || "Unbekannt"),
     body: body,

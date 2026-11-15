@@ -174,10 +174,10 @@ test("push channels: auto prefers Telegram, explicit list, unconfigured ones ski
 });
 
 test("telegram body: plain text, link last, no preview, quiet for low priority", () => {
-  const b = plain(L.telegramBody({ title: "Dringend: Sekretariat", body: "Anmeldung · Frist 27.11.2026", priority: 4, clickUrl: "https://mail.google.com/x" }, 12345));
+  const b = plain(L.telegramBody({ title: "Dringend: Sekretariat", body: "Anmeldung · bis 27.11.2026", priority: 4, clickUrl: "https://mail.google.com/x" }, 12345));
   assert.deepEqual(b, {
     chat_id: "12345",
-    text: "❗ Dringend: Sekretariat\nAnmeldung · Frist 27.11.2026\nhttps://mail.google.com/x",
+    text: "❗ Dringend: Sekretariat\nAnmeldung · bis 27.11.2026\nhttps://mail.google.com/x",
     link_preview_options: { is_disabled: true },
     disable_notification: false,
   });
