@@ -12,6 +12,7 @@
   --lilac: #eeeaf6;
   --danger: #a1403b;
   --danger-bg: #faeeeb;
+  --todo-ink: #2b62a3;
   --radius: 22px;
   --shadow: 0 4px 20px #26382f04;
   --text-large-title: 2.125rem;
@@ -36,6 +37,7 @@
   --lilac: #353043;
   --danger: #ffb3a9;
   --danger-bg: #432c2a;
+  --todo-ink: #8db8ec;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -52,5 +54,6 @@
     --lilac: #353043;
     --danger: #ffb3a9;
     --danger-bg: #432c2a;
+  --todo-ink: #8db8ec;
   }
 }

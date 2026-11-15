@@ -23,7 +23,7 @@ export function Mails({
   const card = (m: MailItem) => (
         <article className={`card mail-card${m.importance < 2 ? " info" : ""}`} key={m.id}>
           <div className="eyebrow">
-            <span>{m.sensitive ? m.category : m.fromName}</span>
+            <span>{m.fromName || m.fromEmail}</span>
             <span className={m.importance === 3 ? "danger" : ""}>
               {m.importance === 3
                 ? "DRINGEND"
@@ -32,12 +32,9 @@ export function Mails({
                   : "INFO"}
             </span>
           </div>
-          <h2 className="mail-title">
-            {m.sensitive
-              ? "Neue Nachricht in einer sensiblen Kategorie"
-              : m.subject}
-          </h2>
-          <p>{m.summary}</p>
+          <h2 className="mail-title">{m.subject}</h2>
+          <MailTags mail={m} />
+          {m.summary && <p>{m.summary}</p>}
           {m.deadline && (
             <p className="small">
               Frist: {dateLabel(m.deadline, "d. MMMM yyyy")}
@@ -122,5 +119,20 @@ export function Mails({
       )}
       {showInfo && info.map(card)}
     </section>
+  );
+}
+
+/** Mailbox and confidentiality badges (D25). Sensitive mails show sender and subject, never a summary. */
+export function MailTags({ mail }: { mail: MailItem }) {
+  if (!mail.account && !mail.sensitive) return null;
+  return (
+    <p className="mail-tags">
+      {mail.account && <span className="tag account">{mail.account}</span>}
+      {mail.sensitive && (
+        <span className="tag sensitive">
+          Vertraulich{mail.category ? " · " + mail.category : ""}
+        </span>
+      )}
+    </p>
   );
 }

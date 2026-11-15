@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { stored } from "./useCockpit";
-import type { State } from "../../shared/api-types";
+import type { State, Todo } from "../../shared/api-types";
 import {
   dateLabel,
   day,
@@ -10,6 +10,7 @@ import {
   nextDays,
   monthDays,
   monthShift,
+  weekStart,
 } from "./date";
 import type { Mutation } from "./outbox";
 import { BottomSheet } from "./BottomSheet";
@@ -31,6 +32,16 @@ export function Calendar({
   const [selectedDay, setSelectedDay] = useState(today);
   const limit = shift(day(state.generatedAt), 42);
   const [adding, setAdding] = useState(false);
+  // D25: tapping a to-do in the week view opens quick actions.
+  const [openTodo, setOpenTodo] = useState<Todo | null>(null);
+  const [otherDate, setOtherDate] = useState("");
+  const moveTodo = async (todo: Todo, date: string) => {
+    await mutate({
+      action: "todo.update",
+      payload: { id: todo.id, patch: { due: date, dueHasTime: false, remindAt: null } },
+    });
+    setOpenTodo(null);
+  };
   // Lectures, recurring series and week numbers (D24): muted, can be hidden; never in the month grid.
   const [showRoutine, setShowRoutine] = useState(() =>
     stored<boolean>("cockpit.calendar.routine", true),
@@ -44,7 +55,7 @@ export function Calendar({
       /* private mode: keep the choice for this session only */
     }
   };
-  const renderDay = (d: string, monthly = false) => {
+  const renderDay = (d: string, monthly = false, inSheet = false) => {
     const available = !monthly || (d >= today && d <= limit);
     const events = state.events.filter(
       (e) =>
@@ -92,14 +103,36 @@ export function Calendar({
             )}
           </div>
         ))}
-        {todos.map((t) => (
-          <div className="todo-chip" key={t.id}>
-            <span className="sr-only">To-do: </span>
-            <Icon name="circle" size={12} />
-            <span className="event-title">{t.title}</span>
-            {t.dueHasTime && <span className="event-time">{time(t.due!)}</span>}
-          </div>
-        ))}
+        {todos.map((t) => {
+          const inner = (
+            <>
+              <span className="sr-only">To-do: </span>
+              <Icon name="circle" size={12} />
+              <span className="event-title">{t.title}</span>
+              {t.dueHasTime && (
+                <span className="event-time">{time(t.due!)}</span>
+              )}
+            </>
+          );
+          return monthly || inSheet ? (
+            <div className="todo-chip" key={t.id}>
+              {inner}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="todo-chip"
+              key={t.id}
+              aria-haspopup="dialog"
+              onClick={() => {
+                setOtherDate(day(t.due!));
+                setOpenTodo(t);
+              }}
+            >
+              {inner}
+            </button>
+          );
+        })}
         {!monthly && !events.length && !todos.length && (
           <span className="free">Frei</span>
         )}
@@ -179,6 +212,59 @@ export function Calendar({
         </BottomSheet>
       )}
       <div className="week-grid">{nextDays(now).map((d) => renderDay(d))}</div>
+      {openTodo && (
+        <BottomSheet title="To-do" onClose={() => setOpenTodo(null)}>
+          <div className="card todo-sheet">
+            <h3>{openTodo.title}</h3>
+            <p className="small">
+              Fällig {dateLabel(openTodo.due!, "EEEE, d. MMMM")}
+              {openTodo.dueHasTime ? " · " + time(openTodo.due!) : ""}
+            </p>
+            {openTodo.notes && <p className="small">{openTodo.notes}</p>}
+            <div className="actions">
+              <button
+                className="primary"
+                onClick={async () => {
+                  await mutate({
+                    action: "todo.complete",
+                    payload: { id: openTodo.id, done: true },
+                  });
+                  setOpenTodo(null);
+                }}
+              >
+                Erledigt
+              </button>
+              <button onClick={() => void moveTodo(openTodo, shift(today, 1))}>
+                Morgen
+              </button>
+              <button
+                onClick={() => void moveTodo(openTodo, shift(weekStart(now), 7))}
+              >
+                Nächste Woche
+              </button>
+            </div>
+            <form
+              className="form-grid"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (otherDate) void moveTodo(openTodo, otherDate);
+              }}
+            >
+              <label>
+                Anderes Datum
+                <input
+                  type="date"
+                  value={otherDate}
+                  min={today}
+                  onChange={(e) => setOtherDate(e.target.value)}
+                  required
+                />
+              </label>
+              <button>Verschieben</button>
+            </form>
+          </div>
+        </BottomSheet>
+      )}
       {monthOpen && (
         <BottomSheet
           title="Monatsansicht"
@@ -224,7 +310,7 @@ export function Calendar({
           </div>
           <div className="month-agenda">
             <h3>{dateLabel(selectedDay)}</h3>
-            {renderDay(selectedDay)}
+            {renderDay(selectedDay, false, true)}
           </div>
         </BottomSheet>
       )}

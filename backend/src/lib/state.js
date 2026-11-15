@@ -21,6 +21,8 @@ var CONFIG_DEFAULTS = {
   calCapture: "",
   // Calendars shown muted in the PWA like lectures (comma-separated names, D24), e.g. week numbers.
   calRoutine: "",
+  // Mailbox a mail arrived in (D25): [[label, pattern], ...]; "@me" = own Gmail address, "*" = fallback.
+  mailAccounts: '[["Privat", "@me"], ["Weitere", "*"]]',
   // To-do reminders (D24): minutes before a timed due; time of the daily push for date-only to-dos due today ("" = off).
   todoReminderLead: "120",
   todoDayReminder: "16:00",
@@ -43,7 +45,7 @@ var CONFIG_DEFAULTS = {
 var MAIL_COLUMNS = [
   "id", "threadId", "receivedAt", "fromName", "fromEmail", "subject", "category", "importance",
   "summary", "actionRequired", "deadline", "consequence", "sensitive", "classifiedBy", "todoId",
-  "dismissed", "notifiedAt", "aiAttempts",
+  "dismissed", "notifiedAt", "aiAttempts", "account",
 ];
 
 var SETTINGS_LIMITS = { stop: 100, categories: 30, label: 40 };
@@ -174,6 +176,25 @@ function eventKind(calendarName, config, tagKind, title) {
 }
 
 /**
+ * Display name for a timetable title (D25) from the sheet tab "Fächer Namen": pairs [[from, to]].
+ * Exact match (case-insensitive) first, else the longest "from" contained in the title.
+ */
+function subjectName(title, pairs) {
+  var t = String(title || "");
+  var lower = t.toLowerCase().trim();
+  var best = null;
+  (pairs || []).forEach(function (p) {
+    var from = String(p[0] || "").trim();
+    var to = String(p[1] || "").trim();
+    if (!from || !to) return;
+    var f = from.toLowerCase();
+    if (f === lower) best = { len: Infinity, to: to };
+    else if (lower.indexOf(f) >= 0 && (!best || f.length > best.len)) best = { len: f.length, to: to };
+  });
+  return best ? best.to : t;
+}
+
+/**
  * Routine events (D24): lectures, recurring series and calendars listed in config.calRoutine.
  * The PWA shows them muted; "next appointment" ignores them.
  */
@@ -242,6 +263,7 @@ function rowToMail(row) {
   if (deadline) m.deadline = deadline;
   if (r.consequence) m.consequence = String(r.consequence);
   if (r.todoId) m.todoId = String(r.todoId);
+  if (r.account) m.account = String(r.account);
   return { mail: m, dismissed: toBool(r.dismissed) };
 }
 
@@ -317,8 +339,9 @@ function e2ms_(e) {
 function buildWidget(state, now) {
   var nowMs = now.getTime();
   var today = toZurichDate(now);
+  // D25: the widget's next appointment ignores lectures and other routine entries, like the PWA.
   var timed = state.events.filter(function (e) {
-    return !e.allDay && Date.parse(e.end) > nowMs;
+    return !e.allDay && !e.routine && e.kind !== "lecture" && Date.parse(e.end) > nowMs;
   });
   var todayEvents = state.events.filter(function (e) {
     if (e.allDay) return e.start <= today && e.end > today;

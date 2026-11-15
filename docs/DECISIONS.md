@@ -115,3 +115,12 @@ Abweichungen von und Präzisierungen zu `SPEC.md`. Format: Datum, Entscheid, Beg
 - **Zuständigkeit:** Claude Code betreut ab jetzt auch `web/` und `widgets/` (Wunsch des Nutzers).
 - **Schlüsselrotation:** vorerst nicht. Der Schlüssel war nur in einem inzwischen gelöschten ChatGPT-Chat sichtbar; eine Rotation kostet die Neueinrichtung von PWA, Scriptable und zwei Kurzbefehlen auf zwei Geräten. Rotiert wird bei einem konkreten Verdacht (`rotateKey` in gas/setup.gs, Ablauf in STATUS).
 **Begründung:** Wünsche des Nutzers vom 2026-11-15 abends. Live geprüft: Kalender mit echten Daten (Woche auf einen Blick am PC 1440×900, iPhone), Browser-Prüfungen in hell/dunkel bestanden.
+
+## D25 – Postfach-Kennzeichnung, sensible Mails mit Betreff, lesbare Fächernamen, To-dos im Kalender antippbar (2026-11-15)
+**Entscheid:**
+- **Postfach je Mail** (`MailItem.account`, Spalte `account`): Gmail fügt bei jeder Weiterleitung einen `Delivered-To`-Kopf hinzu, der unterste nennt das ursprüngliche Postfach. Regeln in `config.mailAccounts` (`[[Bezeichnung, Muster], …]`, Reihenfolge zählt): `@me` = eigene Gmail-Adresse (über `Gmail.Users.getProfile`, ohne neue Berechtigung, nur in einer Script Property gespeichert), `*` = Rest, sonst Teilstring gegen alle Adressen inkl. To/Cc (für eine Hochschul-Umleitung ohne eigenen `Delivered-To`). Die persönlichen Muster stehen nur in `private.local.js`/Sheet. Gespeicherte Mails werden einmalig nachgetragen (Schema 8).
+- **Sensible Mails** zeigen in der PWA Absender, Betreff und «Vertraulich · Kategorie», aber nie eine Zusammenfassung (es gibt keine: sensible Mails gehen weiterhin nie an die KI). Push-Texte und Widget bleiben generisch (Sperrbildschirm). Ändert AGENTS.md Regel 4 nicht, die nur KI und Push betrifft.
+- **Fächernamen:** Tab «Fächer Namen» im Sheet (Spalte A Stundenplan-Titel, Spalte B Anzeigename). Für Lektionen gilt ein exakter Treffer, sonst der längste enthaltene Schlüssel. Wirkt in PWA, Widget und Briefing.
+- **Widget:** Der nächste Termin ignoriert Lektionen und Routine-Einträge wie die PWA; die Tagesagenda zeigt sie weiterhin.
+- **PWA:** To-dos im Kalender blau umrandet und antippbar (Erledigt, Morgen, Nächste Woche, anderes Datum). Keine doppelten Überschriften auf iPhone/iPad.
+**Begründung:** Wünsche des Nutzers vom 2026-11-15 abends. «Neue Nachricht in einer sensiblen Kategorie» war für ihn nicht brauchbar; Betreff und Absender stammen aus den Kopfzeilen, nicht aus dem Inhalt.

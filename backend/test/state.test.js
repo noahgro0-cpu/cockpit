@@ -69,7 +69,7 @@ test("buildState has the mock's shape; buildWidget picks the right items", () =>
   assert.deepEqual(plain(state.events), mock.events); // re-sorted
   assert.deepEqual(Object.keys(state).sort(), Object.keys(mock).sort());
   const w = L.buildWidget(state, NOW);
-  assert.equal(w.nextEvent.start, "2026-11-16T08:15:00+01:00");
+  assert.equal(w.nextEvent.start, "2026-11-17T19:00:00+01:00"); // D25: first non-lecture event
   assert.equal(w.today.length, 2);
   assert.equal(w.todos.length, 5);
   assert.ok(w.todos.every((t) => t.status === "open"));
@@ -146,4 +146,21 @@ test("tick runtime: accumulates per Zurich day and reports the finished day", ()
   assert.deepEqual(c.stats, { date: "2026-11-16", runs: 1, ms: 500 });
   assert.deepEqual(c.done, { date: "2026-11-15", runs: 2, ms: 2000 });
   assert.equal(L.tickStatsText({ date: "2026-11-15", runs: 144, ms: 1410000 }), "runtime 2026-11-15: 144 runs, 23.5 min");
+});
+
+test("subject names (D25): exact match, else the longest contained key; unknown stays", () => {
+  const pairs = [["Stundenplan", "Anzeige"], ["KX-MATHE1", "Mathematik 1"], ["KX-MATHE1B-26", "Mathematik 1B"], ["PHYS", "Physik"], ["", "leer"]];
+  assert.equal(L.subjectName("KX-MATHE1B-26", pairs), "Mathematik 1B");
+  assert.equal(L.subjectName("kx-mathe1b-26 ", pairs), "Mathematik 1B");
+  assert.equal(L.subjectName("KX-MATHE1-K-27", pairs), "Mathematik 1");
+  assert.equal(L.subjectName("KX-PHYS-L-26", pairs), "Physik");
+  assert.equal(L.subjectName("KX-CHEM-26", pairs), "KX-CHEM-26");
+});
+
+test("widget next event skips lectures and routine entries (D25)", () => {
+  const ev = (o) => Object.assign({ id: o.title, calendar: "c", kind: "private", allDay: false, start: "2026-11-16T08:30:00+01:00", end: "2026-11-16T10:00:00+01:00" }, o);
+  const state = { events: [ev({ title: "Lektion", kind: "lecture", routine: true }), ev({ title: "Training", routine: true, start: "2026-11-16T09:00:00+01:00" }), ev({ title: "Zahnarzt", start: "2026-11-16T15:00:00+01:00", end: "2026-11-16T16:00:00+01:00" })], todos: [], mails: [], health: {} };
+  const w = plain(L.buildWidget(state, new Date("2026-11-16T07:00:00+01:00")));
+  assert.equal(w.nextEvent.title, "Zahnarzt");
+  assert.equal(w.today.length, 3, "today's agenda keeps lectures");
 });

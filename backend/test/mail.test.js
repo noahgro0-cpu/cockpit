@@ -143,7 +143,7 @@ test("gmail.js only modifies the mailbox in applyLabelOps_, and the pipeline pas
     const code = fs.readFileSync(path.join(dir, f), "utf8");
     const calls = code.match(/Gmail\.Users\.[A-Za-z.]+/g) || [];
     for (const c of calls) {
-      assert.ok(["Gmail.Users.Labels.list", "Gmail.Users.Messages.list", "Gmail.Users.Messages.get", "Gmail.Users.Labels.create", "Gmail.Users.Messages.modify"].includes(c), f + ": " + c);
+      assert.ok(["Gmail.Users.Labels.list", "Gmail.Users.Messages.list", "Gmail.Users.Messages.get", "Gmail.Users.Labels.create", "Gmail.Users.Messages.modify", "Gmail.Users.getProfile"].includes(c), f + ": " + c);
     }
     if (f !== "gmail.js") assert.ok(!/Labels\.create|Messages\.modify/.test(code), f + " must not modify Gmail");
     assert.ok(!/GmailApp|\.trash|\.delete\(|batchDelete/.test(code.replace(/sh\.deleteRow|deleteRows?|deleteTrigger|deleteSheet/g, "")), f + " must not use GmailApp or delete mail");
@@ -163,4 +163,25 @@ test("mail rows round-trip and retention", () => {
   assert.equal(m.mail.classifiedBy, "ai");
   const now = new Date("2026-12-20T10:00:00+01:00");
   assert.deepEqual(plain(L.expiredMailIds([o, { id: "new", receivedAt: "2026-12-19T10:00:00+01:00" }], now, "30")), ["18c0aa"]);
+});
+
+test("mailbox label (D25): original mailbox from Delivered-To, school domain from To, fallback", () => {
+  const RULES = [["Schule", "musterschule.example"], ["Privat", "@me"], ["Geschäftlich", "*"]];
+  const ME = "main.person@gmail.example";
+  const h = (pairs) => pairs.map(([name, value]) => ({ name, value }));
+  const acc = (headers) => L.mailAccount(L.accountCandidates(h(headers)), RULES, ME);
+  // direct mail to the main address
+  assert.equal(acc([["Delivered-To", "main.person@gmail.example"], ["To", "Main Person <main.person@gmail.example>"]]), "Privat");
+  // forwarded from the second Gmail account: Gmail adds a Delivered-To per hop, the oldest is at the bottom
+  assert.equal(acc([["Delivered-To", "main.person@gmail.example"], ["X-Forwarded-For", "second.box@gmail.example main.person@gmail.example"], ["Delivered-To", "second.box@gmail.example"], ["To", "second.box@gmail.example"]]), "Geschäftlich");
+  // newsletter in BCC to the second account
+  assert.equal(acc([["Delivered-To", "main.person@gmail.example"], ["Delivered-To", "second.box@gmail.example"], ["To", "undisclosed-recipients:;"]]), "Geschäftlich");
+  // school account redirects (no extra Delivered-To), original To keeps the school address
+  assert.equal(acc([["Delivered-To", "main.person@gmail.example"], ["To", "M. Person <m.person@stud.musterschule.example>"]]), "Schule");
+  // a friend in To does not make a private mail "Geschäftlich"
+  assert.equal(acc([["Delivered-To", "main.person@gmail.example"], ["To", "friend@gmail.example"], ["Cc", "main.person@gmail.example"]]), "Privat");
+  // unknown own address but no rules -> ""
+  assert.equal(L.mailAccount(L.accountCandidates(h([["Delivered-To", "x@y.example"]])), [], ME), "");
+  assert.deepEqual(plain(L.parseMailAccounts('[["A","*"],"bad",["B"]]')), [["A", "*"]]);
+  assert.deepEqual(plain(L.parseMailAccounts("kein json")), []);
 });

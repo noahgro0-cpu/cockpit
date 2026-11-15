@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "7";
+var SCHEMA_VERSION = "8";
 
 function tick() {
   var lock = LockService.getDocumentLock();
@@ -102,6 +102,12 @@ function ensureSchema_() {
       log_("info", "setup", "mode active, archiveAfterLabel true (D24)");
     }
   });
+  // One-time (D25): mailbox label for mails stored before schema 8. Outside the write lock (Gmail calls).
+  if (p.getProperty("ACCOUNTS_BACKFILLED") !== "1") {
+    var filled = backfillMailAccounts_();
+    p.setProperty("ACCOUNTS_BACKFILLED", "1");
+    log_("info", "setup", "mailbox label set for " + filled + " stored mail(s)");
+  }
   p.setProperty("SCHEMA_VERSION", SCHEMA_VERSION);
   log_("info", "setup", "schema updated to version " + SCHEMA_VERSION);
 }

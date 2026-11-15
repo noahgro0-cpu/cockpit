@@ -1,5 +1,6 @@
 import type { State, Todo } from "../../shared/api-types";
 import { Icon } from "./Icon";
+import { MailTags } from "./Mails";
 import {
   dateLabel,
   day,
@@ -133,15 +134,12 @@ export function Today({
           .map((m) => (
             <article className="mail-row" key={m.id}>
               <div className="small">
-                {m.sensitive ? m.category : m.fromName}
+                {m.fromName || m.fromEmail}
                 {m.importance === 3 && <span className="urgent">Dringend</span>}
               </div>
-              <strong>
-                {m.sensitive
-                  ? "Neue Nachricht in einer sensiblen Kategorie"
-                  : m.subject}
-              </strong>
-              <p className="small">{m.summary}</p>
+              <strong>{m.subject}</strong>
+              <MailTags mail={m} />
+              {m.summary && <p className="small">{m.summary}</p>}
             </article>
           ))}
         {!importantMails(state.mails, now).length && (
@@ -166,6 +164,12 @@ export function Today({
               </div>
             </div>
           ))}
+        {!state.exams.some((e) => daysUntil(e.start, now) >= 0) && (
+          <p className="small">
+            Keine Prüfungen oder Abgaben eingetragen. Neue fügst du im Kalender
+            mit «+» hinzu.
+          </p>
+        )}
       </section>
       {state.briefing && (
         <section className="briefing">

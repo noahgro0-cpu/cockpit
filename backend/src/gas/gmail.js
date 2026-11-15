@@ -36,6 +36,52 @@ function gmailListIds_(query, max) {
 }
 
 /** Full message or null when it no longer exists. */
+/** Own Gmail address (D25), cached in a script property; never logged. "" on failure. */
+function myAddress_() {
+  var p = props_();
+  var cached = p.getProperty("ME_ADDRESS");
+  if (cached) return cached;
+  try {
+    var me = String(Gmail.Users.getProfile("me").emailAddress || "").toLowerCase();
+    if (me) p.setProperty("ME_ADDRESS", me);
+    return me;
+  } catch (e) {
+    return "";
+  }
+}
+
+/** Header-only fetch for the one-time account backfill (D25). */
+function gmailHeaders_(id) {
+  try {
+    var m = Gmail.Users.Messages.get("me", id, { format: "metadata", metadataHeaders: ["Delivered-To", "X-Original-To", "X-Forwarded-For", "To", "Cc"] });
+    return (m.payload && m.payload.headers) || [];
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * One-time (schema 8): sets the mailbox label for stored mails that have none. Returns the count.
+ */
+function backfillMailAccounts_() {
+  var config = readConfig_();
+  var rules = parseMailAccounts(config.mailAccounts);
+  var me = myAddress_();
+  var idx = readMailIndex_();
+  var n = 0;
+  idx.list.forEach(function (rec) {
+    if (rec.account) return;
+    var headers = gmailHeaders_(rec.id);
+    if (!headers) return;
+    var acc = mailAccount(accountCandidates(headers), rules, me);
+    if (acc) {
+      setCells_("mails", rec.rowNum, { account: acc });
+      n++;
+    }
+  });
+  return n;
+}
+
 function gmailGet_(id) {
   try {
     return Gmail.Users.Messages.get("me", id, { format: "full" });

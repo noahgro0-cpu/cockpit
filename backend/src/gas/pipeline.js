@@ -72,6 +72,13 @@ function runMailPipeline_(deadlineMs) {
     items.push({ mail: parseGmailMessage(msg, labelNames, decodeGmailData_), prev: e });
   });
 
+  // Mailbox label (D25): which of the user's addresses the mail arrived at.
+  var accountRules = parseMailAccounts(config.mailAccounts);
+  var me = myAddress_();
+  items.forEach(function (it) {
+    it.mail.account = mailAccount(it.mail.accountAddrs, accountRules, me);
+  });
+
   // 2. Rules (and the user's own Gmail labels). Sensitive or fixed-importance mails stop here.
   items.forEach(function (it, i) {
     it.local = classifyLocal(it.mail, rules, mcfg, useAi);

@@ -117,7 +117,68 @@ function parseGmailMessage(msg, labelNamesById, decode) {
       return (labelNamesById && labelNamesById[id]) || "";
     }).filter(Boolean),
     text: msg.payload ? extractMailText(msg.payload, decode) : "",
+    accountAddrs: accountCandidates(headers),
   };
+}
+
+function addressesIn_(value) {
+  return String(value || "").toLowerCase().match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g) || [];
+}
+
+/**
+ * Addresses that tell which mailbox a mail arrived in (D25): {origin, all}. origin = the bottom-most
+ * Delivered-To (Gmail adds one per forwarding hop, the original mailbox is the oldest), else
+ * X-Original-To; all = origin chain plus X-Forwarded-For, To and Cc.
+ */
+function accountCandidates(headers) {
+  var delivered = [];
+  var all = [];
+  (headers || []).forEach(function (h) {
+    var n = String(h.name || "").toLowerCase();
+    if (n === "delivered-to") delivered = delivered.concat(addressesIn_(h.value));
+  });
+  var origin = delivered.length ? delivered[delivered.length - 1] : addressesIn_(headerValue_(headers, "X-Original-To"))[0] || "";
+  ["X-Forwarded-For", "X-Original-To", "To", "Cc"].forEach(function (name) {
+    all = all.concat(addressesIn_(headerValue_(headers, name)));
+  });
+  return { origin: origin, all: delivered.concat(all) };
+}
+
+/**
+ * Label of the mailbox (D25). rules = [[label, pattern], ...] in order: "@me" matches when the
+ * original mailbox is the own address, "*" is the fallback, any other pattern is a substring
+ * (e.g. a school domain) checked against all addresses. "" if nothing applies.
+ */
+function mailAccount(cand, rules, me) {
+  var c = cand || { origin: "", all: [] };
+  var fallback = "";
+  for (var i = 0; i < (rules || []).length; i++) {
+    var label = String(rules[i][0] || "").slice(0, 30);
+    var pat = String(rules[i][1] || "").toLowerCase().trim();
+    if (!label || !pat) continue;
+    if (pat === "*") {
+      if (!fallback) fallback = label;
+    } else if (pat === "@me") {
+      if (me && c.origin === String(me).toLowerCase()) return label;
+    } else if (c.all.some(function (a) {
+      return a.indexOf(pat) >= 0;
+    })) {
+      return label;
+    }
+  }
+  return fallback;
+}
+
+/** config.mailAccounts (JSON) -> rules; invalid -> []. */
+function parseMailAccounts(json) {
+  try {
+    var r = JSON.parse(json || "[]");
+    return Array.isArray(r) ? r.filter(function (x) {
+      return Array.isArray(x) && x.length === 2;
+    }) : [];
+  } catch (e) {
+    return [];
+  }
 }
 
 /** Messages that are only in "Sent" (own outgoing mail) are skipped; mail to oneself stays. */
@@ -159,6 +220,7 @@ function finalizeMail(mail, local, ai, aiState, prevAttempts, mcfg) {
     dismissed: false,
     notifiedAt: "",
     aiAttempts: prevAttempts || 0,
+    account: mail.account || "",
     // internal, not stored:
     push: local.push,
     todoTitle: "",

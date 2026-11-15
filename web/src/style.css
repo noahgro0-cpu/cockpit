@@ -1493,3 +1493,66 @@ header {
 .task-item .todo-row > .check {
   align-self: start;
 }
+/* D25: to-dos in the calendar: solid blue outline, tappable. */
+:is(.calendar, .month-sheet) .todo-chip {
+  border: 1.5px solid var(--todo-ink);
+  color: var(--todo-ink);
+}
+.calendar button.todo-chip {
+  width: 100%;
+  min-height: 0;
+  font: inherit;
+  font-size: var(--text-footnote);
+  text-align: left;
+  cursor: pointer;
+}
+.calendar button.todo-chip:hover {
+  background: color-mix(in srgb, var(--todo-ink) 8%, transparent);
+}
+.calendar button.todo-chip:focus-visible {
+  outline: 2px solid var(--todo-ink);
+  outline-offset: 1px;
+}
+@media (pointer: coarse) {
+  .calendar button.todo-chip {
+    min-height: 36px;
+  }
+}
+.cal-legend .legend-todo::before {
+  border: 1.5px solid var(--todo-ink);
+}
+.todo-sheet h3 {
+  margin: 0 0 4px;
+}
+.todo-sheet .actions {
+  margin: 14px 0;
+}
+/* D25: mailbox and confidentiality badges. */
+.mail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+.mail-tags .tag {
+  font-size: var(--text-caption);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--sage);
+  color: var(--ink);
+}
+.mail-tags .tag.sensitive {
+  background: var(--lilac);
+}
+/* D25: no duplicate headings on iPhone/iPad (the page title already names the view). */
+.shell:not(.dashboard-shell) main > :not(.today-grid) > .section-title > h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.shell:not(.dashboard-shell) main > :not(.today-grid) > .section-title {
+  justify-content: flex-end;
+}

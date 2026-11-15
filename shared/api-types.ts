@@ -72,6 +72,11 @@ export interface MailItem {
   sensitive: boolean;
   classifiedBy: "rule" | "ai" | "none";
   todoId?: string;
+  /**
+   * Mailbox the mail arrived in, as labelled in `config.mailAccounts` (D25), e.g. "Schule",
+   * "Privat", "Geschäftlich". Missing when unknown.
+   */
+  account?: string;
 }
 
 export interface Category {
@@ -115,7 +120,7 @@ export interface WidgetState {
   schema: 1;
   generatedAt: ISODateTime;
   health: Health;
-  /** Next upcoming (or currently running) timed event, null if none in the next 42 days. */
+  /** Next upcoming (or currently running) timed event that is not a lecture or routine entry (D25), null if none in the next 42 days. */
   nextEvent: CalEvent | null;
   /** Today's events (for the medium widget agenda). */
   today: CalEvent[];
