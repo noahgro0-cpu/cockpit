@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "5";
+var SCHEMA_VERSION = "6";
 
 function tick() {
   var lock = LockService.getDocumentLock();

@@ -17,6 +17,8 @@ var CONFIG_DEFAULTS = {
   campusLon: "",
   campusName: "",
   weatherInBriefing: "true",
+  // Calendar for events from `capture` (name); empty = the default calendar (D22).
+  calCapture: "",
   aiEnabled: "true",
   aiModel: "gemini-3.5-flash-lite",
   mailRetentionDays: "30",

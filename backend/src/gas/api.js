@@ -110,6 +110,9 @@ function apiHandlers_() {
     quickAdd: function (p) {
       return quickAdd_(p);
     },
+    capture: function (p) {
+      return capture_(p, true);
+    },
     "mail.toTodo": function (p) {
       return mailToTodo_(p.id);
     },
@@ -195,34 +198,65 @@ function buildCurrentState_() {
 
 // --- Phase 1b actions ---------------------------------------------------------
 
-/**
- * quickAdd {text, id?}: AI splits the text into title/due/category; fallback = whole text as title.
- * Idempotent when the client sends an id. The AI call runs outside the write lock.
- */
+/** quickAdd {text, id?}: always a to-do (contract unchanged); same parser as capture. */
 function quickAdd_(p) {
+  return capture_(p, false).todo;
+}
+
+var CAPTURE_CACHE_PREFIX = "capture:";
+
+/**
+ * capture {text, id?}: the AI decides to-do or calendar event (D22); fallback = whole text as to-do.
+ * Idempotent when the client sends an id (to-do: by id; event: cached result for 6 h).
+ * The AI call runs outside the write lock.
+ */
+function capture_(p, allowEvents) {
   var id = p.id || Utilities.getUuid();
-  if (p.id) {
+  var cache = CacheService.getScriptCache();
+  if (p.id && !p.dryRun) {
     var existing = loadTodoRecord_(p.id);
-    if (existing) return existing.todo;
+    if (existing) return { type: "todo", todo: existing.todo, message: captureMessage("todo", existing.todo) };
+    var cached = allowEvents && cache.get(CAPTURE_CACHE_PREFIX + p.id);
+    if (cached) return JSON.parse(cached);
   }
   var text = p.text.trim();
-  var fields = null;
+  var now = new Date();
   var config = readConfig_();
+  var result = null;
   if (aiAvailable_(config) && !isSensitiveText(text, loadRules_())) {
-    var now = new Date();
     var cats = settingsFromConfig(config).categories;
-    var res = callGemini_(buildQuickAddRequest(text, now, cats), config);
-    if (res.ok) fields = parseQuickAddResult(res.text, now, cats);
-    if (!fields) log_("info", "quickAdd", "AI result unusable, fallback used");
+    var res = callGemini_(buildCaptureRequest(text, now, cats), config);
+    if (res.ok) result = parseCaptureResult(res.text, now, cats, text, allowEvents);
+    if (!result) log_("info", "capture", "AI result unusable, fallback used");
   }
-  var payload = fields
-    ? Object.assign({ id: id }, fields)
-    : { id: id, title: text.slice(0, TODO_LIMITS.title) };
-  return withWriteLock_(function () {
+  if (!result) result = captureFallback(text, now);
+
+  if (p.dryRun) {
+    if (result.type === "event") {
+      var pe = previewCalEvent(result.event);
+      return { type: "event", event: pe, message: captureMessage("event", pe), dryRun: true };
+    }
+    var pt = newTodo(Object.assign({ id: id }, result.fields), nowIso_(), "quick");
+    return { type: "todo", todo: pt, message: captureMessage("todo", pt), dryRun: true };
+  }
+
+  if (result.type === "event") {
+    var out = withWriteLock_(function () {
+      var again = p.id && cache.get(CAPTURE_CACHE_PREFIX + p.id);
+      if (again) return JSON.parse(again);
+      var ev = createCaptureEvent_(result.event, config);
+      var r = { type: "event", event: ev, message: captureMessage("event", ev) };
+      cache.put(CAPTURE_CACHE_PREFIX + id, JSON.stringify(r), 21600);
+      return r;
+    });
+    return out;
+  }
+  var todo = withWriteLock_(function () {
     var again = loadTodoRecord_(id);
     if (again) return again.todo;
-    return saveTodo_(newTodo(payload, nowIso_(), "quick"), "", 0);
+    return saveTodo_(newTodo(Object.assign({ id: id }, result.fields), nowIso_(), "quick"), "", 0);
   });
+  return { type: "todo", todo: todo, message: captureMessage("todo", todo) };
 }
 
 /** mail.toTodo: idempotent; reuses the mail's or the thread's existing to-do. */

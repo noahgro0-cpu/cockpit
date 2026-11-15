@@ -37,7 +37,7 @@ Persönliche Angaben (Haltestellen, Stundenplan, Labels, Module) stehen in `priv
 | `log` | ts, level, area, message (höchstens 500 Zeilen, älteste löschen) |
 
 - Regeln werden von oben nach unten geprüft, der erste Treffer gilt. Der Nutzer pflegt sie direkt im Sheet.
-- `config`-Schlüssel: `mode` (`observe`/`active`), `archiveAfterLabel`, `quietFrom`, `quietTo`, `briefingWeekday`, `briefingWeekend`, `homeStop`, `campusStop`, `lat`, `lon` (Wohnort), `homeName`, `campusLat`, `campusLon`, `campusName`, `weatherInBriefing` (D20), `aiEnabled`, `aiModel` (Standard `gemini-3.5-flash-lite`), `mailRetentionDays` (30), `calLectures` (Name des Stundenplan-Kalenders), `calExams` (Name des Prüfungs-Kalenders), `categories` (To-do-Kategorien, JSON), `mailCategories` (Mail-Kategorien = Gmail-Labels, JSON-Liste), `sensitiveCategories` (JSON-Liste), `junkCategory` (Kategorie für «War unwichtig»), `setupCode`.
+- `config`-Schlüssel: `mode` (`observe`/`active`), `archiveAfterLabel`, `quietFrom`, `quietTo`, `briefingWeekday`, `briefingWeekend`, `homeStop`, `campusStop`, `lat`, `lon` (Wohnort), `homeName`, `campusLat`, `campusLon`, `campusName`, `weatherInBriefing` (D20), `calCapture` (Kalender für `capture`, leer = Standardkalender, D22), `aiEnabled`, `aiModel` (Standard `gemini-3.5-flash-lite`), `mailRetentionDays` (30), `calLectures` (Name des Stundenplan-Kalenders), `calExams` (Name des Prüfungs-Kalenders), `categories` (To-do-Kategorien, JSON), `mailCategories` (Mail-Kategorien = Gmail-Labels, JSON-Liste), `sensitiveCategories` (JSON-Liste), `junkCategory` (Kategorie für «War unwichtig»), `setupCode`.
 - Datenminimierung: Es wird nie der Volltext einer Mail gespeichert. Mail-Einträge älter als `mailRetentionDays` werden gelöscht.
 - Lesen und Schreiben immer gebündelt (`getValues`/`setValues`). Schreibzugriffe unter `LockService.getScriptLock()`.
 
@@ -58,7 +58,8 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `todo.update` | `{id, patch}` | `Todo` |
 | `todo.complete` | `{id, done}` | `Todo` |
 | `todo.delete` | `{id}` | `{id}` (idempotent: unbekannte id ist kein Fehler, damit Wiederholungen aus der Outbox nicht hängen bleiben) |
-| `quickAdd` | `{text, id?}` (optionale Client-UUID macht Wiederholungen idempotent; Siri sendet nur `{text}`) | `Todo` (KI zerlegt den Text; Fallback: To-do ohne Datum mit dem ganzen Text als Titel) |
+| `quickAdd` | `{text, id?}` (optionale Client-UUID macht Wiederholungen idempotent; Siri sendet nur `{text}`) | `Todo` (immer ein To-do; gleicher Parser und gleiche Datumsregeln wie `capture`; Fallback: ganzer Text als Titel, Datum aus der Regel für ungenaue Angaben) |
+| `capture` | `{text, id?, dryRun?}` | `CaptureResult` = `{type:"todo", todo, message}` oder `{type:"event", event, message}` (KI entscheidet To-do oder Termin; Termin in `config.calCapture` bzw. im Standardkalender, ohne Uhrzeit ganztägig, ohne Ende 60 Min.; `dryRun` schreibt nichts; idempotent mit `id`; D22) |
 | `mail.toTodo` | `{id}` | `Todo` (idempotent: vorhandenes To-do der Mail bzw. ihres Threads) |
 | `mail.dismiss` | `{id}` | `{id}` (idempotent) |
 | `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel zuoberst an; eine Wiederholung aktualisiert dieselbe Regel und liefert `ruleAdded: false`) |
@@ -181,7 +182,7 @@ iOS: `apple-touch-icon`, `viewport-fit=cover` mit Safe-Area-Abständen, `100dvh`
 - Grössen (geändert 2026-11-15 auf Wunsch des Nutzers, ohne ÖV, siehe D21): klein = wichtigste Mail (Absender, Betreff) + die 2 nächsten offenen To-dos; ohne Mail bis zu 3 To-dos; ohne beides der nächste Termin. Mittel = Tagesagenda + 3 dringendste To-dos. Gross = Woche + wichtige Mails. Sperrbildschirm rechteckig = nächster Termin + nächstes To-do.
 - Daten nur über `getWidget` (keine ÖV-Abfrage im Widget). Letzte Antwort lokal speichern und bei Fehlern mit «Stand hh:mm» anzeigen. `refreshAfterDate` = jetzt + 15 Min.
 - Antippen öffnet die PWA-URL.
-- `docs/SETUP-iOS.md`: klickgenaue Anleitung für Scriptable (Skript anlegen, Code einfügen, Widget hinzufügen, Parameter setzen), für den Siri-Kurzbefehl «Cockpit To-do» (Text diktieren → «Inhalte von URL abrufen», POST mit `quickAdd` → Ergebnis als Mitteilung anzeigen), für «Auf Rückseite tippen» und für die Installation der PWA auf dem Home-Bildschirm.
+- `docs/SETUP-iOS.md`: klickgenaue Anleitung für Scriptable (Skript anlegen, Code einfügen, Widget hinzufügen, Parameter setzen), für den Siri-Kurzbefehl «Cockpit» (Text diktieren → «Inhalte von URL abrufen», POST mit `capture` → `data.message` als Mitteilung anzeigen; D22), für «Auf Rückseite tippen» und für die Installation der PWA auf dem Home-Bildschirm.
 
 ## 5. Sicherheit und Datenschutz
 - Der `API_KEY` ist der einzige Schutz der Web-App. Er steht nur in Script Properties, im Sheet-Tab `config` (als Setup-Code) und auf den Geräten des Nutzers.

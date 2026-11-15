@@ -65,3 +65,25 @@ function addExamEvent_(p) {
   ev.setTag(EVENT_KIND_TAG, p.kind);
   return toCalEvent_(ev, cal.getName(), config, true);
 }
+
+/**
+ * Calendar for captured events: config.calCapture (name) or the default calendar.
+ * ev = {title, allDay, start, end, location?} from parseCaptureResult.
+ */
+function createCaptureEvent_(ev, config) {
+  var cal = null;
+  if (config.calCapture) {
+    var found = CalendarApp.getCalendarsByName(config.calCapture);
+    if (found.length) cal = found[0];
+  }
+  if (!cal) cal = CalendarApp.getDefaultCalendar();
+  var opts = ev.location ? { location: ev.location } : {};
+  var created;
+  if (ev.allDay) {
+    var p = ev.start.split("-");
+    created = cal.createAllDayEvent(ev.title, new Date(+p[0], +p[1] - 1, +p[2]), opts); // script time zone = Europe/Zurich
+  } else {
+    created = cal.createEvent(ev.title, ev.start, ev.end, opts);
+  }
+  return toCalEvent_(created, cal.getName(), config, false);
+}

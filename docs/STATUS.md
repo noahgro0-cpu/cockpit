@@ -215,6 +215,38 @@ Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese
 
 1. **Briefing-Zeilen in der PWA (Fehler, zuerst):** `web/src/Today.tsx` rendert `state.briefing.text` in einem `<p>`, die `\n`-Zeilenumbrüche gehen verloren und die Zeilen laufen ineinander. Lösung: in `web/src/style.css` bei `.briefing p` `white-space: pre-line;` ergänzen oder die Zeilen einzeln rendern. Auch im Dashboard-Modus (`.dashboard .briefing`) prüfen. Mock-Daten: `docs/mock-state.json` → `briefing.text` darf zur Prüfung eine Wetterzeile enthalten (frei erfundener Ort).
 2. **Widgets nach SPEC §4 (Stand 2026-11-15, D21: kleines Widget und Sperrbildschirm ohne ÖV, stattdessen wichtigste Mail und To-dos; keine ÖV-Abfrage im Widget)** über `getWidget` (Felder siehe `WidgetState` in `shared/api-types.ts`: `nextEvent`, `today`, `todos` (5), `mails` (3)).
-3. **`docs/SETUP-iOS.md`:** den Standort-Kurzbefehl aus dem Abschnitt «Erweiterung: Wetter … → Manuelle Schritte» oben übernehmen, ebenso den Siri-Kurzbefehl `quickAdd`. URL und Schlüssel kommen für alle Kurzbefehle aus der Editor-Funktion `shortcutSetup()` (schreibt `shortcutUrl`/`shortcutText` in den Tab `config`). Für `quickAdd` den Text entsprechend anpassen: `action` `quickAdd`, `payload` `{text}`.
-4. **Optional (nicht dringend):** die PWA-Anpassungen aus `docs/OPEN-QUESTIONS.md` (`settings.update`, `quickAdd` mit `id`, Sperre bei Mail-Aktionen entfernen).
-5. Am Ende `cd web; npm test; npm run build` und `docs/STATUS.md` nachführen.
+3. **Siri-Kurzbefehl mit `capture` statt `quickAdd` (D22):** diktierter Satz → POST `{key, action:"capture", payload:{text}}` → `data.message` als Mitteilung anzeigen. Der Satz wird To-do oder Kalendertermin. Optional in der PWA: Schnellerfassung über `capture` mit `id`, Vorschau vor dem Speichern mit `dryRun: true`. Danach den Stand neu laden, weil ein Termin auch im Kalender-State erscheint.
+4. **`docs/SETUP-iOS.md`:** den Standort-Kurzbefehl aus dem Abschnitt «Erweiterung: Wetter … → Manuelle Schritte» oben übernehmen, ebenso den Siri-Kurzbefehl `quickAdd`. URL und Schlüssel kommen für alle Kurzbefehle aus der Editor-Funktion `shortcutSetup()` (schreibt `shortcutUrl`/`shortcutText` in den Tab `config`). Für den Siri-Kurzbefehl den Text entsprechend anpassen: `action` `capture`, `payload` `{text}`; Ergebnis über «Wörterbuchwert abrufen» `data` → `message` als Mitteilung.
+5. **Optional (nicht dringend):** die PWA-Anpassungen aus `docs/OPEN-QUESTIONS.md` (`settings.update`, `quickAdd` mit `id`, Sperre bei Mail-Aktionen entfernen).
+6. Am Ende `cd web; npm test; npm run build` und `docs/STATUS.md` nachführen.
+
+## Erweiterung: Schnellerfassung als To-do oder Termin (2026-11-15, Claude Code)
+
+### Erledigt
+- Neue Aktion `capture` (D22, SPEC §2.4, `shared/api-types.ts` → `CaptureResult`). `src/lib/capture.js` (rein, 13 Tests), `capture_` in `src/gas/api.js`, `createCaptureEvent_` in `src/gas/calendar.js`. `quickAdd` nutzt denselben Parser, liefert weiterhin immer ein To-do.
+- Regeln für ungenaue Daten: «nächste Woche» = Montag, «Ende nächste Woche» = Freitag usw. (D22). Sie gelten auch ohne KI und bei sensiblem Text.
+- 115 Unit-Tests grün. Deployment @17 (dieselbe ID), neuer `config`-Schlüssel `calCapture` (leer = Standardkalender), Schema-Version 6.
+- Live geprüft (15.11., Probelauf ohne Schreiben):
+
+| Satz | Ergebnis |
+|---|---|
+| «Zahnarzt Dienstag 15 Uhr» | Termin Di 17.11. 15:00–16:00 |
+| «Training Donnerstag 18:30 bis 20 Uhr in der Halle» | Termin Do 19.11. 18:30–20:00, Ort Halle |
+| «Python Übung Freitag 14 Uhr abgeben» | To-do, fällig Fr 20.11. 14:00 |
+| «Zahnarzt anrufen nächste Woche» | To-do, fällig Mo 16.11. |
+| «Bericht ende nächste Woche abgeben» | To-do, fällig Fr 20.11. |
+| «Geburtstagsparty von Lea am Samstag» | ganztägiger Termin Sa 21.11. |
+| «Mittagessen mit Tim nächste Woche» | ganztägiger Termin Mo 16.11. |
+| «Prüfung für Mathe lernen übernächste Woche» | To-do, fällig Mo 23.11. |
+| Notiz mit Stichwort Krankenkasse | sensibel → nicht an die KI, To-do mit Datum aus der Regel |
+
+- Echter Schreibtest: «Testtermin Cockpit heute 23 Uhr im Büro» zweimal mit derselben `id` → genau ein Termin im Standardkalender, erscheint im State.
+
+### Manuelle Schritte für den Nutzer
+1. Im Google-Kalender den Termin **«Testtermin Cockpit»** (So 15.11., 23:00) löschen. Er stammt vom Schreibtest.
+2. Optional: Sollen Termine in einen anderen Kalender als den Standardkalender? Dann im Sheet → Tab `config` → `calCapture` den exakten Kalendernamen eintragen.
+
+### Bekannte Mängel
+- «nächste Woche» an einem Sonntag ergibt den Montag am Tag danach (Kalenderwoche). Das entspricht der Regel, kann sich aber zu früh anfühlen.
+- Die KI liess einmal einen Umlaut weg («loschen» statt «löschen»), obwohl die Anweisung das ausdrücklich verbietet. Seltener Ausreisser, beobachten.
+- Ob ein Satz ein Termin oder ein To-do ist, entscheidet die KI. Im Zweifel nimmt sie ein To-do. Ein falsch eingeordneter Satz lässt sich in der App bzw. im Kalender von Hand korrigieren.

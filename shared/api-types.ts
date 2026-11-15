@@ -160,6 +160,11 @@ export interface TodoPatch {
   priority?: 0 | 1 | 2;
 }
 
+/** Result of `capture`. */
+export type CaptureResult =
+  | { type: "todo"; todo: Todo; message: string; dryRun?: true }
+  | { type: "event"; event: CalEvent; message: string; dryRun?: true };
+
 /** Maps every action to its payload and the `data` type of a successful response. */
 export interface ApiActions {
   ping: { payload: Record<string, never> | undefined; data: { time: ISODateTime } };
@@ -171,6 +176,14 @@ export interface ApiActions {
   "todo.delete": { payload: { id: string }; data: { id: string } };
   /** `id` (client UUID) is optional and makes retries idempotent; Siri sends only `{text}`. */
   quickAdd: { payload: { text: string; id?: string }; data: Todo };
+  /**
+   * One sentence -> to-do or calendar event (D22); the backend AI decides. Events go to
+   * `config.calCapture` or the default calendar. Vague dates: "nächste Woche" = Monday,
+   * "Ende nächste Woche" = Friday (see D22). `id` makes retries idempotent. `dryRun` parses only
+   * and writes nothing (event.id and event.calendar are then empty). `message` is a short German
+   * confirmation, e.g. for a Siri shortcut notification.
+   */
+  capture: { payload: { text: string; id?: string; dryRun?: boolean }; data: CaptureResult };
   /** Idempotent: returns the existing to-do of the mail or its thread. */
   "mail.toTodo": { payload: { id: string }; data: Todo };
   /** Idempotent. */

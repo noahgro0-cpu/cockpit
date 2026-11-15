@@ -62,6 +62,8 @@ function apiActions_() {
   "todo.delete": { validate: validateIdPayload, write: true },
   // quickAdd takes the lock only around its write, so the AI call does not block other writers.
   quickAdd: { validate: validateQuickAdd, write: false },
+  // capture = quickAdd that may also create a calendar event (D22); locks itself like quickAdd.
+  capture: { validate: validateCapture, write: false },
   "mail.toTodo": { validate: validateIdPayload, write: true },
   "mail.dismiss": { validate: validateIdPayload, write: true },
   "mail.feedback": { validate: validateMailFeedback, write: true },
