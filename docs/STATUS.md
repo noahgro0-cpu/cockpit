@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-15 · Phase 3 implementiert. Offen sind die Wochenagenda im Widget und die Abnahme auf iPhone/iPad. Die Standort-Automation ist eingerichtet. Ergebnisse und Schritte stehen im Abschnitt «Phase 3» unten.
+Stand 2026-11-15 abends · Phase 3 vom Nutzer abgeschlossen (Kurzbefehl eingerichtet und getestet). Backend: Schnellerfassung zerlegt Sätze in mehrere Einträge mit kurzen Titeln (D23, Deployment @22). **Nächster Schritt: Codex-Runde 3b** (PWA-Kalender, kompaktere Seite, Schnellerfassung über `capture`), siehe «Übergabe an Codex (Runde 3b)». Phase 4 läuft (Abschnitt unten).
 
 ## Erledigt
 ### Phase 0
@@ -133,7 +133,7 @@ Weitere Ergebnisse aus dem gemeinsamen Test:
 1. ~~Ruhezeit zurückstellen~~ ✔ erledigt (14.11. abends).
 2. ~~Morgen früh prüfen~~ ✔ erledigt (siehe oben).
 3. **Regeln pflegen** (optional; der Nutzer erhält selten sensible Mails, der aktuelle Filter genügt ihm) (Sheet → Tab `regeln`): Absender von Krankenkasse, Versicherungen, Bank, Vermietung und Arbeitgeber eintragen (Domain hinter dem @, `sensibel = ja` wo nötig). Siehe ANLEITUNG.md C4 Punkt 5.
-   - Die HSLU-Regel hat absichtlich **keine** feste Wichtigkeit: So bewertet die KI Fristen und erzeugt To-dos. Mit einer festen 2 gäbe es aus HSLU-Mails keine automatischen To-dos.
+   - Die Regel für die Hochschule hat absichtlich **keine** feste Wichtigkeit: So bewertet die KI Fristen und erzeugt To-dos. Mit einer festen 2 gäbe es aus diesen Mails keine automatischen To-dos.
 4. **Testdaten aufräumen** (optional): In der PWA unter «Mails» die Testmails mit «Erledigt» entfernen und die drei Test-To-dos («Anmeldung Labor bestätigen», «Laborbericht einreichen», das von der Telegram-Testmail) löschen.
 5. **ntfy-App** kann bleiben (Reserve) oder gelöscht werden. Das Backend nutzt Telegram, solange es eingerichtet ist.
 6. ~~GitHub~~ ✔ Phase-1b-Commits am 15.11. nach Freigabe gepusht.
@@ -266,7 +266,7 @@ Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese
 | --- | --- |
 | Alle vier Grössen zeigen Daten und einen brauchbaren Fehlerzustand | Node prüft Inhalt, PWA-Link, Aktualisierungszeit sowie Rendering mit frischer Antwort, Cache und Fehler ohne Cache mit Scriptable-Attrappen. Die echte `getWidget`-Antwort wurde in allen zwölf Kombinationen aus Grösse und Parameter verarbeitet. Darstellung und Verhalten auf iPhone/iPad sind offen. |
 | Grosses Widget zeigt die Woche und wichtige Mails | ✔ Backend liefert `week` seit Deployment @21 (Claude Code, 15.11.). Das Widget-Modell wurde mit der echten `getWidget`-Antwort in allen vier Grössen geprüft, ohne Hinweis «nicht verfügbar». |
-| Anleitung ohne Vorwissen befolgbar | Menüpfade mit der Apple- und Scriptable-Dokumentation abgeglichen. Einrichtung und Siri-Mitteilung auf iPhone/iPad sind offen. |
+| Anleitung ohne Vorwissen befolgbar | Menüpfade mit der Apple- und Scriptable-Dokumentation abgeglichen. Auf dem iPad mit Hilfestellung zur Diktat-Variable eingerichtet. Der Nutzer bestätigt, dass das Diktat ein To-do in Cockpit erzeugt. Die Mitteilung zeigt aktuell das gesamte `data`-Objekt. Der Text aus `data.message` ist noch am Gerät zu prüfen. |
 
 Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) und `npm run build`, `cd backend; npm test` (116). Die Widget-Tests prüfen auch beide Zürcher Zeitumstellungen. Offen bleibt nur der Gerätetest auf iPhone/iPad.
 
@@ -275,7 +275,7 @@ Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) un
 1. **PWA installieren.** In Safari `https://<GitHub-Benutzername>.github.io/cockpit/` öffnen (oder GitHub **Settings → Pages → Visit site**). In Safari **Teilen → Zu Home-Bildschirm hinzufügen → Hinzufügen**. Cockpit über das Symbol öffnen und den Setup-Code aus dem Sheet (**config → setupCode**) einsetzen.
 2. **Scriptable einrichten.** **Scriptable → +** öffnen, `widgets/Cockpit.js` einsetzen und als **Cockpit** speichern. In den ersten Zeilen den Setup-Code und die veröffentlichte PWA-Adresse einsetzen. **▶︎** antippen und jede Vorschau prüfen.
 3. **Widgets platzieren und testen.** Home-Bildschirm gedrückt halten → **Bearbeiten → Widget hinzufügen → Scriptable**. Für jede der drei Grössen **Widget bearbeiten → Script → Cockpit** wählen. Sperrbildschirm gedrückt halten → **Anpassen → Sperrbildschirm → Widgets hinzufügen → Scriptable**, rechteckige Grösse wählen und das Skript zuweisen. In Hell/Dunkel und per Antippen prüfen. Für den Cache-Test in den Flugmodus wechseln, WLAN ausschalten und die Scriptable-Vorschau öffnen.
-4. **Siri und Rückseite prüfen.** **Kurzbefehle → Kurzbefehle → +** öffnen und den Kurzbefehl gemäss [Abschnitt 4](SETUP-iOS.md#4-siri-kurzbefehl-cockpit-für-to-dos-und-termine) anlegen. Diktat, Mitteilung und den erzeugten Eintrag kontrollieren. Auf dem iPhone **Einstellungen → Bedienungshilfen → Tippen → Auf Rückseite tippen → Doppeltippen oder Dreimal tippen → Cockpit** wählen.
+4. **Kurzbefehl auf dem iPad teilweise geprüft.** Diktat und erzeugtes To-do bestätigt. In **Mitteilung anzeigen** die Ausgabe der Aktion **Wert für `message` in Data abrufen** als Text einsetzen und erneut testen. Für den Sprachstart «Hey Siri, Cockpit» sagen. Optional auf dem iPhone **Einstellungen → Bedienungshilfen → Tippen → Auf Rückseite tippen → Doppeltippen oder Dreimal tippen → Cockpit** wählen.
 5. **Bestehende Standort-Automation kontrollieren.** Im Sheet **log** am Folgetag auf **location updated** um ca. 06:00 prüfen. Details in [Abschnitt 5](SETUP-iOS.md#5-bestehende-automation-standort-fürs-briefing-nachschlagen).
 
 ### Prüfung durch Claude Code (15.11.)
@@ -283,3 +283,46 @@ Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) un
 - `getWidget` liefert `week` (D21-Folge, OPEN-QUESTIONS.md). Kalender-Lesebereich ab Montag dieser Woche (`calendarRange`), behebt fehlende Wochenanfangs-Termine in der PWA-Wochenansicht. 118 Backend-Tests, `npm run e2e` 23/23.
 - `SETUP-iOS.md` nachgeführt: Adresse der Webseite und der Raw-Datei konkret angegeben, `shortcutSetup` in der Datei **gas/weather.gs**, Hinweis zur Wochenagenda entfernt.
 - GitHub Pages ist öffentlich erreichbar (HTTP 200). Die Briefing-Korrektur von Codex ist mit diesem Push live.
+
+## Erweiterung: Schnellerfassung mit mehreren Einträgen, kurze Titel (2026-11-15 abends, Claude Code)
+
+### Erledigt
+- `capture` zerlegt einen Satz in bis zu 3 Einträge (D23). Live mit `dryRun` geprüft (Deployment @22):
+  - «Ich habe morgen um 9:00 Uhr ein Meeting und muss dafür heute Abend noch neue Schuhe kaufen» → «Termin eingetragen: Meeting, Mo 16.11. 09:00–10:00» + «To-do erfasst: Neue Schuhe kaufen, fällig So 15.11.» (zweimal gleich; ein erster Aufruf direkt nach dem Deployment fiel auf die Regel zurück, siehe Mängel).
+  - «ich sollte unbedingt noch bis Freitag die Python Übung fertig machen weil sonst gibt es Abzug» → «Python Übung fertig machen, fällig Fr 20.11.» (gekürzt, Umlaut korrekt).
+  - «Zahnarzt Dienstag 15 Uhr» und «Velo flicken nächste Woche» bleiben je ein Eintrag.
+  - «Prüfung Statistik am 3. Dezember, vorher Zusammenfassung schreiben» → ganztägiger Termin + To-do.
+- Echter Schreibtest: zwei To-dos aus einem Satz, derselbe Aufruf mit derselben `id` zweimal → dieselben IDs, nichts doppelt; Testeinträge gelöscht. `npm run e2e` 23/23, 123 Backend-Tests.
+- Der Siri-Kurzbefehl braucht **keine** Änderung: `data.message` enthält jetzt eine Zeile pro Eintrag.
+- Kalender wird bis +42 Tage gelesen (für die Monatsansicht der PWA).
+- Tick misst seine Laufzeit pro Tag (Script Property `TICK_STATS`); beim Tageswechsel schreibt er eine Log-Zeile «runtime <Datum>: <n> runs, <x> min» (für die Phase-4-Messung).
+
+### Bekannte Mängel
+- Fällt der KI-Aufruf aus (z. B. kurzzeitig nach einem Deployment oder bei Kontingentgrenze), wird der ganze Satz wie bisher zu einem To-do. Einmal beobachtet, danach nicht mehr.
+- Ob ein Satz in mehrere Einträge zerfällt, entscheidet die KI. Bei mehreren Einträgen setzt die Regel für ungenaue Daten kein gemeinsames Datum (sonst bekäme jeder Eintrag dasselbe).
+
+## Übergabe an Codex (Runde 3b, Stand 2026-11-15)
+
+Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deployment @22, `shared/api-types.ts`, SPEC §3.3, D23).
+
+1. **Kalender:** Im Dashboard-Modus ganz **rechts** (Spaltenreihenfolge Heute | To-dos + Mails | Kalender). Standardansicht nur **7 Tage ab heute**, keine vergangenen Tage. Ein Knopf «Monat» klappt eine **Monatsansicht** auf (Raster Mo–So, Monat vor/zurück; Termine gibt es bis +42 Tage). Empfehlung: als Überlagerung über dem Inhalt (Sheet/Dialog, schliessbar mit Esc und ×) statt die Spalten umzubauen; auf dem iPhone als Vollbild-Sheet. Die Wahl zwischen Überlagerung und Verschieben liegt bei Codex, Hauptsache einfach und robust.
+2. **Seite kürzer:** Der Kopfbereich hat viel leere Fläche. Kompakter machen (eine Zeile mit Titel, Status und Aktualisieren), Abstände straffen, damit auf dem PC alles Wichtige ohne langes Scrollen sichtbar ist. Gilt auch für iPad und iPhone sinngemäss.
+3. **Schnellerfassung über `capture`:** Die PWA parst heute lokal (chrono) und sendet `todo.add` mit dem ganzen Text als Titel. Neu: `capture` mit `{text, id}` senden (Client-UUID, über die Outbox wiederholbar, idempotent). Die Antwort enthält `items` (To-dos und/oder Termine) und `message` → als kurze Bestätigung anzeigen, danach den State neu laden. Nicht optimistisch eintragen (die KI bestimmt Titel, Typ und Datum). Die lokale Datumsvorschau darf bleiben, Hinweis «wird beim Speichern zusammengefasst». Offline: in die Outbox; scheitert `capture` endgültig, nichts verlieren (Text behalten). Kein `dryRun` pro Tastendruck (Gemini-Kontingent).
+4. Tests und Build wie gewohnt; STATUS nachführen. Danach übernimmt Claude Code Phase 4 (E2E, Schlüsselrotation, BETRIEB.md).
+
+**Prompt für Codex (vom Nutzer einzufügen):** «Lies AGENTS.md, docs/STATUS.md Abschnitt ‹Übergabe an Codex (Runde 3b)›, docs/SPEC.md §3.3 und docs/DECISIONS.md D23. Setze die drei Punkte in web/ um, ändere nichts in backend/ oder shared/. Teste, committe und führe STATUS nach.»
+
+## Phase 4 – Integration und Abnahme (begonnen 2026-11-15, Claude Code)
+
+### Erledigt
+- **Sicherheitsprüfung Repo und Git-Historie** (alle Commits, alle Branches): Abgleich gegen alle Werte aus `backend/.env.local`, `backend/src/private.local.js`, die Mailadressen in `private/PERSOENLICH.md`, Wohn- und Schulort sowie Muster für Google-API-Schlüssel, Telegram-Token, Deployment-IDs, ntfy-Topics und private Schlüssel. Ergebnis: keine Schlüssel, Tokens, Deployment-IDs, Web-App-URL, Koordinaten oder Adressen, weder im aktuellen Stand noch in der Historie. Treffer nur bei allgemeinen Wörtern (Kategorie-IDs, Farbcodes, «from»).
+  - Befund 1 (behoben): Kurzname der Hochschule in STATUS.md (seit Commit `48a9293`). Im aktuellen Stand ersetzt; **in der Historie bleibt er**, siehe offene Entscheide.
+  - Befund 2 (bekannt seit Phase 0): Die ersten zwei Commits tragen den Vornamen als Autorname.
+- **Eingabevalidierung:** Alle Aktionen haben Validatoren (`src/lib/api.js`), `npm run e2e` prüft falschen Schlüssel, kaputtes JSON und fehlende Felder (23/23).
+- Laufzeitmessung des Triggers vorbereitet (siehe oben, ab Deployment @22).
+
+### Offen
+1. **Entscheid des Nutzers:** Historie umschreiben (Force-Push), um Hochschul-Kurzname und Vornamen aus alten Commits zu entfernen? Risiko gering (öffentliche Hochschule, nur Vorname), Aufwand klein, aber alle Klone (Codex) müssen danach neu geholt werden. Ohne Freigabe bleibt die Historie, wie sie ist.
+2. **24-h-Messung:** Am 17.11. im Sheet `log` die Zeile «runtime 2026-11-16: …» lesen (erster voller Tag). Ziel < 45 Min. Zusätzlich möglich: Apps Script → **Ausführungen**.
+3. Nach Codex-Runde 3b: End-to-End-Durchlauf mit dem Nutzer (Mail → Push → To-do → PWA/Widget; Siri → Termin + To-do), dann **API-Schlüssel einmal erneuern** (`rotateKey` in **gas/setup.gs**; danach Setup-Code in PWA und Scriptable, `key` im Siri-Kurzbefehl und im Text der Standort-Automation ersetzen) und `docs/BETRIEB.md` schreiben.
+4. Aus der Wetter-Erweiterung weiterhin offen: 16.11. **location updated** um ca. 06:00 im `log` (iPhone gesperrt) und das erste Wochentags-Briefing mit Wetter.

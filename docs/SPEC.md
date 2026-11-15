@@ -59,7 +59,7 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `todo.complete` | `{id, done}` | `Todo` |
 | `todo.delete` | `{id}` | `{id}` (idempotent: unbekannte id ist kein Fehler, damit Wiederholungen aus der Outbox nicht hängen bleiben) |
 | `quickAdd` | `{text, id?}` (optionale Client-UUID macht Wiederholungen idempotent; Siri sendet nur `{text}`) | `Todo` (immer ein To-do; gleicher Parser und gleiche Datumsregeln wie `capture`; Fallback: ganzer Text als Titel, Datum aus der Regel für ungenaue Angaben) |
-| `capture` | `{text, id?, dryRun?}` | `CaptureResult` = `{type:"todo", todo, message}` oder `{type:"event", event, message}` (KI entscheidet To-do oder Termin; Termin in `config.calCapture` bzw. im Standardkalender, ohne Uhrzeit ganztägig, ohne Ende 60 Min.; `dryRun` schreibt nichts; idempotent mit `id`; D22) |
+| `capture` | `{text, id?, dryRun?}` | `CaptureResult` = erster Eintrag oben (`{type:"todo", todo}` oder `{type:"event", event}`) + `items` (alle, höchstens 3) + `message` (eine Zeile pro Eintrag) (KI zerlegt den Satz in To-dos und/oder Termine und kürzt die Titel, D23; Termin in `config.calCapture` bzw. im Standardkalender, ohne Uhrzeit ganztägig, ohne Ende 60 Min.; `dryRun` schreibt nichts; idempotent mit `id`; D22) |
 | `mail.toTodo` | `{id}` | `Todo` (idempotent: vorhandenes To-do der Mail bzw. ihres Threads) |
 | `mail.dismiss` | `{id}` | `{id}` (idempotent) |
 | `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel zuoberst an; eine Wiederholung aktualisiert dieselbe Regel und liefert `ruleAdded: false`) |
@@ -79,7 +79,7 @@ interface State {
   generatedAt: ISODateTime;
   health: { lastTick: ISODateTime | null; lastMailSync: ISODateTime | null;
             ai: "ok" | "limited" | "off"; mode: "observe" | "active"; errors24h: number };
-  events: CalEvent[];   // Montag dieser Woche (bzw. gestern, falls früher) bis +21 Tage, sortiert
+  events: CalEvent[];   // Montag dieser Woche (bzw. gestern, falls früher) bis +42 Tage (D23), sortiert
   exams: CalEvent[];    // kind exam|deadline, bis +120 Tage
   todos: Todo[];        // alle offenen + in den letzten 7 Tagen erledigte
   mails: MailItem[];    // letzte 14 Tage, importance >= 1, nicht verworfen, höchstens 50
@@ -162,11 +162,11 @@ React, Vite, TypeScript (strict), Tailwind, `vite-plugin-pwa`, `date-fns` (Local
 
 ### 3.3 Ansichten
 - **Heute** (Startansicht am iPhone): nächster Termin mit Raum und Countdown; ÖV-Karte; Wetter; überfällige und heute fällige To-dos; 3–5 wichtigste Mails (importance ≥ 2, letzte 7 Tage); Prüfungs-Countdown; Briefing-Text.
-- **Kalender:** 3 Wochen ab aktueller Woche. Breit: Wochenzeilen mit 7 Spalten. Schmal: Tagesliste nach Wochen gruppiert. To-dos mit Datum als Chips. Heute hervorgehoben, Wochenende getönt, Prüfungen/Abgaben auffällig.
-- **To-dos:** Gruppen Überfällig / Heute / Diese Woche / Später / Ohne Datum. Filter nach Kategorie. Wischen rechts = erledigt, links = verschieben (morgen, nächste Woche, Datum). Schnellerfassungsleiste immer sichtbar; Vorschau des erkannten Datums vor dem Speichern.
+- **Kalender:** 7 Tage ab heute (keine vergangenen Tage). Aufklappbar zu einer Monatsansicht (Raster Mo–So, Monat vor/zurück im Bereich der gelieferten Termine, bis +42 Tage). Breit: 7 Spalten. Schmal: Tagesliste (D23). To-dos mit Datum als Chips. Heute hervorgehoben, Wochenende getönt, Prüfungen/Abgaben auffällig.
+- **To-dos:** Gruppen Überfällig / Heute / Diese Woche / Später / Ohne Datum. Filter nach Kategorie. Wischen rechts = erledigt, links = verschieben (morgen, nächste Woche, Datum). Schnellerfassungsleiste immer sichtbar; Vorschau des erkannten Datums vor dem Speichern. Speichern über `capture` (KI: To-do und/oder Termin, kurze Titel, D23); offline über die Outbox mit derselben `id`.
 - **Mails:** Karten mit Absender, Betreff, Kurzfassung, Frist, Konsequenz. Aktionen: To-do daraus, Erledigt, «War unwichtig»/«War wichtig», in Gmail öffnen (`https://mail.google.com/mail/u/0/#all/<threadId>`).
 - **Einstellungen:** Haltestellen, Koordinaten, Kategorien mit Farben, Darstellung hell/dunkel/automatisch, Verbindung neu einrichten.
-- **Dashboard-Modus** (ab 1100 px Breite oder `?kiosk=1`): drei Spalten ohne Tabs – Heute | Kalender | To-dos + Mails. Bedienung möglich, aber nicht nötig.
+- **Dashboard-Modus** (ab 1100 px Breite oder `?kiosk=1`): drei Spalten ohne Tabs – Heute | To-dos + Mails | Kalender (rechts). Kompakter Kopfbereich, alles Wichtige ohne langes Scrollen. Bedienung möglich, aber nicht nötig.
 
 ### 3.4 ÖV und Wetter (direkt im Client; Ausnahme: Briefing-Wetter im Backend, §2.8)
 - ÖV: `https://transport.opendata.ch/v1/connections` (CORS frei, keine eigenen Header setzen). Limit des Datenlieferanten: 1000 Verbindungsabfragen pro Tag → höchstens alle 2 Min. abfragen, nur wenn sichtbar. Richtung automatisch: an Unterrichtstagen bis zur ersten Lektion Wohnort → Campus (mit «spätestens abfahren um», Ankunft ≥ 10 Min. vor Beginn), nach der letzten Lektion Campus → Wohnort. Verspätung und Gleis anzeigen.
