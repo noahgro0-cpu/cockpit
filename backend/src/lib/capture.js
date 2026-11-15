@@ -37,7 +37,17 @@ function vagueDateRules(today) {
   var nm = m === 12 ? 1 : m + 1;
   var firstNext = ny + "-" + pad2_(nm) + "-01";
   var N = "n(?:ä|ae|a)chst(?:e|en|er|i)?";
-  return [
+  // "<Wochentag> in einer Woche" = the next such day (after today) plus 7 days.
+  var dayNames = ["sonntag", "montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag"];
+  var inAWeek = dayNames.map(function (name, i) {
+    var ahead = (i - wd + 7) % 7 || 7;
+    return {
+      phrase: name.charAt(0).toUpperCase() + name.slice(1) + " in einer Woche",
+      pattern: name + "\\s+in\\s+(?:einer|1)\\s+woche",
+      date: addDaysIso(today, ahead + 7),
+    };
+  });
+  return inAWeek.concat([
     { phrase: "Ende nächste Woche", pattern: "ende\\s+" + N + "\\s+woche", date: addDaysIso(monNext, 4) },
     { phrase: "Mitte nächste Woche", pattern: "mitte\\s+" + N + "\\s+woche", date: addDaysIso(monNext, 2) },
     { phrase: "Anfang nächste Woche", pattern: "anfang\\s+" + N + "\\s+woche", date: monNext },
@@ -49,7 +59,7 @@ function vagueDateRules(today) {
     { phrase: "Ende nächsten Monat", pattern: "ende\\s+" + N + "\\s+monat", date: monthEnd_(ny, nm) },
     { phrase: "Ende (des) Monats", pattern: "ende\\s+(?:des\\s+|dieses\\s+)?monats?", date: monthEnd_(y, m) },
     { phrase: "nächsten Monat", pattern: N + "\\s+monat", date: firstNext },
-  ];
+  ]);
 }
 
 /** Date for the first vague phrase found in text, or null. */

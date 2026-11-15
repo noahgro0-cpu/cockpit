@@ -19,6 +19,10 @@ test("vague dates: next week = Monday, end of next week = Friday (from Sunday an
   assert.equal(v("Mitte nächste Woche", WED), "2026-11-25");
   assert.equal(v("naechste woche"), "2026-11-16");
   assert.equal(v("nächschti Wuche"), null); // unknown dialect form: AI or no date
+  // explicit "Montag in einer Woche" = Monday in 8 days when said on Sunday
+  assert.equal(v("Zahnarzt Montag in einer Woche"), "2026-11-23");
+  assert.equal(v("Freitag in einer Woche abgeben", WED), "2026-11-27");
+  assert.equal(v("Mittwoch in einer Woche", WED), "2026-12-02");
 });
 
 test("vague dates: this week, weekend, month", () => {

@@ -247,6 +247,6 @@ Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese
 2. Optional: Sollen Termine in einen anderen Kalender als den Standardkalender? Dann im Sheet → Tab `config` → `calCapture` den exakten Kalendernamen eintragen.
 
 ### Bekannte Mängel
-- «nächste Woche» an einem Sonntag ergibt den Montag am Tag danach (Kalenderwoche). Das entspricht der Regel, kann sich aber zu früh anfühlen.
+- ~~«nächste Woche» am Sonntag~~ vom Nutzer so bestätigt (kommende Woche). Neu: «Montag in einer Woche» usw. = nächster solcher Tag + 7 (live geprüft: am So 15.11. → Mo 23.11.).
 - Die KI liess einmal einen Umlaut weg («loschen» statt «löschen»), obwohl die Anweisung das ausdrücklich verbietet. Seltener Ausreisser, beobachten.
 - Ob ein Satz ein Termin oder ein To-do ist, entscheidet die KI. Im Zweifel nimmt sie ein To-do. Ein falsch eingeordneter Satz lässt sich in der App bzw. im Kalender von Hand korrigieren.
