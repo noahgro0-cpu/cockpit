@@ -105,9 +105,9 @@ test("buildWidget.week: Monday..Sunday incl. events reaching into the week, sort
 });
 
 test("calendarRange starts at Monday or yesterday, whichever is earlier", () => {
-  assert.deepEqual(plain(L.calendarRange("2026-11-18")), { from: "2026-11-16", to: "2026-12-10" }); // Wednesday
-  assert.deepEqual(plain(L.calendarRange("2026-11-16")), { from: "2026-11-15", to: "2026-12-08" }); // Monday
-  assert.deepEqual(plain(L.calendarRange("2026-11-22")), { from: "2026-11-16", to: "2026-12-14" }); // Sunday
+  assert.deepEqual(plain(L.calendarRange("2026-11-18")), { from: "2026-11-16", to: "2026-12-31" }); // Wednesday
+  assert.deepEqual(plain(L.calendarRange("2026-11-16")), { from: "2026-11-15", to: "2026-12-29" }); // Monday
+  assert.deepEqual(plain(L.calendarRange("2026-11-22")), { from: "2026-11-16", to: "2027-01-04" }); // Sunday
   // DST: week of 29.3.2026 (Sunday) starts Monday 23.3.
   assert.equal(L.weekMonday("2026-03-29"), "2026-03-23");
 });
@@ -135,4 +135,15 @@ test("config cells: Sheets time values, short times and booleans are normalised"
   assert.equal(c.aiEnabled, "true");
   assert.equal(c.archiveAfterLabel, "false");
   assert.equal(c.briefingWeekday, "07:15");
+});
+
+test("tick runtime: accumulates per Zurich day and reports the finished day", () => {
+  const a = plain(L.accumulateTickStats(null, "2026-11-15", 1200));
+  assert.deepEqual(a, { stats: { date: "2026-11-15", runs: 1, ms: 1200 }, done: null });
+  const b = plain(L.accumulateTickStats(a.stats, "2026-11-15", 800.4));
+  assert.deepEqual(b.stats, { date: "2026-11-15", runs: 2, ms: 2000 });
+  const c = plain(L.accumulateTickStats(b.stats, "2026-11-16", 500));
+  assert.deepEqual(c.stats, { date: "2026-11-16", runs: 1, ms: 500 });
+  assert.deepEqual(c.done, { date: "2026-11-15", runs: 2, ms: 2000 });
+  assert.equal(L.tickStatsText({ date: "2026-11-15", runs: 144, ms: 1410000 }), "runtime 2026-11-15: 144 runs, 23.5 min");
 });

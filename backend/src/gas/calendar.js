@@ -21,7 +21,7 @@ function toCalEvent_(ev, calendarName, config, withTag) {
   return e;
 }
 
-/** events: this week's Monday (or yesterday, if earlier) .. +21 days (all visible calendars); exams: today .. +120 days. */
+/** events: this week's Monday (or yesterday, if earlier) .. +42 days (all visible calendars); exams: today .. +120 days. */
 function readCalendarEvents_(config, now) {
   var today = toZurichDate(now);
   var range = calendarRange(today);

@@ -264,12 +264,12 @@ function weekMonday(isoDate) {
 
 /**
  * Calendar read range: from the earlier of yesterday and this week's Monday (the PWA calendar and
- * the week widget start on Monday) to +22 days. Returns ISODates; the end is exclusive.
+ * the week widget start on Monday) to +42 days inclusive (6 weeks, enough for the PWA month view). Returns ISODates; the end is exclusive.
  */
 function calendarRange(today) {
   var yesterday = addDaysIso(today, -1);
   var monday = weekMonday(today);
-  return { from: monday < yesterday ? monday : yesterday, to: addDaysIso(today, 22) };
+  return { from: monday < yesterday ? monday : yesterday, to: addDaysIso(today, 43) };
 }
 
 /** Events that overlap the Zurich calendar week of today (Monday..Sunday), sorted by start. */
@@ -320,6 +320,21 @@ function buildWidget(state, now) {
     mails: mails.slice(0, 3),
     week: weekEvents(state.events, today),
   };
+}
+
+/**
+ * Daily trigger runtime (quota: 90 min/day for consumer accounts). prev = {date, runs, ms} or null.
+ * Returns {stats} for today, plus `done` = the finished previous day when the date changed.
+ */
+function accumulateTickStats(prev, today, ms) {
+  var p = prev && prev.date === today ? prev : { date: today, runs: 0, ms: 0 };
+  var stats = { date: today, runs: p.runs + 1, ms: p.ms + Math.max(0, Math.round(ms)) };
+  return { stats: stats, done: prev && prev.date !== today ? prev : null };
+}
+
+/** Log line for a finished day, e.g. "runtime 2026-11-15: 144 runs, 23.5 min". */
+function tickStatsText(s) {
+  return "runtime " + s.date + ": " + s.runs + " runs, " + (Math.round(s.ms / 6000) / 10) + " min";
 }
 
 /** Number of log rows that are errors within the last 24 h. Rows: [ts, level, area, message]. */

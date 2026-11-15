@@ -45,12 +45,29 @@ function tick() {
       trackTickHealth_(failed.length === 0, failed);
     });
     invalidateStateCache_();
+    step("runtime", function () {
+      trackTickRuntime_(Date.now() - t0);
+    });
   } finally {
     lock.releaseLock();
   }
 }
 
 /** Counts failed ticks in a row; after 3, alerts once per 6 h (directly, not via the queue). */
+/** Adds this run to TICK_STATS; logs the previous day's total once the date changes (Phase 4 measurement). */
+function trackTickRuntime_(ms) {
+  var p = props_();
+  var prev = null;
+  try {
+    prev = JSON.parse(p.getProperty("TICK_STATS") || "null");
+  } catch (e) {
+    prev = null;
+  }
+  var r = accumulateTickStats(prev, toZurichDate(new Date()), ms);
+  p.setProperty("TICK_STATS", JSON.stringify(r.stats));
+  if (r.done) log_("info", "tick", tickStatsText(r.done));
+}
+
 function trackTickHealth_(ok, failedSteps) {
   var p = props_();
   var now = Date.now();

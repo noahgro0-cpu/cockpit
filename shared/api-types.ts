@@ -93,7 +93,7 @@ export interface State {
   schema: 1;
   generatedAt: ISODateTime;
   health: Health;
-  /** Yesterday until +21 days, sorted by start. */
+  /** This week's Monday (or yesterday, if earlier) until +42 days, sorted by start (D23). */
   events: CalEvent[];
   /** kind exam|deadline, until +120 days. */
   exams: CalEvent[];
@@ -110,7 +110,7 @@ export interface WidgetState {
   schema: 1;
   generatedAt: ISODateTime;
   health: Health;
-  /** Next upcoming (or currently running) timed event, null if none in the next 21 days. */
+  /** Next upcoming (or currently running) timed event, null if none in the next 42 days. */
   nextEvent: CalEvent | null;
   /** Today's events (for the medium widget agenda). */
   today: CalEvent[];
@@ -166,10 +166,15 @@ export interface TodoPatch {
   priority?: 0 | 1 | 2;
 }
 
-/** Result of `capture`. */
-export type CaptureResult =
-  | { type: "todo"; todo: Todo; message: string; dryRun?: true }
-  | { type: "event"; event: CalEvent; message: string; dryRun?: true };
+/** One entry created by `capture`. */
+export type CaptureItem = { type: "todo"; todo: Todo } | { type: "event"; event: CalEvent };
+
+/**
+ * Result of `capture`. One sentence can yield up to 3 entries (D23), e.g. a meeting and a to-do for it.
+ * The first entry is repeated at top level (`type` + `todo`/`event`) for older clients; `items` holds
+ * all of them in order. `message` has one German line per entry.
+ */
+export type CaptureResult = CaptureItem & { items: CaptureItem[]; message: string; dryRun?: true };
 
 /** Maps every action to its payload and the `data` type of a successful response. */
 export interface ApiActions {
@@ -183,7 +188,8 @@ export interface ApiActions {
   /** `id` (client UUID) is optional and makes retries idempotent; Siri sends only `{text}`. */
   quickAdd: { payload: { text: string; id?: string }; data: Todo };
   /**
-   * One sentence -> to-do or calendar event (D22); the backend AI decides. Events go to
+   * One sentence -> up to 3 to-dos and/or calendar events (D22, D23); the backend AI decides and
+   * shortens titles. Events go to
    * `config.calCapture` or the default calendar. Vague dates: "nächste Woche" = Monday,
    * "Ende nächste Woche" = Friday (see D22). `id` makes retries idempotent (to-dos: always; events: for 6 h, best effort via cache). `dryRun` parses only
    * and writes nothing (event.id and event.calendar are then empty). `message` is a short German

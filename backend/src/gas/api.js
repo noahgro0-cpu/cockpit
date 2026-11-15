@@ -198,7 +198,7 @@ function buildCurrentState_() {
 
 // --- Phase 1b actions ---------------------------------------------------------
 
-/** quickAdd {text, id?}: always a to-do (contract unchanged); same parser as capture. */
+/** quickAdd {text, id?}: always exactly one to-do (contract unchanged); same parser as capture. */
 function quickAdd_(p) {
   return capture_(p, false).todo;
 }
@@ -206,57 +206,69 @@ function quickAdd_(p) {
 var CAPTURE_CACHE_PREFIX = "capture:";
 
 /**
- * capture {text, id?}: the AI decides to-do or calendar event (D22); fallback = whole text as to-do.
- * Idempotent when the client sends an id (to-do: by id; event: cached result for 6 h).
- * The AI call runs outside the write lock.
+ * capture {text, id?, dryRun?}: the AI splits the sentence into up to 3 to-dos and/or calendar
+ * events (D22, D23); fallback = whole text as one to-do. The AI call runs outside the write lock.
+ * Idempotent with a client id: the whole result is cached for 6 h; to-dos are additionally keyed
+ * by the client id (first) and derived ids, so a retry after a partial failure only adds what is missing.
  */
 function capture_(p, allowEvents) {
-  var id = p.id || Utilities.getUuid();
   var cache = CacheService.getScriptCache();
+  var cacheKey = p.id ? CAPTURE_CACHE_PREFIX + p.id : "";
   if (p.id && !p.dryRun) {
-    var existing = loadTodoRecord_(p.id);
-    if (existing) return { type: "todo", todo: existing.todo, message: captureMessage("todo", existing.todo) };
-    var cached = allowEvents && cache.get(CAPTURE_CACHE_PREFIX + p.id);
+    var cached = allowEvents && cache.get(cacheKey);
     if (cached) return JSON.parse(cached);
+    if (!allowEvents) {
+      var existing = loadTodoRecord_(p.id);
+      if (existing) return captureResponse([{ type: "todo", todo: existing.todo }]);
+    }
   }
   var text = p.text.trim();
   var now = new Date();
   var config = readConfig_();
-  var result = null;
+  var parsed = null;
   if (aiAvailable_(config) && !isSensitiveText(text, loadRules_())) {
     var cats = settingsFromConfig(config).categories;
     var res = callGemini_(buildCaptureRequest(text, now, cats), config);
-    if (res.ok) result = parseCaptureResult(res.text, now, cats, text, allowEvents);
-    if (!result) log_("info", "capture", "AI result unusable, fallback used");
+    if (res.ok) parsed = parseCaptureResult(res.text, now, cats, text, allowEvents);
+    if (!parsed) log_("info", "capture", "AI result unusable, fallback used");
   }
-  if (!result) result = captureFallback(text, now);
+  if (!parsed) parsed = captureFallback(text, now);
+  if (!allowEvents) parsed = parsed.slice(0, 1); // quickAdd returns a single to-do
+
+  var todoCount = parsed.filter(function (r) {
+    return r.type === "todo";
+  }).length;
+  var ids = captureTodoIds(p.id, todoCount) || parsed.map(function () {
+    return Utilities.getUuid();
+  });
 
   if (p.dryRun) {
-    if (result.type === "event") {
-      var pe = previewCalEvent(result.event);
-      return { type: "event", event: pe, message: captureMessage("event", pe), dryRun: true };
-    }
-    var pt = newTodo(Object.assign({ id: id }, result.fields), nowIso_(), "quick");
-    return { type: "todo", todo: pt, message: captureMessage("todo", pt), dryRun: true };
+    var n = 0;
+    return captureResponse(parsed.map(function (r) {
+      if (r.type === "event") return { type: "event", event: previewCalEvent(r.event) };
+      return { type: "todo", todo: newTodo(Object.assign({ id: ids[n++] }, r.fields), nowIso_(), "quick") };
+    }), true);
   }
 
-  if (result.type === "event") {
-    var out = withWriteLock_(function () {
-      var again = p.id && cache.get(CAPTURE_CACHE_PREFIX + p.id);
-      if (again) return JSON.parse(again);
-      var ev = createCaptureEvent_(result.event, config);
-      var r = { type: "event", event: ev, message: captureMessage("event", ev) };
-      cache.put(CAPTURE_CACHE_PREFIX + id, JSON.stringify(r), 21600);
-      return r;
+  return withWriteLock_(function () {
+    var again = cacheKey && allowEvents && cache.get(cacheKey);
+    if (again) return JSON.parse(again);
+    // To-dos first (idempotent by id), then events: a failed event leaves nothing to duplicate on retry.
+    var n = 0;
+    var todos = parsed.map(function (r) {
+      if (r.type !== "todo") return null;
+      var id = ids[n++];
+      var prev = loadTodoRecord_(id);
+      return prev ? prev.todo : saveTodo_(newTodo(Object.assign({ id: id }, r.fields), nowIso_(), "quick"), "", 0);
     });
+    var items = parsed.map(function (r, i) {
+      if (r.type === "todo") return { type: "todo", todo: todos[i] };
+      return { type: "event", event: createCaptureEvent_(r.event, config) };
+    });
+    var out = captureResponse(items);
+    if (cacheKey && allowEvents) cache.put(cacheKey, JSON.stringify(out), 21600);
     return out;
-  }
-  var todo = withWriteLock_(function () {
-    var again = loadTodoRecord_(id);
-    if (again) return again.todo;
-    return saveTodo_(newTodo(Object.assign({ id: id }, result.fields), nowIso_(), "quick"), "", 0);
   });
-  return { type: "todo", todo: todo, message: captureMessage("todo", todo) };
 }
 
 /** mail.toTodo: idempotent; reuses the mail's or the thread's existing to-do. */
