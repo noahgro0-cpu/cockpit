@@ -1,7 +1,13 @@
 import { openDB } from "idb";
-import type { ApiActions, State, Todo } from "../../shared/api-types";
+import type {
+  ApiActions,
+  CaptureResult,
+  State,
+  Todo,
+} from "../../shared/api-types";
 import { ApiFailure } from "./api";
 export type WriteAction =
+  | "capture"
   | "todo.add"
   | "todo.update"
   | "todo.complete"
@@ -20,6 +26,8 @@ export type Job = Mutation & {
   nextAttempt: number;
   blocked?: string;
   order?: number;
+  firstAttempt?: number;
+  captureResult?: CaptureResult;
 };
 export interface Snapshot {
   state: State;
@@ -170,8 +178,22 @@ export async function drain(
   confirmed?: (job: Job, result: unknown) => Promise<void>,
   rejected?: (job: Job, error: ApiFailure) => void,
 ) {
-  for (const job of await store.jobs()) {
+  for (let job of await store.jobs()) {
+    if (job.action === "capture" && job.blocked) continue;
     if (job.blocked || job.nextAttempt > now) break;
+    if (
+      job.action === "capture" &&
+      !job.captureResult &&
+      job.firstAttempt !== undefined &&
+      now - job.firstAttempt >= 15 * 60000
+    ) {
+      await store.put({
+        ...job,
+        blocked:
+          "Bestätigung unklar. Bitte Kalender und To-dos prüfen. Text bleibt hier erhalten; kein später automatischer Neuversuch.",
+      });
+      continue;
+    }
     try {
       // No idempotency token exists for these contract actions. Persist an
       // uncertainty marker before sending, including for a crash during fetch.
@@ -181,7 +203,15 @@ export async function drain(
           blocked:
             "Bestätigung unklar. Vor erneutem Versand den Serverstand prüfen; die Aktion könnte bereits ausgeführt sein.",
         });
-      const result = await send(job);
+      if (job.action === "capture" && job.firstAttempt === undefined) {
+        job = { ...job, firstAttempt: now };
+        await store.put(job);
+      }
+      const result = job.captureResult ?? (await send(job));
+      if (job.action === "capture" && !job.captureResult) {
+        job = { ...job, captureResult: result as CaptureResult };
+        await store.put(job);
+      }
       await confirmed?.(job, result);
       await store.remove(job.id);
     } catch (error) {
@@ -189,7 +219,9 @@ export async function drain(
         error instanceof ApiFailure &&
         ["bad_request", "not_found"].includes(error.code)
       ) {
-        await store.remove(job.id);
+        if (job.action === "capture")
+          await store.put({ ...job, blocked: error.message });
+        else await store.remove(job.id);
         rejected?.(job, error);
         continue;
       }

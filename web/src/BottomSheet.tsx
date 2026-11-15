@@ -5,10 +5,12 @@ export function BottomSheet({
   title,
   onClose,
   children,
+  className = "",
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -29,7 +31,7 @@ export function BottomSheet({
   return createPortal(
     <dialog
       ref={dialog}
-      className="bottom-sheet"
+      className={`bottom-sheet ${className}`}
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();

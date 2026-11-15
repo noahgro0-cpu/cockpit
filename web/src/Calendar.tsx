@@ -1,6 +1,15 @@
 import { useState } from "react";
 import type { State } from "../../shared/api-types";
-import { dateLabel, day, onDay, shift, time, weekStart } from "./date";
+import {
+  dateLabel,
+  day,
+  onDay,
+  shift,
+  time,
+  nextDays,
+  monthDays,
+  monthShift,
+} from "./date";
 import type { Mutation } from "./outbox";
 import { BottomSheet } from "./BottomSheet";
 import { Icon } from "./Icon";
@@ -15,12 +24,71 @@ export function Calendar({
   compact?: boolean;
   mutate: (m: Mutation) => Promise<void>;
 }) {
-  const start = weekStart(now);
+  const today = day(now);
+  const [month, setMonth] = useState(today.slice(0, 7) + "-01");
+  const [monthOpen, setMonthOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const limit = shift(day(state.generatedAt), 42);
   const [adding, setAdding] = useState(false);
+  const renderDay = (d: string, monthly = false) => {
+    const available = !monthly || (d >= today && d <= limit);
+    const events = state.events.filter((e) => available && onDay(e, d));
+    const todos = state.todos.filter(
+      (t) => available && t.status === "open" && t.due && day(t.due) === d,
+    );
+    return (
+      <article
+        className={`calendar-day ${d === day(now) ? "is-today" : ""} ${[0, 6].includes(new Date(d + "T12:00:00Z").getUTCDay()) ? "weekend" : ""} ${!available ? "outside-range" : ""}`}
+        key={d}
+        aria-label={dateLabel(d)}
+      >
+        <h3>
+          {!monthly && dateLabel(d, "EEE")} <span>{dateLabel(d, "d.")}</span>
+          {d === day(now) && <small>Heute</small>}
+        </h3>
+        {monthly && (
+          <button
+            className="month-day-select"
+            aria-label={dateLabel(d)}
+            aria-pressed={selectedDay === d}
+            disabled={!available}
+            onClick={() => setSelectedDay(d)}
+          >
+            {dateLabel(d, "d.")}
+            <small>{events.length + todos.length || "–"}</small>
+          </button>
+        )}
+        {events.map((e) => (
+          <div key={e.id} className={`event ${e.kind}`}>
+            <small>{e.allDay ? "Ganztägig" : time(e.start)}</small>
+            <strong>{e.title}</strong>
+            {e.location && <small>{e.location}</small>}
+          </div>
+        ))}
+        {todos.map((t) => (
+          <div className="todo-chip" key={t.id}>
+            ○ {t.title}
+          </div>
+        ))}
+        {!monthly && !events.length && !todos.length && (
+          <span className="free">Keine Einträge</span>
+        )}
+      </article>
+    );
+  };
   return (
     <section className={compact ? "calendar compact" : "calendar"}>
       <div className="section-title">
-        <h2>Die nächsten 3 Wochen</h2>
+        <h2>Nächste 7 Tage</h2>
+        <button
+          onClick={() => {
+            setMonth(today.slice(0, 7) + "-01");
+            setSelectedDay(today);
+            setMonthOpen(true);
+          }}
+        >
+          Monat
+        </button>
         <button
           onClick={() => setAdding(!adding)}
           aria-label="Prüfung oder Abgabe hinzufügen"
@@ -69,49 +137,56 @@ export function Calendar({
           </form>
         </BottomSheet>
       )}
-      {[0, 1, 2].map((w) => (
-        <section className="week" key={w}>
-          <h3>
-            {dateLabel(shift(start, w * 7), "d. MMMM")} –{" "}
-            {dateLabel(shift(start, w * 7 + 6), "d. MMMM")}
-          </h3>
-          <div className="week-grid">
-            {Array.from({ length: 7 }, (_, i) => {
-              const d = shift(start, w * 7 + i);
-              const events = state.events.filter((e) => onDay(e, d));
-              const todos = state.todos.filter(
-                (t) => t.status === "open" && t.due && day(t.due) === d,
-              );
-              return (
-                <article
-                  className={`calendar-day ${d === day(now) ? "is-today" : ""} ${i > 4 ? "weekend" : ""}`}
-                  key={d}
-                >
-                  <h3>
-                    {dateLabel(d, "EEE")} <span>{dateLabel(d, "d.")}</span>
-                    {d === day(now) && <small>Heute</small>}
-                  </h3>
-                  {events.map((e) => (
-                    <div key={e.id} className={`event ${e.kind}`}>
-                      <small>{e.allDay ? "Ganztägig" : time(e.start)}</small>
-                      <strong>{e.title}</strong>
-                      {e.location && <small>{e.location}</small>}
-                    </div>
-                  ))}
-                  {todos.map((t) => (
-                    <div className="todo-chip" key={t.id}>
-                      ○ {t.title}
-                    </div>
-                  ))}
-                  {!events.length && !todos.length && (
-                    <span className="free">Keine Einträge</span>
-                  )}
-                </article>
-              );
-            })}
+      <div className="week-grid">{nextDays(now).map((d) => renderDay(d))}</div>
+      {monthOpen && (
+        <BottomSheet
+          title="Monatsansicht"
+          className="month-sheet"
+          onClose={() => setMonthOpen(false)}
+        >
+          <div className="month-controls">
+            <button
+              aria-label="Vorheriger Monat"
+              disabled={month.slice(0, 7) <= today.slice(0, 7)}
+              onClick={() => {
+                const next = monthShift(month, -1);
+                setMonth(next);
+                setSelectedDay(next < today ? today : next);
+              }}
+            >
+              ←
+            </button>
+            <h3 aria-live="polite">{dateLabel(month, "MMMM yyyy")}</h3>
+            <button
+              aria-label="Nächster Monat"
+              disabled={month.slice(0, 7) >= limit.slice(0, 7)}
+              onClick={() => {
+                const next = monthShift(month, 1);
+                setMonth(next);
+                setSelectedDay(next);
+              }}
+            >
+              →
+            </button>
           </div>
-        </section>
-      ))}
+          <p className="small">
+            Termine ab heute bis {dateLabel(limit, "d. MMMM")}. Ausserhalb
+            dieses Zeitraums werden keine Einträge angezeigt.
+          </p>
+          <div className="month-grid">
+            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d) => (
+              <div className="weekday" key={d}>
+                {d}
+              </div>
+            ))}
+            {monthDays(month).map((d) => renderDay(d, true))}
+          </div>
+          <div className="month-agenda">
+            <h3>{dateLabel(selectedDay)}</h3>
+            {renderDay(selectedDay)}
+          </div>
+        </BottomSheet>
+      )}
     </section>
   );
 }

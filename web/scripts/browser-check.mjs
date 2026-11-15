@@ -16,6 +16,28 @@ try {
       await page.goto(process.env.MOCK_URL || 'http://127.0.0.1:5174/cockpit/');
       await page.getByRole('heading',{name:'Analysis',exact:true}).waitFor();
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`overflow ${width} ${theme}`);
+      if(width>=1100) {
+        const columns=await page.locator('.dashboard > *').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().x));
+        assert(columns[0]<columns[1]&&columns[1]<columns[2]);
+        assert(await page.locator('.dashboard > :last-child').getByRole('heading',{name:'Nächste 7 Tage'}).count());
+      }
+      if(width<1100) await page.getByRole('navigation').getByRole('button',{name:'Kalender',exact:true}).click();
+      assert.equal(await page.locator('.calendar .calendar-day').count(),7);
+      assert.equal(await page.locator('.calendar .calendar-day').first().getAttribute('aria-label'),'Montag, 16. November');
+      await page.getByRole('button',{name:'Monat',exact:true}).click();
+      const month=page.getByRole('dialog',{name:'Monatsansicht'});
+      await month.waitFor();
+      assert.equal(await month.evaluate(el=>el.contains(document.activeElement)),true);
+      assert.equal(await month.getByRole('button',{name:'Vorheriger Monat'}).isDisabled(),true);
+      await month.getByRole('button',{name:'Nächster Monat'}).click();
+      await month.getByRole('heading',{name:'Dezember 2026'}).waitFor();
+      assert.equal(await month.getByRole('button',{name:'Nächster Monat'}).isDisabled(),true);
+      assert.equal(await month.evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+      await page.screenshot({path:new URL('month-'+width+'-'+theme+'.png',output).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
+      await page.keyboard.press('Escape');
+      assert.equal(await month.count(),0);
+      assert.equal(await page.getByRole('button',{name:'Monat',exact:true}).evaluate(el=>el===document.activeElement),true);
+      if(width<1100) await page.getByRole('navigation').getByRole('button',{name:'Heute',exact:true}).click();
       await page.screenshot({path:new URL(`final-${width}-${theme}.png`,output).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
       if(width<1100)for(const view of ['Kalender','To-dos','Mails','Einstellungen']) {
         await page.getByRole('navigation').getByRole('button',{name:view,exact:true}).click();
@@ -44,20 +66,24 @@ try {
     }
   }
   console.log('PASS: all views, 375/834/1440 px, light/dark, no horizontal overflow');
+  console.log('PASS: seven days, calendar on right, bounded month navigation and modal focus');
   console.log('PASS: iPad sidebar and modal editing, focus containment/return, Escape and cancelling unsaved edits');
   const context=await browser.newContext({viewport:{width:834,height:1000}});
   const page=await context.newPage();
   let state=structuredClone(mock);
   const writes=[];
+  let offline=false;
   await page.route('https://script.google.com/**',async route=>{
+    if(offline) return route.abort('internetdisconnected');
     const body=route.request().postDataJSON();
     let data={time:state.generatedAt};
     if(body.action==='getState')data=state;
-    if(body.action==='todo.add') {
+    if(body.action==='capture') {
       writes.push(body.payload);
-      const existing=state.todos.find(t=>t.id===body.payload.id);
-      data=existing||{...body.payload,status:'open',source:'manual',priority:0,dueHasTime:body.payload.dueHasTime??false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
-      if(!existing)state.todos.push(data);
+      const todo={id:body.payload.id,title:'Buch kaufen',status:'open',source:'quick',priority:0,dueHasTime:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+      const event={id:body.payload.id+'-event',calendar:'private',kind:'private',title:'Meeting',start:state.generatedAt,end:state.generatedAt,allDay:false};
+      state.todos.push(todo); state.events.push(event);
+      data={type:'todo',todo,items:[{type:'todo',todo},{type:'event',event}],message:'To-do erfasst: Buch kaufen\nTermin eingetragen: Meeting'};
     }
     await route.fulfill({json:{ok:true,data},headers:{'Access-Control-Allow-Origin':'*'}});
   });
@@ -76,21 +102,29 @@ try {
   const installability=await cdp.send('Page.getInstallabilityErrors');
   assert.deepEqual(installability.installabilityErrors,[]);
   console.log('PASS: production service worker controls page; no Chromium installability errors');
+  offline=true;
   await context.setOffline(true);
   await page.reload();
   await page.getByRole('navigation').getByRole('button',{name:'To-dos',exact:true}).click();
   await page.getByText('Velo-Service buchen',{exact:true}).waitFor();
   await page.getByLabel('Schnellerfassung',{exact:true}).fill('Offline browser check');
-  await page.getByRole('button',{name:'To-do hinzufügen'}).click();
-  await page.getByText('Offline browser check',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Eingabe speichern'}).click();
+  await page.getByText(/Synchronisierung ausstehend/).waitFor({timeout:5000});
+  assert.equal(await page.getByText('Offline browser check',{exact:true}).count(),0);
   await page.reload();
   await page.getByRole('navigation').getByRole('button',{name:'To-dos',exact:true}).click();
-  await page.getByText('Offline browser check',{exact:true}).waitFor();
+  await page.getByText(/Synchronisierung ausstehend/).waitFor({timeout:5000});
+  assert.equal(await page.getByText('Offline browser check',{exact:true}).count(),0);
+  offline=false;
   await context.setOffline(false);
   await page.getByRole('button',{name:'Aktualisieren',exact:true}).click();
   await page.waitForFunction(async()=>{const request=indexedDB.open('cockpit-local');const db=await new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});const count=await new Promise(resolve=>{const r=db.transaction('outbox').objectStore('outbox').count();r.onsuccess=()=>resolve(r.result);});db.close();return count===0;});
-  assert.equal(writes.filter(w=>w.title==='Offline browser check').length,1);
-  console.log('PASS: offline reload, durable optimistic change, single replay on reconnect');
+  await page.getByText('Buch kaufen',{exact:true}).waitFor();
+  assert.equal(writes.filter(w=>w.text==='Offline browser check').length,1);
+  assert.match(writes[0].id,/^[0-9a-f-]{36}$/);
+  await page.getByText('To-do erfasst: Buch kaufen\nTermin eingetragen: Meeting',{exact:true}).waitFor();
+  await page.getByText('Buch kaufen',{exact:true}).waitFor();
+  console.log('PASS: offline reload, durable capture without optimistic entries, single replay on reconnect');
   assert.deepEqual(errors,[]);
   await context.close();
 } finally { await browser.close(); }

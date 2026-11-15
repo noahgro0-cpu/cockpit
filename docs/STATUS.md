@@ -331,3 +331,28 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 2. **24-h-Messung:** Am 17.11. im Sheet `log` die Zeile «runtime 2026-11-16: …» lesen (erster voller Tag). Ziel < 45 Min. Zusätzlich möglich: Apps Script → **Ausführungen**.
 3. Nach Codex-Runde 3b: End-to-End-Durchlauf mit dem Nutzer (Mail → Push → To-do → PWA/Widget; Siri → Termin + To-do), dann **API-Schlüssel einmal erneuern** (`rotateKey` in **gas/setup.gs**; danach Setup-Code in PWA und Scriptable, `key` im Siri-Kurzbefehl und im Text der Standort-Automation ersetzen) und `docs/BETRIEB.md` schreiben.
 4. Aus der Wetter-Erweiterung weiterhin offen: 16.11. **location updated** um ca. 06:00 im `log` (iPhone gesperrt) und das erste Wochentags-Briefing mit Wetter.
+
+## Runde 3b – PWA optimiert (2026-11-15, Codex)
+
+### Erledigt
+- Dashboard: **Heute | To-dos + Mails | Kalender**. Genau sieben Tage ab heute in Europe/Zurich; Wochenenden nach Datum. Monatsdialog mit Mo–So-Raster, Navigation innerhalb des gelieferten +42-Tage-Bereichs, Escape, Schliessen und Fokus-Rückgabe. Auf dem iPhone Vollbild mit antippbaren Tagen, Eintragsanzahl und lesbarer Tagesagenda.
+- Kompakter Kopfbereich und kleinere Kartenabstände. Im Dashboard sind überfällige und heute fällige Aufgaben sofort sichtbar; die übrigen stehen unter **Weitere Aufgaben**. Wichtige Mails erscheinen dadurch weiter oben.
+- Schnellerfassung sendet `capture` mit Text und Client-UUID. Lokale Datumsvorschau bleibt ein Hinweis; keine optimistischen Einträge und keine Gemini-Vorschau-Anfragen. Bestätigte `items` werden übernommen, `message` mit Zeilenumbrüchen angezeigt, danach wird `getState` geladen.
+- Offline-Eingaben bleiben in IndexedDB über Neustarts erhalten. Der erste Versand kann beliebig später erfolgen. Unbestätigte Aufrufe werden ab dem ersten Versand höchstens 15 Minuten lang mit derselben UUID wiederholt, deutlich kürzer als der bestmögliche 6-h-Cache. Danach bleiben Text und Hinweis unter **Einstellungen → Synchronisierung** erhalten. Endgültig abgelehnte Eingaben bleiben ebenfalls erhalten und blockieren andere Änderungen nicht. Bestätigte Ergebnisse werden vor der lokalen Übernahme gespeichert, damit lokale Speicherfehler keine erneute Serveranfrage erzwingen.
+- Nur `web/` und dieser Status geändert; `backend/` und `shared/` unverändert.
+
+### Prüfung
+- `cd web; npm test`: **60 Tests grün**. Neue Fälle: Monats-/Jahresgrenzen, Schaltjahr, beide Zürcher Zeitumstellungen, Capture-UUID, verzögerter Erstversand, begrenzte Wiederholungen, erhaltener Fehlertext und gespeicherte Bestätigung.
+- `cd web; npm run build`: TypeScript und Produktionsbuild grün.
+- `node web/scripts/browser-check.mjs`: Chromium bei 375/834/1440 px, Hell/Dunkel, alle Ansichten ohne horizontalen Überlauf. Dashboard-Reihenfolge, sieben Tage ab heute, Monatsgrenzen, Dialogfokus/Escape, iPad-Seitenleiste und To-do-Editor geprüft. Produktions-Service-Worker, Offline-Neuladen und genau ein erfolgreicher Capture-Versand nach Wiederverbindung mit gemischter To-do-/Termin-Antwort geprüft. API-Antworten simuliert, keine echten Einträge erzeugt. Screenshots lokal unter `private/previews/` visuell geprüft.
+
+### Manuelle Schritte für den Nutzer / Phase 4
+1. Nach Veröffentlichung des Commits die PWA öffnen und **Aktualisieren** antippen; falls noch die alte Ansicht erscheint, App schliessen und erneut öffnen. Auf dem PC Kalender rechts und **Weitere Aufgaben** prüfen.
+2. **Kalender → Monat** öffnen; auf dem iPhone einen Tag antippen und die Tagesagenda prüfen. Auf iPad/PC Monat vor/zurück sowie **×** bzw. Escape prüfen.
+3. In der Schnellerfassung einen Testsatz mit Termin und Aufgabe speichern. Bestätigung mit zwei Zeilen und beide Einträge in PWA/Google-Kalender prüfen, danach Testeinträge löschen. Diesen Live-E2E-Test übernimmt Claude Code in Phase 4 gemeinsam mit dem Nutzer.
+4. Bei einer fehlgeschlagenen Eingabe **Einstellungen → Synchronisierung → Gespeicherte Eingabe** öffnen und Text bei Bedarf markieren/kopieren. Zuerst Kalender und To-dos auf bereits erstellte Einträge prüfen, erst danach erneut erfassen oder **Änderung verwerfen** wählen.
+
+### Offen / bekannte Grenzen
+- Push/Veröffentlichung nicht ausgeführt. Echte iPhone-/iPad-Geräte und Live-KI bleiben im Phase-4-Durchlauf zu prüfen; Phase 4 ist nicht abgeschlossen.
+- Doppelte Termine bleiben gemäss D23 nur bestmöglich abgesichert. Unklare oder endgültig abgelehnte Capture-Aufträge werden bewusst nicht über **Jetzt erneut versuchen** entsperrt; ihr Text bleibt zur manuellen Prüfung erhalten.
+- Im Demo-Modus erzeugt die Schnellerfassung keine KI-Einträge; der Text bleibt mit Hinweis in der Outbox. Bei vielen Einträgen bleibt Scrollen erforderlich.

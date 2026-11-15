@@ -200,6 +200,8 @@ export default function App() {
           <p className="notice" role="status">
             {cockpit.jobs.length} Änderung(en) auf diesem Gerät gespeichert ·
             Synchronisierung ausstehend.
+            {cockpit.jobs.some((j) => j.blocked) &&
+              " Eingabe prüfen: Einstellungen → Synchronisierung."}
           </p>
         )}
         {!navigator.onLine && (
@@ -208,38 +210,14 @@ export default function App() {
           </p>
         )}
         <div className="page-heading">
-          <div>
-            <p className="eyebrow">
-              {dateLabel(now.toISOString()).toUpperCase()}
-            </p>
-            <h1>
-              {view === "Heute"
-                ? "Guten " +
-                  (Number(time(now).slice(0, 2)) < 11
-                    ? "Morgen"
-                    : Number(time(now).slice(0, 2)) < 18
-                      ? "Tag"
-                      : "Abend")
-                : view}
-              <span className="accent">.</span>
-            </h1>
-            <p>
-              {view === "Heute"
-                ? "Das Wichtigste für deinen Tag. Alles an einem Ort."
-                : view === "Kalender"
-                  ? "Drei Wochen, gut im Blick."
-                  : view === "To-dos"
-                    ? "Platz im Kopf für das Wesentliche."
-                    : view === "Mails"
-                      ? "Die wichtigen Dinge zuerst."
-                      : "Dein Cockpit, so wie es zu dir passt."}
-            </p>
-          </div>
-          <span className="day-badge">
-            <Icon name="sparkles" size={16} />{" "}
-            {dashboard ? "Dashboard" : "Ein guter Überblick."}
-          </span>
+          <h1>{dashboard ? "Dein Überblick" : view}</h1>
+          <p>{dateLabel(now.toISOString())}</p>
         </div>
+        {cockpit.confirmation && (
+          <p className="notice capture-confirmation" role="status">
+            {cockpit.confirmation}
+          </p>
+        )}
         {!state ? (
           <div className="card">
             <p>
@@ -267,11 +245,11 @@ export default function App() {
                 weather={<Forecast state={state} />}
               />
             </section>
-            <Calendar state={state} now={now} compact mutate={cockpit.mutate} />
             <div className="stack">
               <Todos state={state} now={now} mutate={cockpit.mutate} compact />
               <Mails state={state} mutate={cockpit.mutate} compact />
             </div>
+            <Calendar state={state} now={now} compact mutate={cockpit.mutate} />
           </div>
         ) : view === "Heute" ? (
           <Today

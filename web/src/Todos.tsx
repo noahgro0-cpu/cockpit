@@ -22,17 +22,29 @@ export function QuickCapture({
 }) {
   const [text, setText] = useState("");
   const preview = capture(text, now);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   return (
     <form
       className="quick-capture"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!text.trim()) return;
-        await mutate({
-          action: "todo.add",
-          payload: { ...preview, id: crypto.randomUUID() },
-        });
-        setText("");
+        if (!text.trim() || saving) return;
+        setSaving(true);
+        setError("");
+        try {
+          await mutate({
+            action: "capture",
+            payload: { text: text.trim(), id: crypto.randomUUID() },
+          });
+          setText("");
+        } catch (e) {
+          setError(
+            e instanceof Error ? e.message : "Speichern fehlgeschlagen.",
+          );
+        } finally {
+          setSaving(false);
+        }
       }}
     >
       <div>
@@ -43,24 +55,26 @@ export function QuickCapture({
           id="quick"
           placeholder="Was steht an? z. B. morgen Buch zurückgeben"
           value={text}
-          maxLength={200}
+          maxLength={2000}
+          disabled={saving}
           onChange={(e) => setText(e.target.value)}
         />
         <button
           className="primary"
-          aria-label="To-do hinzufügen"
-          disabled={!text.trim()}
+          aria-label="Eingabe speichern"
+          disabled={!text.trim() || saving}
         >
           <Icon name="plus" />
         </button>
       </div>
+      {error && <p role="alert">{error}</p>}
       {text && (
         <p className="small">
           Vorschau:{" "}
           {preview.due
             ? `${dateLabel(preview.due, "EEE, d. MMM")}${preview.dueHasTime ? " · " + time(preview.due) : ""}`
             : "ohne Datum"}{" "}
-          · lokal erkannt
+          · lokal erkannt; wird beim Speichern zusammengefasst
         </p>
       )}
     </form>
@@ -346,6 +360,7 @@ export function Todos({
   compact?: boolean;
 }) {
   const [filter, setFilter] = useState("");
+  const [expanded, setExpanded] = useState(false);
   const groups = groupTodos(
     state.todos.filter((t) => !filter || t.category === filter),
     now,
@@ -373,7 +388,11 @@ export function Todos({
       )}
       {Object.entries(groups).map(
         ([label, todos]) =>
-          todos.length > 0 && (
+          todos.length > 0 &&
+          (!compact ||
+            expanded ||
+            label === "Überfällig" ||
+            label === "Heute") && (
             <section className="card" key={label}>
               <h3 className={label === "Überfällig" ? "danger" : ""}>
                 {label}
@@ -389,6 +408,19 @@ export function Todos({
               ))}
             </section>
           ),
+      )}
+      {compact && (
+        <button aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+          {expanded
+            ? "Weniger Aufgaben"
+            : "Weitere Aufgaben (" +
+              Object.entries(groups)
+                .filter(
+                  ([label]) => label !== "Überfällig" && label !== "Heute",
+                )
+                .reduce((sum, [, todos]) => sum + todos.length, 0) +
+              ")"}
+        </button>
       )}
       {Object.values(groups).every((g) => !g.length) && (
         <p className="empty">Keine offenen To-dos. Zeit zum Durchatmen.</p>

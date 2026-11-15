@@ -108,3 +108,21 @@ export function stale(lastTick: string | null, lastFetch: number, now: number) {
     now - lastFetch > 600000
   );
 }
+
+export function nextDays(now: Date) {
+  return Array.from({ length: 7 }, (_, i) => shift(day(now), i));
+}
+export function monthShift(month: string, offset: number) {
+  const date = new Date(month.slice(0, 7) + "-01T12:00:00Z");
+  date.setUTCMonth(date.getUTCMonth() + offset);
+  return date.toISOString().slice(0, 10);
+}
+export function monthDays(month: string) {
+  const first = month.slice(0, 7) + "-01";
+  const weekday = new Date(first + "T12:00:00Z").getUTCDay();
+  const start = shift(first, -((weekday + 6) % 7));
+  const last = shift(monthShift(first, 1), -1);
+  const count =
+    Math.ceil((daysUntil(last, new Date(start + "T12:00:00Z")) + 1) / 7) * 7;
+  return Array.from({ length: count }, (_, i) => shift(start, i));
+}

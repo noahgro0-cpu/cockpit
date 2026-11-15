@@ -157,3 +157,77 @@ describe("optimistic projection", () => {
     ).toBeUndefined();
   });
 });
+
+describe("capture queue", () => {
+  const makeCapture = () =>
+    makeJob({
+      action: "capture",
+      payload: { text: "Morgen Meeting und Buch kaufen", id: "capture-id" },
+    });
+  const result = {
+    type: "todo",
+    todo: mock.todos[0],
+    items: [{ type: "todo", todo: mock.todos[0] }],
+    message: "To-do erfasst",
+  };
+  it("does not project unconfirmed captures", () => {
+    expect(optimistic(mock as State, makeCapture())).toEqual(mock);
+  });
+  it("allows a first send after days offline, preserving the client UUID", async () => {
+    const job = makeCapture();
+    job.createdAt = "2020-01-01T00:00:00Z";
+    await storage.put(job);
+    const send = vi.fn(async (pending: Job) => {
+      expect((await storage.jobs())[0].firstAttempt).toBe(1000000);
+      expect(pending.payload).toEqual(job.payload);
+      return result;
+    });
+    await drain(storage, send, 1000000);
+    expect(send).toHaveBeenCalledOnce();
+    expect(await storage.jobs()).toEqual([]);
+  });
+  it("retries briefly with the same UUID then retains text without a late send", async () => {
+    await storage.put(makeCapture());
+    const send = vi
+      .fn()
+      .mockRejectedValue(new ApiFailure("network", "offline"));
+    await expect(drain(storage, send, 1000)).rejects.toThrow();
+    await expect(drain(storage, send, 5000)).rejects.toThrow();
+    expect(send.mock.calls[0][0].payload).toEqual(
+      send.mock.calls[1][0].payload,
+    );
+    await drain(storage, send, 901000);
+    expect(send).toHaveBeenCalledTimes(2);
+    const [job] = await storage.jobs();
+    expect(job.blocked).toContain("Bestätigung unklar");
+    expect(job.payload).toEqual(makeCapture().payload);
+  });
+  it("keeps rejected text and allows subsequent unrelated jobs to proceed", async () => {
+    await storage.put(makeCapture());
+    await storage.put(
+      makeJob({ action: "todo.delete", payload: { id: "other" } }),
+    );
+    const send = vi.fn(async (job: Job) => {
+      if (job.action === "capture")
+        throw new ApiFailure("bad_request", "Text prüfen");
+      return {};
+    });
+    await drain(storage, send);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect((await storage.jobs())[0].blocked).toBe("Text prüfen");
+  });
+  it("persists confirmation so a failed local update never resends a confirmed event", async () => {
+    await storage.put(makeCapture());
+    const send = vi.fn().mockResolvedValue(result);
+    await expect(
+      drain(storage, send, 1000, async () => {
+        throw Error("disk full");
+      }),
+    ).rejects.toThrow();
+    const confirmed = vi.fn().mockResolvedValue(undefined);
+    await drain(storage, send, 86400000, confirmed);
+    expect(send).toHaveBeenCalledOnce();
+    expect(confirmed.mock.calls[0][1]).toEqual(result);
+    expect(await storage.jobs()).toEqual([]);
+  });
+});

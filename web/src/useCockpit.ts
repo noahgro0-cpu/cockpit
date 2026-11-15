@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { State, Settings } from "../../shared/api-types";
+import type { State, Settings, CaptureResult } from "../../shared/api-types";
 import { ApiFailure, parseSetup, request, type Connection } from "./api";
 import {
   drain,
@@ -26,6 +26,7 @@ export function useCockpit() {
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [localSettings, setLocalSettings] = useState<Settings | null>(() =>
@@ -55,11 +56,39 @@ export function useCockpit() {
       await drain(
         storage,
         async (job) => {
-          if (MOCK) return null;
+          if (MOCK) {
+            if (job.action === "capture")
+              throw new ApiFailure(
+                "bad_request",
+                "Schnellerfassung benötigt eine echte Verbindung. Dein Text bleibt in den Einstellungen erhalten.",
+              );
+            return null;
+          }
           return request(connection!, job.action, job.payload);
         },
         Date.now(),
         async (job, result) => {
+          if (job.action === "capture") {
+            const captured = result as CaptureResult;
+            if (base.current) {
+              const state = structuredClone(base.current.state);
+              for (const item of captured.items) {
+                if (item.type === "todo")
+                  state.todos = [
+                    ...state.todos.filter((t) => t.id !== item.todo.id),
+                    item.todo,
+                  ];
+                else
+                  state.events = [
+                    ...state.events.filter((e) => e.id !== item.event.id),
+                    item.event,
+                  ];
+              }
+              await save({ ...base.current, state });
+            }
+            setConfirmation(captured.message);
+            return;
+          }
           if (base.current) {
             let state = optimistic(base.current.state, job);
             if (result && typeof result === "object" && "status" in result) {
@@ -193,11 +222,16 @@ export function useCockpit() {
       const job = makeJob(mutation);
       await storage.put(job);
       setJobs(await storage.jobs());
+      if (mutation.action === "capture")
+        setConfirmation(
+          "Eingabe auf diesem Gerät gespeichert. Bestätigung folgt nach der Synchronisierung.",
+        );
       void refresh();
     } catch {
-      setError(
-        "Änderung konnte nicht lokal gespeichert werden. Bitte erneut versuchen.",
-      );
+      const message =
+        "Änderung konnte nicht lokal gespeichert werden. Bitte erneut versuchen.";
+      setError(message);
+      if (mutation.action === "capture") throw new Error(message);
     }
   }
   async function setup(code: string) {
@@ -229,7 +263,8 @@ export function useCockpit() {
   }
   async function retry() {
     for (const job of await storage.jobs())
-      await storage.put({ ...job, blocked: undefined, nextAttempt: 0 });
+      if (job.action !== "capture" || !job.blocked)
+        await storage.put({ ...job, blocked: undefined, nextAttempt: 0 });
     await refresh();
   }
   async function discard(id: string) {
@@ -246,6 +281,7 @@ export function useCockpit() {
     connection,
     ready,
     error,
+    confirmation,
     busy,
     jobs,
     fetchedAt: snapshot?.fetchedAt ?? 0,

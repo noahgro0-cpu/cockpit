@@ -155,6 +155,12 @@ export function Settings({
                 {j.action} · Versuch {j.attempts}
               </p>
               {j.blocked && <p className="danger">{j.blocked}</p>}
+              {j.action === "capture" && (
+                <label>
+                  Gespeicherte Eingabe
+                  <textarea readOnly value={j.payload.text} />
+                </label>
+              )}
               <button disabled={busy} onClick={() => void discard(j.id)}>
                 Änderung verwerfen
               </button>
