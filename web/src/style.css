@@ -341,6 +341,7 @@ main {
 .briefing p {
   font-size: 13px;
   max-width: 950px;
+  white-space: pre-line;
 }
 nav {
   position: fixed;
@@ -707,9 +708,6 @@ summary {
 }
 .dashboard .today-grid > * {
   grid-column: auto;
-}
-.dashboard .briefing {
-  display: none;
 }
 .dashboard .tasks,
 .dashboard .mail-preview {
