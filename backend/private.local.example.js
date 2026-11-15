@@ -8,6 +8,10 @@ var COCKPIT_PRIVATE = {
   campusStop: "<stop name>",
   lat: "47.0",
   lon: "8.0",
+  homeName: "Musterdorf",
+  campusLat: "47.1",
+  campusLon: "8.1",
+  campusName: "Campusstadt",
   categories: [
     { id: "math", label: "Mathematik", color: "#BFD7EA", group: "schule" },
     { id: "privat", label: "Privat", color: "#E8E2C8", group: "privat" },

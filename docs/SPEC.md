@@ -37,12 +37,12 @@ Persönliche Angaben (Haltestellen, Stundenplan, Labels, Module) stehen in `priv
 | `log` | ts, level, area, message (höchstens 500 Zeilen, älteste löschen) |
 
 - Regeln werden von oben nach unten geprüft, der erste Treffer gilt. Der Nutzer pflegt sie direkt im Sheet.
-- `config`-Schlüssel: `mode` (`observe`/`active`), `archiveAfterLabel`, `quietFrom`, `quietTo`, `briefingWeekday`, `briefingWeekend`, `homeStop`, `campusStop`, `lat`, `lon`, `aiEnabled`, `aiModel` (Standard `gemini-3.5-flash-lite`), `mailRetentionDays` (30), `calLectures` (Name des Stundenplan-Kalenders), `calExams` (Name des Prüfungs-Kalenders), `categories` (To-do-Kategorien, JSON), `mailCategories` (Mail-Kategorien = Gmail-Labels, JSON-Liste), `sensitiveCategories` (JSON-Liste), `junkCategory` (Kategorie für «War unwichtig»), `setupCode`.
+- `config`-Schlüssel: `mode` (`observe`/`active`), `archiveAfterLabel`, `quietFrom`, `quietTo`, `briefingWeekday`, `briefingWeekend`, `homeStop`, `campusStop`, `lat`, `lon` (Wohnort), `homeName`, `campusLat`, `campusLon`, `campusName`, `weatherInBriefing` (D20), `aiEnabled`, `aiModel` (Standard `gemini-3.5-flash-lite`), `mailRetentionDays` (30), `calLectures` (Name des Stundenplan-Kalenders), `calExams` (Name des Prüfungs-Kalenders), `categories` (To-do-Kategorien, JSON), `mailCategories` (Mail-Kategorien = Gmail-Labels, JSON-Liste), `sensitiveCategories` (JSON-Liste), `junkCategory` (Kategorie für «War unwichtig»), `setupCode`.
 - Datenminimierung: Es wird nie der Volltext einer Mail gespeichert. Mail-Einträge älter als `mailRetentionDays` werden gelöscht.
 - Lesen und Schreiben immer gebündelt (`getValues`/`setValues`). Schreibzugriffe unter `LockService.getScriptLock()`.
 
 ### 2.3 Script Properties (Geheimnisse)
-`API_KEY` (Zufallswert ≥ 32 Zeichen, von `setup()` erzeugt), `GEMINI_API_KEY`, `NTFY_TOPIC` (Zufallswert, von `setup()` erzeugt), `NTFY_SERVER` (Standard `https://ntfy.sh`), optional `NTFY_TOKEN` (Zugangstoken eines Gratis-Kontos bei ntfy.sh, siehe §2.8), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (D19).
+`API_KEY` (Zufallswert ≥ 32 Zeichen, von `setup()` erzeugt), `GEMINI_API_KEY`, `NTFY_TOPIC` (Zufallswert, von `setup()` erzeugt), `NTFY_SERVER` (Standard `https://ntfy.sh`), optional `NTFY_TOKEN` (Zugangstoken eines Gratis-Kontos bei ntfy.sh, siehe §2.8), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (D19). Kein Geheimnis, aber privat: `LOCATION` (letzter Standort vom iOS-Kurzbefehl, auf ~1 km gerundet, D20).
 
 ### 2.4 API
 Ein einziger Endpunkt: `POST <web-app-url>` mit Body `{"key":"…","action":"…","payload":{…}}`.
@@ -64,6 +64,8 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `mail.feedback` | `{id, verdict: "wichtig"\|"unwichtig"}` | `{ruleAdded}` (legt eine Absender-Regel zuoberst an; eine Wiederholung aktualisiert dieselbe Regel und liefert `ruleAdded: false`) |
 | `settings.update` | `Partial<Settings>`, mindestens ein Feld | `Settings` (schreibt in `config`; idempotent) |
 | `event.add` | `{calendar: "exams", title, date, kind: "exam"\|"deadline"}` | `CalEvent` (ganztägig; idempotent über Titel + Datum; `kind` als Event-Tag gespeichert) |
+| `location.update` | `{lat, lon, name?}` (Zahlen oder Text mit Dezimalkomma) | `{at}` (nur letzter Standort, gerundet; nie im State oder Log; D20) |
+| `briefing.preview` | – | `{text}` (heutiges Briefing inkl. Wetter, ohne Versand) |
 
 Typen (massgebend ist `shared/api-types.ts`):
 
@@ -134,7 +136,9 @@ Schnittstelle `notify({title, body, priority, clickUrl, tag})`. Kanäle: `telegr
 
 Meldungen: dringende Mail (sofort), To-do-Erinnerung (`remindAt`, sonst 60 Min. vor `due` mit Uhrzeit), Briefing, Backend-Störung (nach 3 fehlgeschlagenen `tick` in Folge, höchstens 1× pro 6 h).
 
-Das Briefing entsteht aus einer Textvorlage ohne KI: erste Lektion mit Raum, Anzahl Termine, heute fällige und überfällige To-dos, Prüfungen in den nächsten 14 Tagen, wichtige Mails seit gestern.
+Das Briefing entsteht aus einer Textvorlage ohne KI: erste Lektion mit Raum, Anzahl Termine, Wetter mit Kleidungsempfehlung, heute fällige und überfällige To-dos, Prüfungen in den nächsten 14 Tagen, wichtige Mails seit gestern.
+
+Wetter im Briefing (D20): Das Backend holt die Stundenprognose bei Open-Meteo (`timezone=Europe/Zurich`). An Tagen mit Lektionen: Weg am Startort (2 h bis 30 Min. vor der ersten Lektion), dann Campus während der Lektionen. Sonst ein Abschnitt ab der aktuellen Stunde (frühestens 07 Uhr) bis 21 Uhr. Startort = Wohnort, ausser der iOS-Kurzbefehl hat in den letzten 12 h einen Standort > 5 km davon gemeldet. Empfehlung nach festen Regeln: gefühlte Tiefsttemperatur → Kleidung, Regenwahrscheinlichkeit/-menge → Schirm, Schnee, Gewitter, Böen ≥ 50 km/h. Fällt die Wetterabfrage aus, geht das Briefing ohne Wetter hinaus.
 
 ### 2.9 Fallstricke (bekannt, einhalten)
 - Clients senden `Content-Type: text/plain;charset=utf-8` und keine eigenen Header: Apps Script beantwortet keine CORS-Preflight-Anfragen.
@@ -163,7 +167,7 @@ React, Vite, TypeScript (strict), Tailwind, `vite-plugin-pwa`, `date-fns` (Local
 - **Einstellungen:** Haltestellen, Koordinaten, Kategorien mit Farben, Darstellung hell/dunkel/automatisch, Verbindung neu einrichten.
 - **Dashboard-Modus** (ab 1100 px Breite oder `?kiosk=1`): drei Spalten ohne Tabs – Heute | Kalender | To-dos + Mails. Bedienung möglich, aber nicht nötig.
 
-### 3.4 ÖV und Wetter (direkt im Client)
+### 3.4 ÖV und Wetter (direkt im Client; Ausnahme: Briefing-Wetter im Backend, §2.8)
 - ÖV: `https://transport.opendata.ch/v1/connections` (CORS frei, keine eigenen Header setzen). Limit des Datenlieferanten: 1000 Verbindungsabfragen pro Tag → höchstens alle 2 Min. abfragen, nur wenn sichtbar. Richtung automatisch: an Unterrichtstagen bis zur ersten Lektion Wohnort → Campus (mit «spätestens abfahren um», Ankunft ≥ 10 Min. vor Beginn), nach der letzten Lektion Campus → Wohnort. Verspätung und Gleis anzeigen.
 - Wetter: Open-Meteo (`api.open-meteo.com`, ohne Schlüssel): jetzt, heute, 7 Tage. Höchstens alle 30 Min.
 

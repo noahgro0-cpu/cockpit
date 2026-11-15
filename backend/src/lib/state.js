@@ -11,6 +11,12 @@ var CONFIG_DEFAULTS = {
   campusStop: "",
   lat: "",
   lon: "",
+  // Weather in the briefing (D20): home = lat/lon, campus = place of the lectures.
+  homeName: "",
+  campusLat: "",
+  campusLon: "",
+  campusName: "",
+  weatherInBriefing: "true",
   aiEnabled: "true",
   aiModel: "gemini-3.5-flash-lite",
   mailRetentionDays: "30",

@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-15 · Phase 1b umgesetzt, ausgerollt und gemeinsam getestet (Details unten im Abschnitt «Phase 1b»). Phase 1a und 2 abgeschlossen.
+Stand 2026-11-15 · Phase 1b abgeschlossen; Erweiterung «Wetter im Briefing» ausgerollt (Abschnitt ganz unten), Kurzbefehl auf dem iPhone noch einzurichten. Phase 1a und 2 abgeschlossen. Nächste Phase: 3 (Codex).
 
 ## Erledigt
 ### Phase 0
@@ -126,19 +126,17 @@ Zusätzliche Prüfung: 47 Unit-Tests grün (`cd web; npm test`), TypeScript/Prod
 Weitere Ergebnisse aus dem gemeinsamen Test:
 - **Newsletter:** von der KI mit 0 bewertet, erscheint nicht in der App.
 - **Injektionsmail:** von der KI nur mit 1 («Info») bewertet; die eingeschleusten Anweisungen hat sie nicht befolgt.
-- **Ruhezeit:** Eine dringende Mail um 00:28 wurde wegen Ruhezeit 00:00–06:30 zurückgehalten. Sie soll um 06:30 nachgeliefert werden, das ist noch zu bestätigen.
+- **Ruhezeit:** Eine dringende Mail um 00:28 wurde wegen Ruhezeit 00:00–06:30 zurückgehalten. ✔ Am 15.11. um 06:37 nachgeliefert (vom Nutzer bestätigt), zusammen mit dem Push einer echten Schul-Mail mit Frist.
+- **Briefing:** ✔ Sonntag 15.11. um 09:07 (Wochenendzeit 09:00) angekommen: «Heute keine Termine», «Keine To-dos fällig», «5 wichtige Mails seit gestern».
 
 ### Manuelle Schritte für den Nutzer
-1. **Ruhezeit zurückstellen**, falls noch nicht geschehen: Sheet → Tab `config` → `quietFrom` = `22:00`, `quietTo` = `06:30`.
-2. **Morgen früh prüfen:**
-   - Um ca. 06:30 kommt das Briefing.
-   - Möglicherweise kommt auch der um 00:28 zurückgehaltene Push zur Labor-Mail nach. Läuft der Kanal inzwischen über Telegram, kommt er dort an.
-   - Ergebnis hier vermerken.
-3. **Regeln pflegen** (Sheet → Tab `regeln`): Absender von Krankenkasse, Versicherungen, Bank, Vermietung und Arbeitgeber eintragen (Domain hinter dem @, `sensibel = ja` wo nötig). Siehe ANLEITUNG.md C4 Punkt 5.
+1. ~~Ruhezeit zurückstellen~~ ✔ erledigt (14.11. abends).
+2. ~~Morgen früh prüfen~~ ✔ erledigt (siehe oben).
+3. **Regeln pflegen** (optional; der Nutzer erhält selten sensible Mails, der aktuelle Filter genügt ihm) (Sheet → Tab `regeln`): Absender von Krankenkasse, Versicherungen, Bank, Vermietung und Arbeitgeber eintragen (Domain hinter dem @, `sensibel = ja` wo nötig). Siehe ANLEITUNG.md C4 Punkt 5.
    - Die HSLU-Regel hat absichtlich **keine** feste Wichtigkeit: So bewertet die KI Fristen und erzeugt To-dos. Mit einer festen 2 gäbe es aus HSLU-Mails keine automatischen To-dos.
 4. **Testdaten aufräumen** (optional): In der PWA unter «Mails» die Testmails mit «Erledigt» entfernen und die drei Test-To-dos («Anmeldung Labor bestätigen», «Laborbericht einreichen», das von der Telegram-Testmail) löschen.
 5. **ntfy-App** kann bleiben (Reserve) oder gelöscht werden. Das Backend nutzt Telegram, solange es eingerichtet ist.
-6. **GitHub:** Die Phase-1b-Commits sind lokal und noch nicht gepusht. Vor dem Push gemeinsam freigeben (Repo öffentlich; geprüft: keine persönlichen Daten in den Änderungen).
+6. ~~GitHub~~ ✔ Phase-1b-Commits am 15.11. nach Freigabe gepusht.
 
 ### Offen / nächste Schritte
 - PWA-Integration der Mail-Aktionen im echten Betrieb prüfen: Mail → To-do, Erledigt, «War (un)wichtig» → Sheet kontrollieren (STATUS «Übergabe 1b» Punkt 4). Backend-Handler sind fertig, aber noch nicht live mit der PWA getestet.
@@ -151,3 +149,55 @@ Weitere Ergebnisse aus dem gemeinsamen Test:
 - **Gemini-Fixtures** in `backend/test/fixtures/` sind im Format echter Antworten nachgebaut, nicht vom Live-Modell aufgezeichnet. Dass das Live-Modell eine Injektion ignoriert, ist durch den gemeinsamen Test (Mail D) belegt.
 - **Briefing am 14.11.:** um 23:38 nachträglich erzeugt und wegen der Verspätung (> 3 h) nicht gepusht. Das ist so gewollt.
 - **Nachklassifizierung:** Mails, die ohne KI eingingen, werden innerhalb von 14 Tagen nachklassifiziert, sobald die KI verfügbar ist. Pushes gibt es dafür nur bei Mails, die jünger als 24 h sind.
+
+## Erweiterung: Wetter mit Kleidungsempfehlung im Briefing (2026-11-15, Claude Code)
+
+### Erledigt
+- `src/lib/weather.js` (reine Logik) und `src/gas/weather.js`: Das Briefing enthält als zweite Zeile das Wetter mit Kleidungs- und Schirmempfehlung (D20, SPEC §2.8).
+  - **Unterrichtstag:** zuerst der Weg am Startort (2 h bis 30 Min. vor der ersten Lektion), dann der Campus während der Lektionen. Gleiche Temperaturklasse wird nicht wiederholt.
+  - **Ohne Lektionen (Wochenende):** ein Satz für den Rest des Tages am Aufenthaltsort.
+  - **Startort:** Wohnort, ausser der iOS-Kurzbefehl hat in den letzten 12 h einen Standort > 5 km davon gemeldet.
+  - Fällt Open-Meteo aus, geht das Briefing ohne Wetter hinaus (Log-Eintrag `weather`).
+- Neue API-Aktionen `location.update` und `briefing.preview` (`shared/api-types.ts`). Der Standort wird gerundet (~1 km), nur der letzte Wert bleibt, er erscheint weder im State noch im Log.
+- Neue `config`-Schlüssel `homeName`, `campusLat`, `campusLon`, `campusName`, `weatherInBriefing`; Werte aus `private.local.js`, werden vom nächsten `tick` ergänzt (Schema-Version 4).
+- Editor-Funktionen `previewBriefing()` und `shortcutSetup()`.
+- 101 Unit-Tests grün (u. a. Zeitfenster bei Sommer-/Winterzeit und am Umstellungstag, Kleidungsklassen, Regen/Schnee/Wind, Standort-Validierung und -Frische).
+- Live geprüft (Deployment @10, dieselbe ID): Open-Meteo aus Apps Script erreichbar; `briefing.preview` liefert Wetter; `location.update` mit einem entfernten Ort → Briefing nennt diesen Ort; ungültige Koordinaten → `bad_request`. Der Teststandort wurde danach auf den Wohnort zurückgesetzt.
+
+### Manuelle Schritte für den Nutzer (iOS-Kurzbefehl «Standort fürs Briefing»)
+Einmalig, ca. 10 Minuten. Danach läuft alles automatisch.
+
+**A. Werte bereitstellen (am PC)**
+1. Google Sheet «Cockpit» öffnen → **Erweiterungen → Apps Script**.
+2. Oben in der Funktionsauswahl **shortcutSetup** wählen → **Ausführen**.
+3. Im Sheet, Tab **config**, stehen jetzt zuunterst die Zeilen **shortcutUrl** und **shortcutText**.
+
+**B. Kurzbefehl bauen (auf dem iPhone)**
+1. App **Kurzbefehle** öffnen → unten **Automation** → oben rechts **+**.
+2. **Tageszeit** wählen → **Uhrzeit 06:00**, **Täglich** → unten **Sofort ausführen** wählen, **Bei Ausführung mitteilen** ausschalten → **Weiter**.
+3. **Neuer leerer Kurzbefehl** → **Aktion hinzufügen** → im Suchfeld «Aktuellen Standort» → **Aktuellen Standort abrufen** antippen.
+4. Erneut suchen: «Text» → **Text** antippen. In der App **Google Sheets** den Tab **config** öffnen, die Zelle neben **shortcutText** antippen → **Kopieren** → zurück in Kurzbefehle → ins Textfeld **Einsetzen**.
+5. Im eingefügten Text die Platzhalter ersetzen:
+   - das Wort `LAT` markieren und löschen, dann über der Tastatur **Aktueller Standort** antippen. Danach die eingefügte blaue Variable antippen und **Breitengrad** wählen.
+   - `LON` ebenso ersetzen, dabei **Längengrad** wählen.
+   - `ORT` ebenso ersetzen, dabei **Stadt** wählen.
+   - Die Anführungszeichen um die Variablen stehen lassen.
+6. Suchen: «URL abrufen» → **Inhalte von URL abrufen** antippen. Ins Feld **URL** den Wert neben **shortcutUrl** aus dem Sheet einsetzen.
+7. Bei dieser Aktion auf den Pfeil **›** tippen → **Methode: POST** → **Anfragetext: Datei** → bei **Datei** die Variable **Text** wählen.
+8. Oben rechts **Fertig**.
+
+**C. Testen und Berechtigung**
+1. Die Automation öffnen → unten rechts **▶︎** (Ausführen). Fragt iOS nach dem Standort: **Erlauben**.
+2. **Einstellungen → Datenschutz & Sicherheit → Ortungsdienste → Kurzbefehle** → falls angeboten **Immer** wählen und **Genauer Standort** eingeschaltet lassen.
+3. Im Sheet, Tab **log**, steht zuunterst «location updated». Das Ergebnis Claude melden.
+4. **Am nächsten Morgen:** Steht im Tab **log** um ca. 06:00 wieder «location updated», obwohl das iPhone gesperrt war? Ergebnis hier vermerken.
+5. Danach die Zeilen **shortcutUrl** und **shortcutText** im Tab **config** löschen. Die Zeile auswählen → Rechtsklick → **Zeile löschen**.
+
+### Offen
+- Auf dem Gerät prüfen, ob der Kurzbefehl auf dem gesperrten iPhone den Standort liefert. Wenn nicht: zusätzlich eine Automation **Wecker → Wird gestoppt** mit demselben Kurzbefehl. Bleibt auch das erfolglos, gilt immer der Wohnort.
+- Das erste echte Briefing mit Wetter am Montag 16.11. um 06:30 kontrollieren (Unterrichtstag: Weg + Campus).
+- Für Codex (Phase 3): In `docs/SETUP-iOS.md` den Standort-Kurzbefehl aus Abschnitt B übernehmen. Für den Siri-Kurzbefehl `quickAdd` dieselbe Methode verwenden: Werte über `shortcutSetup` und das Sheet bereitstellen. Die PWA braucht keine Änderung, der Briefing-Text wird nur länger.
+
+### Bekannte Mängel
+- Die Kleidungsregeln sind Faustregeln: Grenzen bei gefühlten 3/9/15/23 °C, Schirm ab 30 % bzw. 60 %. Anpassen nach den ersten Wochen, wenn die Empfehlungen nicht passen.
+- Der Ortsname am Wochenende kommt vom iPhone («Stadt»). Fehlt er, steht «an deinem Standort».

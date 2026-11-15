@@ -183,6 +183,14 @@ export interface ApiActions {
     payload: { calendar: "exams"; title: string; date: ISODate; kind: "exam" | "deadline" };
     data: CalEvent;
   };
+  /**
+   * Sent by the iOS shortcut (D20). Stores only the latest location, rounded to ~1 km; it is used
+   * for the briefing weather while it is at most 12 h old and never appears in `getState`.
+   * lat/lon may be strings with a decimal comma (as iOS sends them). `name` = locality, optional.
+   */
+  "location.update": { payload: { lat: number | string; lon: number | string; name?: string }; data: { at: ISODateTime } };
+  /** Today's briefing text as it would be generated now (incl. weather); sends and stores nothing. */
+  "briefing.preview": { payload: Record<string, never> | undefined; data: { text: string } };
 }
 
 export type ApiAction = keyof ApiActions;

@@ -199,7 +199,7 @@ function plural_(n, one, many) {
 }
 
 /**
- * Template briefing (no AI). input: {now, events, todos, exams, mails} in State shapes.
+ * Template briefing (no AI). input: {now, events, todos, exams, mails, weatherText?} in State shapes.
  * Mentions: first lecture with room, number of events, todos due today and overdue,
  * exams in the next 14 days, important mails since yesterday.
  */
@@ -229,6 +229,7 @@ function buildBriefingText(input) {
   } else {
     lines.push(todays.length ? "Heute " + termine + ", keine Lektionen." : "Heute keine Termine.");
   }
+  if (input.weatherText) lines.push(input.weatherText);
 
   var open = (input.todos || []).filter(function (t) {
     return t.status === "open" && t.due;

@@ -251,14 +251,7 @@ function runBriefing_() {
   var p = props_();
   if (!briefingDue(now, config, p.getProperty("BRIEFING_SENT"))) return false;
   var today = toZurichDate(now);
-  var cal = readCalendarEvents_(config, now);
-  var text = buildBriefingText({
-    now: now,
-    events: cal.events,
-    exams: cal.exams,
-    todos: readRows_("todos").map(rowToTodo),
-    mails: selectMails(readRows_("mails").map(rowToMail), now),
-  });
+  var text = briefingTextNow_(now);
   p.setProperty("BRIEFING", JSON.stringify({ date: today, text: text }));
   p.setProperty("BRIEFING_SENT", today);
   var at = parseHhmm(briefingTimeFor(today, config));
@@ -267,6 +260,20 @@ function runBriefing_() {
     notify({ title: briefingTitle(today), body: text, priority: 3, tag: "sunrise" }, { key: "briefing:" + today, ignoreQuiet: true, config: config });
   }
   return true;
+}
+
+/** Briefing text for `now` (calendar, to-dos, mails, weather); sends and stores nothing. */
+function briefingTextNow_(now) {
+  var config = readConfig_();
+  var cal = readCalendarEvents_(config, now);
+  return buildBriefingText({
+    now: now,
+    events: cal.events,
+    exams: cal.exams,
+    todos: readRows_("todos").map(rowToTodo),
+    mails: selectMails(readRows_("mails").map(rowToMail), now),
+    weatherText: weatherTextFor_(config, now, cal.events),
+  });
 }
 
 /** Once per day: delete mail entries older than mailRetentionDays. */

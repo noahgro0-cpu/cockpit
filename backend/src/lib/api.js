@@ -59,6 +59,9 @@ function apiActions_() {
   "mail.feedback": { validate: validateMailFeedback, write: true },
   "event.add": { validate: validateEventAdd, write: true },
   "settings.update": { validate: validateSettingsUpdate, write: true },
+  // Sent by the iOS shortcut; stored in a script property, so no sheet lock needed.
+  "location.update": { validate: validateLocationUpdate, write: false },
+  "briefing.preview": { validate: noPayload_, write: false },
   };
 }
 

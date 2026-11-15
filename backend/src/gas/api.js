@@ -131,6 +131,12 @@ function apiHandlers_() {
     "event.add": function (p) {
       return addExamEvent_(p);
     },
+    "location.update": function (p) {
+      return saveLocation_(p);
+    },
+    "briefing.preview": function () {
+      return { text: briefingTextNow_(new Date()) };
+    },
   };
 }
 
