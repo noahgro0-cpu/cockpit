@@ -89,10 +89,20 @@ test("invalid AI answers are rejected", () => {
   assert.equal(L.parseCaptureResult("[]", NOW, [], "", true), null);
 });
 
+test("vague phrases are removed from titles", () => {
+  const s = (t) => L.stripVaguePhrases(t, "2026-11-15");
+  assert.equal(s("Velo flicken nächste Woche"), "Velo flicken");
+  assert.equal(s("Bericht bis Ende nächste Woche abgeben"), "Bericht abgeben");
+  assert.equal(s("am Wochenende aufräumen"), "aufräumen");
+  assert.equal(s("Zahnarzt Montag in einer Woche"), "Zahnarzt");
+  assert.equal(s("Wochenende"), "Wochenende"); // nothing left -> keep
+  assert.equal(s("Python Übung abgeben"), "Python Übung abgeben");
+});
+
 test("fallback without AI: whole text as to-do, vague date applied", () => {
   assert.deepEqual(plain(L.captureFallback("Steuererklärung ende nächste Woche", NOW)), {
     type: "todo",
-    fields: { title: "Steuererklärung ende nächste Woche", priority: 0, due: "2026-11-20" },
+    fields: { title: "Steuererklärung", priority: 0, due: "2026-11-20" },
   });
 });
 

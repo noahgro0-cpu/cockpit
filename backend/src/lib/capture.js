@@ -62,6 +62,16 @@ function vagueDateRules(today) {
   ]);
 }
 
+/** Title without vague date phrases (and a dangling "bis"/"am"/"in der"); keeps the title if nothing remains. */
+function stripVaguePhrases(title, today) {
+  var t = String(title || "");
+  vagueDateRules(today).forEach(function (r) {
+    t = t.replace(new RegExp("(?:^|\\s+)(?:(?:bis|am|an|in der|im|für|auf)\\s+)?" + r.pattern + "(?![a-zäöü])", "gi"), "");
+  });
+  t = t.replace(/\s{2,}/g, " ").replace(/[\s,;:-]+$/, "").trim();
+  return t || String(title || "").trim();
+}
+
 /** Date for the first vague phrase found in text, or null. */
 function vagueDateFromText(text, today) {
   var t = String(text || "").toLowerCase();
@@ -151,9 +161,10 @@ function parseCaptureResult(answer, now, categories, originalText, allowEvents) 
     return null;
   }
   if (!isPlainObject(d)) return null;
+  var today = toZurichDate(now);
   var title = boundedText_(d.title, TODO_LIMITS.title, 400);
   if (!title) return null;
-  var today = toZurichDate(now);
+  title = stripVaguePhrases(title, today);
   var vague = vagueDateFromText(originalText, today);
 
   if (d.type === "event" && allowEvents) {
@@ -195,8 +206,9 @@ function parseCaptureResult(answer, now, categories, originalText, allowEvents) 
 
 /** Fallback without AI (or sensitive text): whole text as to-do title, vague date if any. */
 function captureFallback(text, now) {
-  var fields = { title: String(text).trim().slice(0, TODO_LIMITS.title), priority: 0 };
-  var vague = vagueDateFromText(text, toZurichDate(now));
+  var today = toZurichDate(now);
+  var fields = { title: stripVaguePhrases(String(text).trim(), today).slice(0, TODO_LIMITS.title), priority: 0 };
+  var vague = vagueDateFromText(text, today);
   if (vague) fields.due = vague;
   return { type: "todo", fields: fields };
 }
