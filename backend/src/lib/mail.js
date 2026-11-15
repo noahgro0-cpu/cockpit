@@ -280,8 +280,18 @@ function formatDateCh(isoDate) {
 }
 
 /**
+ * Whether a processed mail may leave the inbox (D24): only mails that a rule or the AI explicitly
+ * rated as unimportant or info (importance <= 1), never sensitive mails, never unrated ones
+ * (classifiedBy "none", e.g. AI unavailable) and never mails with a to-do.
+ */
+function mayArchive(e) {
+  return (e.classifiedBy === "ai" || e.classifiedBy === "rule") && Number(e.importance) <= 1 && !e.sensitive && !e.todoId;
+}
+
+/**
  * Gmail label changes for processed mails. Empty unless mode is "active": in observe mode
- * the mailbox is never changed.
+ * the mailbox is never changed. Every categorised mail gets its label; with archiveAfterLabel
+ * only mails that pass mayArchive leave the inbox, important ones stay.
  */
 function planLabelOps(entries, config) {
   if (config.mode !== "active") return [];
@@ -291,7 +301,7 @@ function planLabelOps(entries, config) {
       return !!e.category;
     })
     .map(function (e) {
-      return { id: e.id, addLabel: e.category, archive: archive };
+      return { id: e.id, addLabel: e.category, archive: archive && mayArchive(e) };
     });
 }
 

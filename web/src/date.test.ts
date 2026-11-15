@@ -3,6 +3,7 @@ import {
   day,
   time,
   shift,
+  relativeStart,
   weekStart,
   daysUntil,
   groupTodos,
@@ -112,5 +113,16 @@ describe("grouping", () => {
     expect(result[0].importance).toBe(3);
     expect(result.some((m) => m.id === "mail-0003")).toBe(false);
     expect(result.every((m) => m.importance >= 2)).toBe(true);
+  });
+});
+
+describe("relativeStart", () => {
+  const now = new Date("2026-11-15T19:25:00+01:00");
+  it("uses minutes, hours, tomorrow and days", () => {
+    expect(relativeStart("2026-11-15T19:00:00+01:00", now)).toBe("Jetzt");
+    expect(relativeStart("2026-11-15T19:50:00+01:00", now)).toBe("in 25 Min.");
+    expect(relativeStart("2026-11-15T22:30:00+01:00", now)).toBe("in 3 Std.");
+    expect(relativeStart("2026-11-16T08:30:00+01:00", now)).toBe("morgen");
+    expect(relativeStart("2026-11-19T08:30:00+01:00", now)).toBe("in 4 Tagen");
   });
 });

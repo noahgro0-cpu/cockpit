@@ -25,14 +25,14 @@ Datenfluss: Gmail/Kalender → Apps Script (Trigger) → Sheet → `getState` �
 ```
 backend/    Apps Script (JavaScript, clasp)        → Claude Code
 shared/     API-Typen = Vertrag (api-types.ts)     → Claude Code
-web/        PWA                                    → Codex
-widgets/    Scriptable-Skripte                     → Codex
+web/        PWA                                    → Claude Code (seit 2026-11-15, vorher Codex)
+widgets/    Scriptable-Skripte                     → Claude Code (seit 2026-11-15, vorher Codex)
 docs/       SPEC.md, DECISIONS.md, STATUS.md, OPEN-QUESTIONS.md, mock-state.json, SETUP-iOS.md
 private/    persönliche Angaben (in .gitignore)
 .github/workflows/   Build + Deploy der PWA
 ```
 
-- Jeder Agent ändert nur seine Ordner. Braucht Codex eine API-Änderung, schreibt er sie in `docs/OPEN-QUESTIONS.md`; `shared/` und `backend/` ändert nur Claude Code.
+- Seit 2026-11-15 betreut Claude Code alle Ordner (Wunsch des Nutzers). Arbeitet Codex doch wieder mit, gilt: jeder Agent ändert nur seine Ordner, API-Wünsche von Codex gehen über `docs/OPEN-QUESTIONS.md`, `shared/` und `backend/` ändert nur Claude Code.
 - Nie gleichzeitig im selben Arbeitsordner arbeiten. Parallelbetrieb nur mit zweitem Klon oder `git worktree` und eigenem Branch.
 
 ## Harte Regeln

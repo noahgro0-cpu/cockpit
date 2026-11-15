@@ -198,3 +198,31 @@ test("telegram setup: latest private chat id from getUpdates", () => {
   assert.equal(L.latestPrivateChatId({ ok: true, result: [] }), null);
   assert.equal(L.latestPrivateChatId(null), null);
 });
+
+test("to-do reminder: configurable lead, not right after creation; daily digest for date-only to-dos (D24)", () => {
+  const t = (o) => Object.assign({ id: "t", title: "Velo putzen", status: "open", due: "2026-11-16T18:00:00+01:00", dueHasTime: true, createdAt: "2026-11-15T10:00:00+01:00" }, o);
+  const iso = (d) => d && L.toZurichIso(d);
+  assert.equal(iso(L.reminderTime(t(), "120")), "2026-11-16T16:00:00+01:00");
+  assert.equal(iso(L.reminderTime(t())), "2026-11-16T17:00:00+01:00", "default 60 min");
+  assert.equal(iso(L.reminderTime(t({ createdAt: "2026-11-16T16:30:00+01:00" }), "120")), "2026-11-16T17:45:00+01:00", "created inside the lead: 15 min before");
+  assert.equal(L.reminderTime(t({ createdAt: "2026-11-16T17:50:00+01:00" }), "120"), null, "created right before due: no reminder");
+  assert.equal(iso(L.reminderTime(t({ remindAt: "2026-11-16T09:00:00+01:00" }), "120")), "2026-11-16T09:00:00+01:00");
+  const cfg = { todoDayReminder: "16:00" };
+  const todos = [t({ due: "2026-11-16", dueHasTime: false }), t({ id: "b", title: "Keller aufräumen", due: "2026-11-16", dueHasTime: false }), t({ id: "c", title: "Später", due: "2026-11-17", dueHasTime: false }), t({ id: "d", title: "Fertig", due: "2026-11-16", dueHasTime: false, status: "done" })];
+  assert.equal(L.todoDayDigest(todos, new Date("2026-11-16T15:50:00+01:00"), cfg, ""), null, "before 16:00");
+  const d = plain(L.todoDayDigest(todos, new Date("2026-11-16T16:05:00+01:00"), cfg, "2026-11-15"));
+  assert.equal(d.title, "Heute noch offen (2)");
+  assert.equal(d.body, "• Velo putzen\n• Keller aufräumen");
+  assert.equal(L.todoDayDigest(todos, new Date("2026-11-16T16:05:00+01:00"), cfg, "2026-11-16"), null, "once per day");
+  assert.equal(L.todoDayDigest(todos, new Date("2026-11-16T16:05:00+01:00"), { todoDayReminder: "" }, ""), null, "off");
+});
+
+test("routine events: lectures, recurring series, listed calendars (D24)", () => {
+  const cfg = { calRoutine: "Kalenderwochen, Feiertage" };
+  assert.equal(L.isRoutineEvent("lecture", "X", false, cfg), true);
+  assert.equal(L.isRoutineEvent("private", "Privat", true, cfg), true);
+  assert.equal(L.isRoutineEvent("private", "Kalenderwochen", false, cfg), true);
+  assert.equal(L.isRoutineEvent("private", "Feiertage", false, cfg), true);
+  assert.equal(L.isRoutineEvent("private", "Privat", false, cfg), false);
+  assert.equal(L.isRoutineEvent("exam", "Prüfungen", false, {}), false);
+});

@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-15 abends · Phase 3 vom Nutzer abgeschlossen (Kurzbefehl eingerichtet und getestet). Backend: Schnellerfassung zerlegt Sätze in mehrere Einträge mit kurzen Titeln (D23, Deployment @22). **Nächster Schritt: Codex-Runde 3b** (PWA-Kalender, kompaktere Seite, Schnellerfassung über `capture`), siehe «Übergabe an Codex (Runde 3b)». Phase 4 läuft (Abschnitt unten).
+Stand 2026-11-15 abends · Phase 3 abgeschlossen, Siri-Test mit Termin + To-do bestanden. D24 umgesetzt (Erinnerungen, Posteingang aufräumen, ruhigerer Kalender, Web-App-Verbesserungen). Claude Code betreut jetzt alle Ordner. Phase 4 läuft, siehe unten.
 
 ## Erledigt
 ### Phase 0
@@ -331,9 +331,9 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 - Kleinigkeit an Codex (OPEN-QUESTIONS): Feldlänge 2000 statt 500 Zeichen.
 
 ### Offen
-1. **Entscheid des Nutzers:** Historie umschreiben (Force-Push), um Hochschul-Kurzname und Vornamen aus alten Commits zu entfernen? Risiko gering (öffentliche Hochschule, nur Vorname), Aufwand klein, aber alle Klone (Codex) müssen danach neu geholt werden. Ohne Freigabe bleibt die Historie, wie sie ist.
+1. ~~Historie umschreiben~~ Vom Nutzer am 15.11. abgelehnt (Risiko gering), Historie bleibt.
 2. **24-h-Messung:** Am 17.11. im Sheet `log` die Zeile «runtime 2026-11-16: …» lesen (erster voller Tag). Ziel < 45 Min. Zusätzlich möglich: Apps Script → **Ausführungen**.
-3. Nach Codex-Runde 3b: End-to-End-Durchlauf mit dem Nutzer (Mail → Push → To-do → PWA/Widget; Siri → Termin + To-do), dann **API-Schlüssel einmal erneuern** (`rotateKey` in **gas/setup.gs**; danach Setup-Code in PWA und Scriptable, `key` im Siri-Kurzbefehl und im Text der Standort-Automation ersetzen) und `docs/BETRIEB.md` schreiben.
+3. Nach Codex-Runde 3b: End-to-End-Durchlauf mit dem Nutzer (Mail → Push → To-do → PWA/Widget; Siri → Termin + To-do), Schlüsselrotation vorerst nicht (D24, nur bei Verdacht), `docs/BETRIEB.md` schreiben.
 4. **Nutzer, Geräte-Abnahme Runde 3b:** PWA auf iPhone und iPad neu laden (App ganz schliessen und neu öffnen). Prüfen: Kalender zeigt 7 Tage ab heute, «Monat» öffnet die Monatsansicht, Schnellerfassung mit einem Satz aus Termin und Aufgabe zeigt die Bestätigung und trägt beides ein. Testeinträge danach löschen.
 5. **Nutzer, alter Testeintrag:** Unter «Am Horizont» steht noch «Cockpit-Test Pruefung (bitte loeschen)» aus Phase 1a. Im Google-Kalender (Prüfungs-Kalender) löschen.
 6. Aus der Wetter-Erweiterung weiterhin offen: 16.11. **location updated** um ca. 06:00 im `log` (iPhone gesperrt) und das erste Wochentags-Briefing mit Wetter.
@@ -362,3 +362,25 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 - Push/Veröffentlichung nicht ausgeführt. Echte iPhone-/iPad-Geräte und Live-KI bleiben im Phase-4-Durchlauf zu prüfen; Phase 4 ist nicht abgeschlossen.
 - Doppelte Termine bleiben gemäss D23 nur bestmöglich abgesichert. Unklare oder endgültig abgelehnte Capture-Aufträge werden bewusst nicht über **Jetzt erneut versuchen** entsperrt; ihr Text bleibt zur manuellen Prüfung erhalten.
 - Im Demo-Modus erzeugt die Schnellerfassung keine KI-Einträge; der Text bleibt mit Hinweis in der Outbox. Bei vielen Einträgen bleibt Scrollen erforderlich.
+
+## D24 – Erinnerungen, Posteingang, Kalender und Web-App (2026-11-15 abends, Claude Code)
+
+### Erledigt
+- **To-do-Erinnerungen** per Telegram: mit Uhrzeit 120 Min. vorher; ohne Uhrzeit um 16:00 gesammelt «Heute noch offen», falls noch offen. Einstellbar im Sheet → `config` → `todoReminderLead` / `todoDayReminder` (leer = aus).
+- **Posteingang aufräumen:** ab dem nächsten Backend-Lauf Modus `active` mit Archivieren. Nur ausdrücklich als Info/unwichtig bewertete Mails verlassen den Posteingang (mit Label); wichtige, sensible, unbewertete und Mails mit To-do bleiben. «War wichtig» holt eine Mail zurück.
+- **Kalender:** Lektionen, Serien und Kalenderwochen klein und grau (Knopf «Stundenplan ausblenden»), Termine gefüllt, To-dos gestrichelt mit Kreis, Legende. PC 1440×900: ganze Woche ohne Scrollen sichtbar (vorher knapp 3 Tage). Monatsansicht ohne Lektionen.
+- **Heute:** «Dein nächster Termin» ohne Lektionen, relative Zeit («morgen», «in 3 Std.»), «Heute noch 1 Termin · 2 Lektionen». ÖV-Karte zuunterst.
+- **Mails:** nur wichtige sichtbar, «Infos (n)» aufklappbar; im Dashboard Text auf zwei Zeilen gekürzt.
+- **To-dos:** Bearbeiten/Verschieben nebeneinander statt untereinander (Zeilen halb so hoch).
+- Fix: `.sr-only` fehlte im CSS (Beschriftungen für Screenreader waren sichtbar bzw. ohne Wirkung).
+- Tests: Backend 125, Web 61 (+ `relativeStart`), Build, `web/scripts/browser-check.mjs` (375/834/1440 px, hell/dunkel, Offline, Monatsansicht) bestanden; Check an D24 angepasst (Lektion nie als nächster Termin).
+- Seitenhöhe PC 1549 → 1187 px.
+
+### Manuelle Schritte für den Nutzer
+1. Optional, bestehende Info-Mails einmalig aus dem Posteingang räumen: Sheet → **Erweiterungen → Apps Script** → Datei **gas/gmail.gs** → Funktion **archiveInfoMails** → **Ausführen**. Betrifft nur gespeicherte Mails der letzten 30 Tage mit Wichtigkeit ≤ 1 (nicht sensibel, ohne To-do). Danach im `log` «archiveInfoMails: n mail(s) archived».
+2. Zurück zum alten Verhalten: Sheet → `config` → `mode` = `observe` (Posteingang wird nie verändert) oder `archiveAfterLabel` = `false` (nur Labels).
+3. PWA auf iPhone/iPad ganz schliessen und neu öffnen, damit die neue Version lädt.
+
+### Bekannte Mängel / Vorschläge
+- Lektionstitel sind die Kurzcodes aus dem Stundenplan-Abo. Lesbare Namen wären über eine Zuordnungstabelle im Sheet möglich (nicht umgesetzt).
+- Das Widget zeigt als nächsten Termin weiterhin auch Lektionen (bewusst unverändert, auf Wunsch anpassbar).

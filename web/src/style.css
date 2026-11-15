@@ -1300,3 +1300,180 @@ header {
     margin-bottom: 8px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   D24 (2026-11-15): compact calendar, routine entries muted, to-dos distinct
+   from appointments, travel card last, important mails first.
+   --------------------------------------------------------------------------- */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+.cal-legend .legend-event::before,
+.cal-legend .legend-todo::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  border-radius: 3px;
+  background: var(--peach);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.cal-legend .legend-todo::before {
+  background: transparent;
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
+  box-shadow: none;
+}
+.cal-legend .legend-routine {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: var(--text-footnote);
+  color: var(--muted);
+}
+/* One entry = one line. */
+:is(.calendar, .month-sheet) .calendar-day {
+  padding: 8px 10px;
+}
+.calendar.compact .calendar-day {
+  grid-template-columns: 52px 1fr;
+  gap: 3px 8px;
+}
+:is(.calendar, .month-sheet) .calendar-day h3 {
+  font-size: var(--text-footnote);
+  margin: 0;
+}
+:is(.calendar, .month-sheet) .event,
+:is(.calendar, .month-sheet) .todo-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin: 2px 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: var(--text-footnote);
+  line-height: 1.35;
+  overflow-wrap: normal;
+}
+:is(.calendar, .month-sheet) .event-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+:is(.calendar, .month-sheet) .event-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+:is(.calendar, .month-sheet) .event-place {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+/* Appointments: filled with a solid bar. */
+:is(.calendar, .month-sheet) .event {
+  background: var(--peach);
+  box-shadow: inset 3px 0 var(--accent);
+  border-left: 0;
+}
+:is(.calendar, .month-sheet) .event.exam,
+:is(.calendar, .month-sheet) .event.deadline {
+  background: var(--lilac);
+  box-shadow: inset 3px 0 var(--danger);
+}
+/* Routine (lectures, series, week numbers): small, muted, no fill. */
+:is(.calendar, .month-sheet) .event.routine {
+  background: transparent;
+  box-shadow: inset 2px 0 var(--line);
+  padding-block: 1px;
+  color: var(--muted);
+  font-size: var(--text-caption);
+}
+:is(.calendar, .month-sheet) .event.routine .event-title {
+  font-weight: 400;
+}
+/* To-dos: outlined pill with a check circle, never filled. */
+:is(.calendar, .month-sheet) .todo-chip {
+  background: transparent;
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  align-items: center;
+}
+:is(.calendar, .month-sheet) .todo-chip svg {
+  flex: none;
+}
+:is(.calendar, .month-sheet) .free {
+  margin: 0;
+  font-size: var(--text-caption);
+}
+.calendar.compact .calendar-day .event,
+.calendar.compact .calendar-day .todo-chip,
+.calendar.compact .calendar-day .free {
+  grid-column: 2;
+}
+@media (max-width: 540px) {
+  :is(.calendar, .month-sheet) .calendar-day {
+    padding: 10px 12px;
+  }
+  .month-grid .event,
+  .month-grid .todo-chip {
+    display: none;
+  }
+}
+/* To-do rows: edit and move side by side instead of stacked. */
+.task-item .todo-row {
+  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
+}
+.task-item .todo-row > button:not(.check) {
+  grid-column: auto;
+  grid-row: 1;
+  align-self: center;
+}
+/* Mails: info mails quieter; disclosure buttons like list rows. */
+.mail-card.info {
+  opacity: 0.85;
+}
+.disclosure {
+  width: 100%;
+  min-height: 44px;
+}
+.dashboard .mail-card p:not(.small) {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dashboard .mail-card .actions button,
+.dashboard .mail-card .actions .button-link {
+  font-size: var(--text-footnote);
+  padding-inline: 10px;
+}

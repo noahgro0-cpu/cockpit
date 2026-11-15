@@ -1,4 +1,5 @@
-import type { State } from "../../shared/api-types";
+import { useState } from "react";
+import type { MailItem, State } from "../../shared/api-types";
 import type { Mutation } from "./outbox";
 import { dateLabel } from "./date";
 export function Mails({
@@ -10,18 +11,17 @@ export function Mails({
   mutate: (m: Mutation) => Promise<void>;
   compact?: boolean;
 }) {
-  const mails = [...state.mails].sort(
+  // D24: only important mails by default; info mails (codes, service notices) are collapsed.
+  const [showInfo, setShowInfo] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const sorted = [...state.mails].sort(
     (a, b) =>
       b.importance - a.importance || b.receivedAt.localeCompare(a.receivedAt),
   );
-  return (
-    <section className="stack">
-      <div className="section-title">
-        <h2>Mails</h2>
-        <span className="small">{mails.length} Nachrichten</span>
-      </div>
-      {mails.slice(0, compact ? 3 : 50).map((m) => (
-        <article className="card" key={m.id}>
+  const important = sorted.filter((m) => m.importance >= 2);
+  const info = sorted.filter((m) => m.importance < 2);
+  const card = (m: MailItem) => (
+        <article className={`card mail-card${m.importance < 2 ? " info" : ""}`} key={m.id}>
           <div className="eyebrow">
             <span>{m.sensitive ? m.category : m.fromName}</span>
             <span className={m.importance === 3 ? "danger" : ""}>
@@ -87,8 +87,40 @@ export function Mails({
             </a>
           </div>
         </article>
-      ))}
-      {!mails.length && <p className="empty">Keine Nachrichten vorhanden.</p>}
+  );
+  return (
+    <section className="stack">
+      <div className="section-title">
+        <h2>Mails</h2>
+        <span className="small">
+          {important.length} wichtig
+        </span>
+      </div>
+      {important.slice(0, compact && !showAll ? 3 : 50).map(card)}
+      {!important.length && (
+        <p className="empty">Keine wichtigen Mails. Alles erledigt.</p>
+      )}
+      {compact && important.length > 3 && (
+        <button
+          className="disclosure"
+          aria-expanded={showAll}
+          onClick={() => setShowAll(!showAll)}
+        >
+          {showAll
+            ? "Weniger anzeigen"
+            : `${important.length - 3} weitere wichtige Mails`}
+        </button>
+      )}
+      {info.length > 0 && (
+        <button
+          className="disclosure"
+          aria-expanded={showInfo}
+          onClick={() => setShowInfo(!showInfo)}
+        >
+          {showInfo ? "Infos ausblenden" : `Infos (${info.length})`}
+        </button>
+      )}
+      {showInfo && info.map(card)}
     </section>
   );
 }

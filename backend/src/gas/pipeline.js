@@ -216,8 +216,9 @@ function markMailsNotified_(keys) {
   });
 }
 
-/** To-do reminders: remindAt, else 60 min before a timed due date. */
+/** To-do reminders: remindAt, else config.todoReminderLead (120) min before a timed due; plus the daily digest (D24). */
 function runReminders_() {
+  var config = readConfig_();
   var raw = readRowsRaw_("todos");
   var records = [];
   var rowById = {};
@@ -227,9 +228,17 @@ function runReminders_() {
     records.push({ todo: t, remindedAt: normalizeDateCell(r[TODO_COLUMNS.indexOf("remindedAt")], false) });
     rowById[t.id] = raw.rowNums[i];
   });
-  var due = dueReminders(records, new Date());
+  var now = new Date();
+  var p = props_();
+  var digest = todoDayDigest(records.map(function (r) {
+    return r.todo;
+  }), now, config, p.getProperty("TODO_DIGEST_SENT"));
+  if (digest) {
+    notify(digest, { key: "digest:" + toZurichDate(now), config: config });
+    p.setProperty("TODO_DIGEST_SENT", toZurichDate(now));
+  }
+  var due = dueReminders(records, now, config.todoReminderLead);
   if (!due.length) return 0;
-  var config = readConfig_();
   due.forEach(function (d) {
     if (d.send) notify(d.msg, { key: "todo:" + d.id, ignoreQuiet: true, config: config });
   });

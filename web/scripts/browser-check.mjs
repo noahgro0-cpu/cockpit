@@ -14,7 +14,9 @@ try {
       const page=await context.newPage();
       page.on('pageerror',error=>errors.push(error.message));
       await page.goto(process.env.MOCK_URL || 'http://127.0.0.1:5174/cockpit/');
-      await page.getByRole('heading',{name:'Analysis',exact:true}).waitFor();
+      await page.locator('.hero').waitFor();
+      // D24: lectures never appear as next appointment
+      assert.equal(await page.locator('.hero').getByRole('heading',{name:'Analysis',exact:true}).count(),0);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`overflow ${width} ${theme}`);
       if(width>=1100) {
         const columns=await page.locator('.dashboard > *').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().x));

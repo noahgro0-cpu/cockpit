@@ -61,6 +61,37 @@ function decodeGmailData_(data, charset) {
   }
 }
 
+/**
+ * Only for mode "active": after "War wichtig" the mail goes back to the inbox, after
+ * "War unwichtig" it leaves it (if archiveAfterLabel is on). Errors are logged, never thrown.
+ */
+function setInbox_(messageId, inInbox) {
+  try {
+    var mod = inInbox ? { addLabelIds: ["INBOX"] } : { removeLabelIds: ["INBOX"] };
+    Gmail.Users.Messages.modify(mod, "me", messageId);
+  } catch (e) {
+    log_("warn", "gmail", "inbox change failed for " + messageId + ": " + e);
+  }
+}
+
+/**
+ * Optional one-time cleanup (run from the editor, D24): archives the stored mails of the last
+ * mailRetentionDays that mayArchive allows. Only works in mode "active" with archiveAfterLabel.
+ */
+function archiveInfoMails() {
+  var config = readConfig_();
+  if (config.mode !== "active" || !toBool(config.archiveAfterLabel)) {
+    log_("info", "gmail", "archiveInfoMails: mode is not active or archiveAfterLabel is off, nothing done");
+    return 0;
+  }
+  var ops = planLabelOps(readRows_("mails").map(mailRowObject), config).filter(function (op) {
+    return op.archive;
+  });
+  applyLabelOps_(ops);
+  log_("info", "gmail", "archiveInfoMails: " + ops.length + " mail(s) archived");
+  return ops.length;
+}
+
 /** Only for mode "active": adds the category label (created if missing) and optionally archives. */
 function applyLabelOps_(ops) {
   if (!ops.length) return;

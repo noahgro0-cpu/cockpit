@@ -4,6 +4,7 @@ var COCKPIT_PRIVATE = {
   webAppUrl: "https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec",
   calLectures: "<name of the subscribed timetable calendar>",
   calExams: "<name of the exams calendar>",
+  calRoutine: "<calendars shown muted, comma-separated, e.g. week numbers>",
   homeStop: "<stop name from transport.opendata.ch>",
   campusStop: "<stop name>",
   lat: "47.0",

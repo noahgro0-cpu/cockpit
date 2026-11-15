@@ -31,6 +31,11 @@ export interface CalEvent {
   end: ISODateTime | ISODate;
   allDay: boolean;
   location?: string;
+  /**
+   * Routine entry (D24): lecture, part of a recurring series, or from a calendar listed in
+   * `config.calRoutine` (e.g. week numbers). Shown muted; "next appointment" ignores it.
+   */
+  routine?: boolean;
 }
 
 export interface Todo {

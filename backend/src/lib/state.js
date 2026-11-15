@@ -19,6 +19,11 @@ var CONFIG_DEFAULTS = {
   weatherInBriefing: "true",
   // Calendar for events from `capture` (name); empty = the default calendar (D22).
   calCapture: "",
+  // Calendars shown muted in the PWA like lectures (comma-separated names, D24), e.g. week numbers.
+  calRoutine: "",
+  // To-do reminders (D24): minutes before a timed due; time of the daily push for date-only to-dos due today ("" = off).
+  todoReminderLead: "120",
+  todoDayReminder: "16:00",
   aiEnabled: "true",
   aiModel: "gemini-3.5-flash-lite",
   mailRetentionDays: "30",
@@ -166,6 +171,21 @@ function eventKind(calendarName, config, tagKind, title) {
     return /abgabe|deadline|einreich|frist/i.test(title || "") ? "deadline" : "exam";
   }
   return "private";
+}
+
+/**
+ * Routine events (D24): lectures, recurring series and calendars listed in config.calRoutine.
+ * The PWA shows them muted; "next appointment" ignores them.
+ */
+function isRoutineEvent(kind, calendarName, recurring, config) {
+  if (kind === "lecture" || recurring) return true;
+  return String(config.calRoutine || "")
+    .split(",")
+    .map(function (s) {
+      return s.trim();
+    })
+    .filter(Boolean)
+    .indexOf(calendarName) >= 0;
 }
 
 /** Start instant of a CalEvent for sorting (all-day = Zurich midnight). */

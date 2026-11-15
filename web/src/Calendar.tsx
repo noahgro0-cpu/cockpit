@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { stored } from "./useCockpit";
 import type { State } from "../../shared/api-types";
 import {
   dateLabel,
@@ -30,9 +31,27 @@ export function Calendar({
   const [selectedDay, setSelectedDay] = useState(today);
   const limit = shift(day(state.generatedAt), 42);
   const [adding, setAdding] = useState(false);
+  // Lectures, recurring series and week numbers (D24): muted, can be hidden; never in the month grid.
+  const [showRoutine, setShowRoutine] = useState(() =>
+    stored<boolean>("cockpit.calendar.routine", true),
+  );
+  const toggleRoutine = () => {
+    const next = !showRoutine;
+    setShowRoutine(next);
+    try {
+      localStorage.setItem("cockpit.calendar.routine", JSON.stringify(next));
+    } catch {
+      /* private mode: keep the choice for this session only */
+    }
+  };
   const renderDay = (d: string, monthly = false) => {
     const available = !monthly || (d >= today && d <= limit);
-    const events = state.events.filter((e) => available && onDay(e, d));
+    const events = state.events.filter(
+      (e) =>
+        available &&
+        onDay(e, d) &&
+        (!e.routine || (showRoutine && !monthly)),
+    );
     const todos = state.todos.filter(
       (t) => available && t.status === "open" && t.due && day(t.due) === d,
     );
@@ -59,19 +78,30 @@ export function Calendar({
           </button>
         )}
         {events.map((e) => (
-          <div key={e.id} className={`event ${e.kind}`}>
-            <small>{e.allDay ? "Ganztägig" : time(e.start)}</small>
-            <strong>{e.title}</strong>
-            {e.location && <small>{e.location}</small>}
+          <div
+            key={e.id}
+            className={`event ${e.kind}${e.routine ? " routine" : ""}`}
+            title={[e.title, e.location].filter(Boolean).join(" · ")}
+          >
+            <span className="event-time">
+              {e.allDay ? "ganzt." : time(e.start)}
+            </span>
+            <span className="event-title">{e.title}</span>
+            {e.location && !e.routine && (
+              <span className="event-place">{e.location}</span>
+            )}
           </div>
         ))}
         {todos.map((t) => (
           <div className="todo-chip" key={t.id}>
-            ○ {t.title}
+            <span className="sr-only">To-do: </span>
+            <Icon name="circle" size={12} />
+            <span className="event-title">{t.title}</span>
+            {t.dueHasTime && <span className="event-time">{time(t.due!)}</span>}
           </div>
         ))}
         {!monthly && !events.length && !todos.length && (
-          <span className="free">Keine Einträge</span>
+          <span className="free">Frei</span>
         )}
       </article>
     );
@@ -94,6 +124,17 @@ export function Calendar({
           aria-label="Prüfung oder Abgabe hinzufügen"
         >
           <Icon name="plus" />
+        </button>
+      </div>
+      <div className="cal-legend small">
+        <span className="legend-event">Termin</span>
+        <span className="legend-todo">To-do</span>
+        <button
+          className="legend-routine"
+          aria-pressed={showRoutine}
+          onClick={toggleRoutine}
+        >
+          {showRoutine ? "Stundenplan ausblenden" : "Stundenplan einblenden"}
         </button>
       </div>
       {adding && (

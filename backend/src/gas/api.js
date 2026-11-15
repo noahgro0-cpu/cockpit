@@ -324,5 +324,10 @@ function mailFeedback_(mailId, verdict) {
     category: fr.row[4] || rec.category,
     classifiedBy: "rule",
   });
+  // D24: the inbox follows the verdict (only in mode "active" with archiving on).
+  if (config.mode === "active" && toBool(config.archiveAfterLabel)) {
+    if (verdict === "wichtig") setInbox_(mailId, true);
+    else if (!rec.sensitive && !rec.todoId) setInbox_(mailId, false);
+  }
   return { ruleAdded: fr.matchIndex < 0 };
 }

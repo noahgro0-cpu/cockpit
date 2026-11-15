@@ -117,12 +117,22 @@ test("to-do and push decisions", () => {
   assert.equal(L.wantsPush(L.finalizeMail(parsed(), rulePush, null, "skipped", 0, MCFG)), true);
 });
 
-test("observe mode never plans mailbox changes; active mode labels (and archives if configured)", () => {
-  const e = [{ id: "a", category: "Studium" }, { id: "b", category: "" }];
+test("observe mode never plans mailbox changes; active mode labels, archives only explicitly unimportant mails (D24)", () => {
+  const m = (o) => Object.assign({ category: "Studium", importance: 1, classifiedBy: "ai", sensitive: false, todoId: "" }, o);
+  const e = [m({ id: "a" }), m({ id: "b", category: "" })];
   assert.deepEqual(plain(L.planLabelOps(e, { mode: "observe", archiveAfterLabel: "true" })), []);
   assert.deepEqual(plain(L.planLabelOps(e, { mode: "anything", archiveAfterLabel: "true" })), []);
   assert.deepEqual(plain(L.planLabelOps(e, { mode: "active", archiveAfterLabel: "false" })), [{ id: "a", addLabel: "Studium", archive: false }]);
   assert.deepEqual(plain(L.planLabelOps(e, { mode: "active", archiveAfterLabel: "true" })), [{ id: "a", addLabel: "Studium", archive: true }]);
+  const cfg = { mode: "active", archiveAfterLabel: "true" };
+  const arch = (o) => plain(L.planLabelOps([m(Object.assign({ id: "x" }, o))], cfg))[0].archive;
+  assert.equal(arch({ importance: 0, classifiedBy: "rule" }), true);
+  assert.equal(arch({ importance: 2 }), false, "important stays in the inbox");
+  assert.equal(arch({ importance: 3 }), false);
+  assert.equal(arch({ classifiedBy: "none" }), false, "AI unavailable: unrated mail stays");
+  assert.equal(arch({ sensitive: true, importance: 0 }), false, "sensitive stays");
+  assert.equal(arch({ todoId: "t1" }), false, "mail with a to-do stays");
+  assert.equal(arch({ importance: "1" }), true, "sheet values may be strings");
 });
 
 test("gmail.js only modifies the mailbox in applyLabelOps_, and the pipeline passes planLabelOps", () => {

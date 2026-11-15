@@ -126,3 +126,13 @@ export function monthDays(month: string) {
     Math.ceil((daysUntil(last, new Date(start + "T12:00:00Z")) + 1) / 7) * 7;
   return Array.from({ length: count }, (_, i) => shift(start, i));
 }
+/** Short relative start for the next appointment: "Jetzt", "in 25 Min.", "in 3 Std.", "morgen", "in 4 Tagen". */
+export function relativeStart(start: string, now: Date) {
+  const minutes = Math.ceil((Date.parse(start) - +now) / 60000);
+  if (minutes <= 0) return "Jetzt";
+  if (minutes < 60) return `in ${minutes} Min.`;
+  const days = daysUntil(start, now);
+  if (days === 0) return `in ${Math.round(minutes / 60)} Std.`;
+  if (days === 1) return "morgen";
+  return `in ${days} Tagen`;
+}

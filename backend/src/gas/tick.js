@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "6";
+var SCHEMA_VERSION = "7";
 
 function tick() {
   var lock = LockService.getDocumentLock();
@@ -93,6 +93,14 @@ function ensureSchema_() {
     seedRules_();
     // One-time: values for the iOS shortcuts, so no editor run is needed (D20).
     if (props_().getProperty("SHORTCUT_ROWS") !== "1") writeShortcutRows_();
+    // One-time (user request 2026-11-15, D24): unimportant mails leave the inbox. Reversible in
+    // the sheet: config mode = observe or archiveAfterLabel = false.
+    if (props_().getProperty("ARCHIVE_ON") !== "1") {
+      setConfigValue_("mode", "active");
+      setConfigValue_("archiveAfterLabel", "true");
+      props_().setProperty("ARCHIVE_ON", "1");
+      log_("info", "setup", "mode active, archiveAfterLabel true (D24)");
+    }
   });
   p.setProperty("SCHEMA_VERSION", SCHEMA_VERSION);
   log_("info", "setup", "schema updated to version " + SCHEMA_VERSION);

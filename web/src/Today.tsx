@@ -3,9 +3,11 @@ import { Icon } from "./Icon";
 import {
   dateLabel,
   day,
+  onDay,
   daysUntil,
   groupTodos,
   importantMails,
+  relativeStart,
   time,
 } from "./date";
 export function Today({
@@ -21,9 +23,19 @@ export function Today({
   travel?: React.ReactNode;
   weather?: React.ReactNode;
 }) {
-  const next = state.events
+  // "Next appointment" ignores lectures and other routine entries (D24).
+  const special = state.events.filter(
+    (e) => !e.routine && e.kind !== "lecture",
+  );
+  const next = special
     .filter((e) => !e.allDay && Date.parse(e.end) > +now)
     .sort((a, b) => a.start.localeCompare(b.start))[0];
+  const todayCount = special.filter(
+    (e) => onDay(e, day(now)) && (e.allDay || Date.parse(e.end) > +now),
+  ).length;
+  const lessons = state.events.filter(
+    (e) => e.kind === "lecture" && onDay(e, day(now)),
+  ).length;
   const groups = groupTodos(state.todos, now);
   return (
     <div className="today-grid">
@@ -35,11 +47,7 @@ export function Today({
           <>
             <div className="hero-time">
               {time(next.start)}{" "}
-              <span>
-                {Date.parse(next.start) > +now
-                  ? `in ${Math.ceil((Date.parse(next.start) - +now) / 60000)} Min.`
-                  : "Jetzt"}
-              </span>
+              <span>{relativeStart(next.start, now)}</span>
             </div>
             <h2>{next.title}</h2>
             <p>
@@ -50,28 +58,18 @@ export function Today({
         ) : (
           <>
             <h2>Zeit für dich.</h2>
-            <p>Keine weiteren Termine in Sicht.</p>
+            <p>Keine besonderen Termine in Sicht.</p>
           </>
         )}
         <div className="hero-footer">
-          {state.events.filter((e) => day(e.start) === day(now)).length} Termine
-          heute <span>Ein Schritt nach dem anderen.</span>
+          {todayCount === 0
+            ? "Heute keine weiteren Termine"
+            : todayCount === 1
+              ? "Heute noch 1 Termin"
+              : `Heute noch ${todayCount} Termine`}
+          {lessons > 0 && ` · ${lessons} ${lessons === 1 ? "Lektion" : "Lektionen"}`}{" "}
+          <span>Ein Schritt nach dem anderen.</span>
         </div>
-      </section>
-      <section className="card blue">
-        <div className="eyebrow">
-          UNTERWEGS <Icon name="arrow" size={16} />
-        </div>
-        {travel || (
-          <>
-            <h2>
-              07:24 <small>→ 08:02</small>
-            </h2>
-            <p>Wohnort → Campus</p>
-            <div className="pill">Demo · Gleis 2 · pünktlich</div>
-            <p className="small">Spätestens abfahren um 07:24</p>
-          </>
-        )}
       </section>
       <section className="card peach">
         <div className="eyebrow">
@@ -178,6 +176,21 @@ export function Today({
           </div>
         </section>
       )}
+      <section className="card blue travel">
+        <div className="eyebrow">
+          UNTERWEGS <Icon name="arrow" size={16} />
+        </div>
+        {travel || (
+          <>
+            <h2>
+              07:24 <small>→ 08:02</small>
+            </h2>
+            <p>Wohnort → Campus</p>
+            <div className="pill">Demo · Gleis 2 · pünktlich</div>
+            <p className="small">Spätestens abfahren um 07:24</p>
+          </>
+        )}
+      </section>
     </div>
   );
 }

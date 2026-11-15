@@ -18,6 +18,13 @@ function toCalEvent_(ev, calendarName, config, withTag) {
   };
   var loc = ev.getLocation();
   if (loc) e.location = loc;
+  var recurring = false;
+  try {
+    recurring = ev.isRecurringEvent();
+  } catch (err) {
+    recurring = false;
+  }
+  if (isRoutineEvent(e.kind, calendarName, recurring, config)) e.routine = true;
   return e;
 }
 

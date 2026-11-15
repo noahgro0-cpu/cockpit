@@ -135,25 +135,54 @@ function afterSendAttempt(item, ok) {
 var REMINDER_DEFAULT_LEAD_MIN = 60;
 var REMINDER_MAX_LATE_MS = 6 * 3600 * 1000;
 
-/** Instant a reminder is due for a todo, or null (remindAt, else 60 min before a timed due). */
-function reminderTime(todo) {
+/** Instant a reminder is due for a todo, or null (remindAt, else leadMin (default 60) before a timed due). */
+function reminderTime(todo, leadMin) {
   if (todo.remindAt && isIsoDateTime(todo.remindAt)) return new Date(Date.parse(todo.remindAt));
   if (todo.due && todo.dueHasTime && isIsoDateTime(todo.due)) {
-    return new Date(Date.parse(todo.due) - REMINDER_DEFAULT_LEAD_MIN * MS_PER_MIN);
+    var lead = Number(leadMin) >= 0 && leadMin !== "" && leadMin !== undefined && leadMin !== null ? Number(leadMin) : REMINDER_DEFAULT_LEAD_MIN;
+    var dueMs = Date.parse(todo.due);
+    var atMs = dueMs - lead * MS_PER_MIN;
+    // Created after the lead time had started (e.g. "in 1 hour"): remind 15 min before instead,
+    // or not at all, rather than pushing right after the user entered it.
+    var created = todo.createdAt ? Date.parse(todo.createdAt) : NaN;
+    if (!isNaN(created) && atMs < created) {
+      atMs = dueMs - 15 * MS_PER_MIN;
+      if (atMs < created) return null;
+    }
+    return new Date(atMs);
   }
   return null;
+}
+
+/**
+ * Daily push for open date-only to-dos due today (D24), once per day from config.todoDayReminder.
+ * Returns {title, body, ...} or null. sentDate = date of the last digest.
+ */
+function todoDayDigest(todos, now, config, sentDate) {
+  var at = parseHhmm(config.todoDayReminder);
+  var today = toZurichDate(now);
+  if (at === null || sentDate === today || zurichMinuteOfDay(now) < at) return null;
+  var open = todos.filter(function (t) {
+    return t.status === "open" && !t.dueHasTime && t.due === today;
+  });
+  if (!open.length) return null;
+  var lines = open.slice(0, 5).map(function (t) {
+    return "• " + t.title;
+  });
+  if (open.length > 5) lines.push("… und " + (open.length - 5) + " weitere");
+  return { title: open.length === 1 ? "Heute noch offen" : "Heute noch offen (" + open.length + ")", body: lines.join("\n"), priority: 3, clickUrl: "", tag: "todo" };
 }
 
 /**
  * records: [{todo, remindedAt}] -> [{id, send: bool, msg?}] for open todos whose reminder is due
  * and not yet sent. Reminders more than 6 h late are only marked, not sent.
  */
-function dueReminders(records, now) {
+function dueReminders(records, now, leadMin) {
   var out = [];
   records.forEach(function (r) {
     var t = r.todo;
     if (t.status !== "open" || r.remindedAt) return;
-    var at = reminderTime(t);
+    var at = reminderTime(t, leadMin);
     if (!at || at.getTime() > now.getTime()) return;
     if (now.getTime() - at.getTime() > REMINDER_MAX_LATE_MS) {
       out.push({ id: t.id, send: false });
