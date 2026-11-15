@@ -42,7 +42,7 @@ Persönliche Angaben (Haltestellen, Stundenplan, Labels, Module) stehen in `priv
 - Lesen und Schreiben immer gebündelt (`getValues`/`setValues`). Schreibzugriffe unter `LockService.getScriptLock()`.
 
 ### 2.3 Script Properties (Geheimnisse)
-`API_KEY` (Zufallswert ≥ 32 Zeichen, von `setup()` erzeugt), `GEMINI_API_KEY`, `NTFY_TOPIC` (Zufallswert, von `setup()` erzeugt), `NTFY_SERVER` (Standard `https://ntfy.sh`), optional `NTFY_TOKEN` (Zugangstoken eines Gratis-Kontos bei ntfy.sh, siehe §2.8).
+`API_KEY` (Zufallswert ≥ 32 Zeichen, von `setup()` erzeugt), `GEMINI_API_KEY`, `NTFY_TOPIC` (Zufallswert, von `setup()` erzeugt), `NTFY_SERVER` (Standard `https://ntfy.sh`), optional `NTFY_TOKEN` (Zugangstoken eines Gratis-Kontos bei ntfy.sh, siehe §2.8), `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (D19).
 
 ### 2.4 API
 Ein einziger Endpunkt: `POST <web-app-url>` mit Body `{"key":"…","action":"…","payload":{…}}`.
@@ -130,7 +130,7 @@ KI-Aufruf (geprüft 2026-11-14, siehe DECISIONS.md D3–D5): `UrlFetchApp` → `
 - Vom Nutzer in Google Kalender abonnierte ICS-Kalender erscheinen automatisch.
 
 ### 2.8 Notifier
-Schnittstelle `notify({title, body, priority, clickUrl, tag})`. Kanal `ntfy` (geprüft 2026-11-14, siehe DECISIONS.md D6): ein `UrlFetchApp`-POST auf `NTFY_SERVER` (Wurzel-URL) mit JSON-Body `{topic, title, message, priority (1–5), click, tags}`. Kein Versand über HTTP-Header, weil Umlaute in Headern nicht zuverlässig ankommen. Mit `NTFY_TOKEN` zusätzlich `Authorization: Bearer <token>`. Nachricht höchstens 4096 Bytes. ntfy.sh begrenzt pro Absender-IP (250 Nachrichten/Tag, Anfragen gedrosselt); Apps Script teilt sich IPs mit anderen Nutzern, darum: HTTP 429 gilt als vorübergehend, Meldung bleibt offen und wird im nächsten `tick` erneut versucht (höchstens 3×). Der Text enthält bei sensiblen Mails nur die Kategorie. Weitere Kanäle müssen ohne Änderung der Aufrufer ergänzbar sein.
+Schnittstelle `notify({title, body, priority, clickUrl, tag})`. Kanäle: `telegram` (Standard, sobald eingerichtet, DECISIONS.md D19) und `ntfy`; Auswahl über `config.pushChannels`. Kanal `ntfy` (geprüft 2026-11-14, siehe DECISIONS.md D6): ein `UrlFetchApp`-POST auf `NTFY_SERVER` (Wurzel-URL) mit JSON-Body `{topic, title, message, priority (1–5), click, tags}`. Kein Versand über HTTP-Header, weil Umlaute in Headern nicht zuverlässig ankommen. Mit `NTFY_TOKEN` zusätzlich `Authorization: Bearer <token>`. Nachricht höchstens 4096 Bytes. ntfy.sh begrenzt pro Absender-IP (250 Nachrichten/Tag, Anfragen gedrosselt); Apps Script teilt sich IPs mit anderen Nutzern, darum: HTTP 429 gilt als vorübergehend, Meldung bleibt offen und wird im nächsten `tick` erneut versucht (höchstens 3×). Der Text enthält bei sensiblen Mails nur die Kategorie. Weitere Kanäle müssen ohne Änderung der Aufrufer ergänzbar sein.
 
 Meldungen: dringende Mail (sofort), To-do-Erinnerung (`remindAt`, sonst 60 Min. vor `due` mit Uhrzeit), Briefing, Backend-Störung (nach 3 fehlgeschlagenen `tick` in Folge, höchstens 1× pro 6 h).
 

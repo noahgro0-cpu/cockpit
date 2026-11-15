@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-14 · Phase 1a abgeschlossen. Schritte 2 und 2b implementiert, geprüft und auf GitHub Pages veröffentlicht. Nächster Entwicklungsschritt ist Prompt 1b in Claude Code.
+Stand 2026-11-15 · Phase 1b umgesetzt, ausgerollt und gemeinsam getestet (Details unten im Abschnitt «Phase 1b»). Phase 1a und 2 abgeschlossen.
 
 ## Erledigt
 ### Phase 0
@@ -38,11 +38,9 @@ Keine offen (Kontrolle von Sheet und Trigger erledigt, Testtermin gelöscht).
 - API-Wünsche nur in `docs/OPEN-QUESTIONS.md` eintragen; `shared/` und `backend/` nicht ändern.
 
 ## Offen / nächste Schritte
-- Phase 1b: Mail-Pipeline (Regeln, Gemini, To-dos aus Mails, Labels), ntfy-Push, Erinnerungen, Briefing, KI-Schnellerfassung.
-- Vorbereitung durch den Nutzer für Phase 1b: Gemini-API-Schlüssel in AI Studio und ntfy-App auf dem iPhone (Anleitung folgt mit Phase 1b).
+- Siehe Abschnitt «Phase 1b → Offen / nächste Schritte» unten.
 
 ## Bekannte Mängel
-- `quickAdd` legt bis Phase 1b nur ein To-do mit dem ganzen Text als Titel an und ist bei Wiederholungen nicht idempotent (Payload hat keine id).
 - Die ersten zwei Commits tragen noch den Vornamen als Autor (siehe OPEN-QUESTIONS.md).
 
 ## Phase 2 – PWA (2026-11-14, Codex)
@@ -95,3 +93,61 @@ Zusätzliche Prüfung: 47 Unit-Tests grün (`cd web; npm test`), TypeScript/Prod
 3. `mail.toTodo`, `mail.dismiss` und `mail.feedback` mit den bestehenden Payloads ergänzen. Die PWA ruft diese Aktionen bereits auf. Entscheidungen zu Idempotenz, `quickAdd` mit Client-UUID und einer Settings-Schreibaktion in `OPEN-QUESTIONS.md` nachtragen. Bei Vertragsänderungen die Kompatibilität mit der veröffentlichten PWA sicherstellen und erforderliche Frontend-Änderungen für Codex notieren. `quickAdd` für den Siri-Kurzbefehl mit `{text}` kompatibel halten, falls eine optionale Request-ID ergänzt wird.
 4. Für die Integrationsabnahme nach dem Deployment einen Weg mit Testdaten wählen. In der PWA prüfen, ob der nächste `getState` Mail und To-do zeigt und die drei Mail-Aktionen im Sheet erwartungsgemäss wirken. Testdaten danach entfernen. `web/scripts/backend-browser-check.mjs` prüft browserseitiges CORS, `ping`, `getState` und einen selbst aufgeräumten Test-To-do-Zyklus. Es protokolliert weder Schlüssel noch persönliche Inhalte. `cd web; npm test; npm run build` prüft die Auswirkungen auf die PWA.
 5. Den Nutzer nach `ANLEITUNG.md` **C4** durch Gmail-Berechtigung, Gemini-Skripteigenschaft, ntfy-Abonnement und Testmails führen. Danach die Phase-1b-Ergebnisse und verbleibenden Punkte hier ergänzen. Die Installation aus C3 auf echten Geräten ist separat zu bestätigen.
+
+## Phase 1b – Mails, KI, Push (2026-11-14/15, Claude Code)
+
+### Erledigt
+- **Mail-Pipeline in `tick`** (`src/gas/pipeline.js`, Logik in `src/lib/mail.js`, `rules.js`, `ai.js`):
+  - **Suche:** Sync − 1 h, erster Lauf 3 Tage zurück; Duplikatschutz über die Message-ID; reine Ausgangsmails übersprungen (D15); höchstens 25 Mails pro Lauf.
+  - **Regeln** aus dem Tab `regeln`, zusätzlich vorhandene Gmail-Labels. Sensible Mails gehen nie an die KI (D16).
+  - **KI:** Stapel zu 8, JSON-Schema, strikte Validierung (Enums, Längen, Frist, doppelte/unbekannte refs). Fallback: `none`/1, bis zu 3 Versuche.
+  - **Danach:** höchstens 1 To-do pro Thread; Labels nur bei `mode = active`.
+  - **Push** über eine Warteschlange mit Ruhezeit und Nachlieferung. Push-Texte enthalten nur Absender und Betreff, nie KI-Text.
+- **Notifier** (`src/gas/notify.js`): Kanäle Telegram (Standard) und ntfy (D19), Auswahl über `config.pushChannels`. Dazu To-do-Erinnerungen (`remindAt`, sonst 60 Min. vor `due` mit Uhrzeit), Briefing aus einer Textvorlage (Werktag/Wochenende, D11) und Störungsmeldung nach 3 fehlgeschlagenen `tick` (höchstens 1× pro 6 h).
+- **Editor-Funktionen:** `sendTestNotification`, `telegramSetup`, `diagnoseNtfy` (prüft Erreichbarkeit und ntfy-Kontingent, sendet nichts an das echte Topic).
+- **API:**
+  - `quickAdd` mit KI-Zerlegung und optionaler `id` (idempotent, Siri bleibt mit `{text}` kompatibel).
+  - `mail.toTodo`, `mail.dismiss` und `mail.feedback` sind idempotent. `mail.feedback` legt eine Absender-Regel zuoberst an bzw. aktualisiert sie.
+  - Neu: `settings.update`. Die Wünsche von Codex sind beantwortet (OPEN-QUESTIONS.md, D17).
+- **Schema-Migration** ohne Editor-Lauf: `tick` ergänzt Spalten (`mails.aiAttempts`), neue `config`-Schlüssel (`mailCategories`, `sensitiveCategories`, `junkCategory`, `pushChannels`) und die Start-Regeln aus `private.local.js`.
+- Config-Zellen, die Sheets in Uhrzeiten umgewandelt hat («6:30»), werden richtig gelesen.
+- Entscheide D15–D19; SPEC §2.2, §2.3, §2.4, §2.6 und §2.8 nachgeführt. Deployment @6 (dieselbe ID), Code danach per `clasp push` aktuell.
+
+### Abnahme Phase 1b (SPEC §6)
+| Kriterium | Ergebnis |
+|---|---|
+| `npm test` grün | ✔ 86 Unit-Tests (Regeln, Validierung, KI mit aufgezeichneten Antworten inkl. Injektionsversuch, Ruhezeit inkl. Sommer-/Winterzeit, Briefing-Text, Erinnerungen, Warteschlange, Kanäle) |
+| Testmail mit Frist → Mail-Eintrag, To-do, Push innert 10 Min. | ✔ Mail 00:45 → `tick` 00:47:58: Eintrag (KI: 3, Frist 25.11.), To-do «Laborbericht einreichen». ntfy lieferte erst beim Wiederholungsversuch, siehe D19. Telegram: Mail 01:15 → `tick` 01:17:59: Eintrag (KI: 3, Frist 30.11.), To-do «Für Prüfung anmelden», Push über Telegram übergeben, 0 Fehler. **Ankunft auf den Geräten vom Nutzer noch zu bestätigen** |
+| Sensible Mail erreicht die KI nicht (Log) | ✔ Log 00:27:56 «mail 1a1dc61e…: sensitive (rule row 2) – not sent to AI»; die KI-Zeile 00:27:57 enthält nur die drei anderen IDs |
+| Ohne `GEMINI_API_KEY` läuft alles regelbasiert | ✔ Erster Lauf 23:38 ohne Schlüssel: 12 Mails erfasst (`none`/1), 0 Fehler. Nach dem Eintragen des Schlüssels hat die KI sie nachklassifiziert |
+| Modus `observe`: Postfach unverändert | ✔ Code: Gmail ändert nur `applyLabelOps_`, das bei `observe` nichts bekommt (Unit-Test prüft Plan und Aufrufstellen). Gemeinsamer Test: keine Labels gesetzt, Mails ungelesen im Posteingang |
+| `tick` ohne neue Mails < 10 s | ✔ 4,7 s (Ausführung 00:37); mit 4 neuen Mails inkl. KI 7,0 s |
+
+Weitere Ergebnisse aus dem gemeinsamen Test:
+- **Newsletter:** von der KI mit 0 bewertet, erscheint nicht in der App.
+- **Injektionsmail:** von der KI nur mit 1 («Info») bewertet; die eingeschleusten Anweisungen hat sie nicht befolgt.
+- **Ruhezeit:** Eine dringende Mail um 00:28 wurde wegen Ruhezeit 00:00–06:30 zurückgehalten. Sie soll um 06:30 nachgeliefert werden, das ist noch zu bestätigen.
+
+### Manuelle Schritte für den Nutzer
+1. **Ruhezeit zurückstellen**, falls noch nicht geschehen: Sheet → Tab `config` → `quietFrom` = `22:00`, `quietTo` = `06:30`.
+2. **Morgen früh prüfen:**
+   - Um ca. 06:30 kommt das Briefing.
+   - Möglicherweise kommt auch der um 00:28 zurückgehaltene Push zur Labor-Mail nach. Läuft der Kanal inzwischen über Telegram, kommt er dort an.
+   - Ergebnis hier vermerken.
+3. **Regeln pflegen** (Sheet → Tab `regeln`): Absender von Krankenkasse, Versicherungen, Bank, Vermietung und Arbeitgeber eintragen (Domain hinter dem @, `sensibel = ja` wo nötig). Siehe ANLEITUNG.md C4 Punkt 5.
+   - Die HSLU-Regel hat absichtlich **keine** feste Wichtigkeit: So bewertet die KI Fristen und erzeugt To-dos. Mit einer festen 2 gäbe es aus HSLU-Mails keine automatischen To-dos.
+4. **Testdaten aufräumen** (optional): In der PWA unter «Mails» die Testmails mit «Erledigt» entfernen und die drei Test-To-dos («Anmeldung Labor bestätigen», «Laborbericht einreichen», das von der Telegram-Testmail) löschen.
+5. **ntfy-App** kann bleiben (Reserve) oder gelöscht werden. Das Backend nutzt Telegram, solange es eingerichtet ist.
+6. **GitHub:** Die Phase-1b-Commits sind lokal und noch nicht gepusht. Vor dem Push gemeinsam freigeben (Repo öffentlich; geprüft: keine persönlichen Daten in den Änderungen).
+
+### Offen / nächste Schritte
+- PWA-Integration der Mail-Aktionen im echten Betrieb prüfen: Mail → To-do, Erledigt, «War (un)wichtig» → Sheet kontrollieren (STATUS «Übergabe 1b» Punkt 4). Backend-Handler sind fertig, aber noch nicht live mit der PWA getestet.
+- `quickAdd` mit KI live testen (z. B. «Python Übung Freitag 14 Uhr abgeben»).
+- Codex (Phase 2/3): optionale PWA-Anpassungen laut OPEN-QUESTIONS.md (`settings.update`, `quickAdd` mit `id`, Sperre bei Mail-Aktionen entfernen). Für das Siri-Kurzbefehl-Setup (Phase 3) bleibt `quickAdd {text}` gültig.
+- Phase 5: Web Push als weiterer Kanal (Schnittstelle vorhanden).
+
+### Bekannte Mängel
+- **ntfy.sh** ist von Apps Script aus unzuverlässig: Das Kontingent hängt an den geteilten Google-IPs, auch mit Gratis-Konto (D19). Nur noch Reserve.
+- **Gemini-Fixtures** in `backend/test/fixtures/` sind im Format echter Antworten nachgebaut, nicht vom Live-Modell aufgezeichnet. Dass das Live-Modell eine Injektion ignoriert, ist durch den gemeinsamen Test (Mail D) belegt.
+- **Briefing am 14.11.:** um 23:38 nachträglich erzeugt und wegen der Verspätung (> 3 h) nicht gepusht. Das ist so gewollt.
+- **Nachklassifizierung:** Mails, die ohne KI eingingen, werden innerhalb von 14 Tagen nachklassifiziert, sobald die KI verfügbar ist. Pushes gibt es dafür nur bei Mails, die jünger als 24 h sind.
