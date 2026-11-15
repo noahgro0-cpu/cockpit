@@ -112,17 +112,17 @@ test("quick add: recorded answer, local time converted with the summer offset", 
   const now = new Date("2026-11-16T07:00:00Z");
   const cats = [{ id: "python", label: "Python" }];
   const text = L.geminiResponseText(fixture("gemini-quickadd.json")).text;
-  const r = plain(L.parseQuickAddResult(text, now, cats));
-  assert.deepEqual(r, { title: "Python-Übung abgeben", priority: 2, due: "2027-04-02T23:59:00+02:00", category: "python" });
-  const req = plain(L.buildQuickAddRequest("Übung Fr abgeben", now, cats));
+  const r = plain(L.parseCaptureResult(text, now, cats, "", false));
+  assert.deepEqual(r, { type: "todo", fields: { title: "Python-Übung abgeben", priority: 2, due: "2027-04-02T23:59:00+02:00", category: "python" } });
+  const req = plain(L.buildCaptureRequest("Übung Fr abgeben", now, cats));
   assert.match(JSON.parse(req.contents[0].parts[0].text).now, /^2026-11-16T08:00 \(Montag\)$/);
 });
 
 test("quick add: unusable answer -> null (fallback), bad fields dropped", () => {
   const now = new Date("2026-11-16T07:00:00Z");
-  assert.equal(L.parseQuickAddResult(L.geminiResponseText(fixture("gemini-quickadd-bad.json")).text, now, []), null);
-  const r = plain(L.parseQuickAddResult('{"title":"A","due":"irgendwann","category":"hack","priority":9}', now, []));
-  assert.deepEqual(r, { title: "A", priority: 0 });
-  assert.equal(L.parseQuickAddResult('{"title":"A","due":"2026-11-20"}', now, []).due, "2026-11-20");
-  assert.equal(L.parseQuickAddResult('{"title":"A","due":"2030-01-01"}', now, []).due, undefined);
+  const p = (s) => L.parseCaptureResult(s, now, [], "", false);
+  assert.equal(p(L.geminiResponseText(fixture("gemini-quickadd-bad.json")).text), null);
+  assert.deepEqual(plain(p('{"title":"A","due":"irgendwann","category":"hack","priority":9}').fields), { title: "A", priority: 0 });
+  assert.equal(p('{"title":"A","due":"2026-11-20"}').fields.due, "2026-11-20");
+  assert.equal(p('{"title":"A","due":"2030-01-01"}').fields.due, undefined);
 });

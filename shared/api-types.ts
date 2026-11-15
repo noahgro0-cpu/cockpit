@@ -179,7 +179,7 @@ export interface ApiActions {
   /**
    * One sentence -> to-do or calendar event (D22); the backend AI decides. Events go to
    * `config.calCapture` or the default calendar. Vague dates: "nächste Woche" = Monday,
-   * "Ende nächste Woche" = Friday (see D22). `id` makes retries idempotent. `dryRun` parses only
+   * "Ende nächste Woche" = Friday (see D22). `id` makes retries idempotent (to-dos: always; events: for 6 h, best effort via cache). `dryRun` parses only
    * and writes nothing (event.id and event.calendar are then empty). `message` is a short German
    * confirmation, e.g. for a Siri shortcut notification.
    */
