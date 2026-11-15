@@ -233,10 +233,11 @@ function runReminders_() {
   var digest = todoDayDigest(records.map(function (r) {
     return r.todo;
   }), now, config, p.getProperty("TODO_DIGEST_SENT"));
-  if (digest) {
-    notify(digest, { key: "digest:" + toZurichDate(now), config: config });
-    p.setProperty("TODO_DIGEST_SENT", toZurichDate(now));
-  }
+  if (digest) notify(digest, { key: "digest:" + toZurichDate(now), config: config });
+  // Once the digest time has passed the day counts as handled, even without a message, so a
+  // to-do added late in the evening does not trigger a stale digest later that night.
+  var digestAt = parseHhmm(config.todoDayReminder);
+  if (digestAt !== null && zurichMinuteOfDay(now) >= digestAt) p.setProperty("TODO_DIGEST_SENT", toZurichDate(now));
   var due = dueReminders(records, now, config.todoReminderLead);
   if (!due.length) return 0;
   due.forEach(function (d) {

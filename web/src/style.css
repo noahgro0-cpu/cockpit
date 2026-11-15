@@ -1324,9 +1324,15 @@ header {
   margin: 0 0 8px;
   color: var(--muted);
 }
+.cal-legend .legend-event,
+.cal-legend .legend-todo {
+  display: inline-flex;
+  align-items: center;
+}
 .cal-legend .legend-event::before,
 .cal-legend .legend-todo::before {
   content: "";
+  flex: none;
   display: inline-block;
   width: 14px;
   height: 10px;
@@ -1476,4 +1482,14 @@ header {
 .dashboard .mail-card .actions .button-link {
   font-size: var(--text-footnote);
   padding-inline: 10px;
+}
+/* To-do notes: two lines in lists (full text in the editor); check circle at the top. */
+.task-item .grow > p:not(.small) {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.task-item .todo-row > .check {
+  align-self: start;
 }

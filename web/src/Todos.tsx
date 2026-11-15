@@ -55,7 +55,7 @@ export function QuickCapture({
           id="quick"
           placeholder="Was steht an? z. B. morgen Buch zurückgeben"
           value={text}
-          maxLength={2000}
+          maxLength={500}
           disabled={saving}
           onChange={(e) => setText(e.target.value)}
         />
