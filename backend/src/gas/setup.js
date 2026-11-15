@@ -26,6 +26,7 @@ function setup() {
 function rotateKey() {
   props_().setProperty("API_KEY", randomToken_(2));
   writeSetupCode_();
+  writeShortcutRows_(); // new text for the iOS shortcuts in tab config
   log_("info", "setup", "API key rotated");
   Logger.log("Neuer Schlüssel erzeugt. Neuer Setup-Code steht im Tab 'config'.");
 }

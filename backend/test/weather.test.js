@@ -164,12 +164,21 @@ test("location.update: validation, rounding, freshness", () => {
   const v = L.validateLocationUpdate({ lat: "47,12345", lon: "8.98765", name: "  Berg\ndorf<b>  " });
   assert.equal(v.ok, true);
   const rec = L.locationRecord(v.value, "2026-11-21T07:00:00+01:00");
-  assert.deepEqual(plain(rec), { lat: 47.12, lon: 8.99, name: "Berg dorf b", at: "2026-11-21T07:00:00+01:00" });
+  assert.deepEqual(plain(rec), { lat: 47.12, lon: 8.99, name: "Berg", at: "2026-11-21T07:00:00+01:00" });
   const t = Date.parse("2026-11-21T09:00:00+01:00");
-  assert.equal(L.freshLocation(rec, t).name, "Berg dorf b");
+  assert.equal(L.freshLocation(rec, t).name, "Berg");
   assert.equal(L.freshLocation(rec, t + 11 * 3600 * 1000), null);
   assert.equal(L.freshLocation(null, t), null);
   assert.equal(L.freshLocation(Object.assign({}, rec, { name: "" }), t).where, "an deinem Standort");
+});
+
+test("placeName keeps only the town, never the street", () => {
+  assert.equal(L.placeName("Bergdorf"), "Bergdorf");
+  assert.equal(L.placeName("Musterweg 12, 9999 Bergdorf, Schweiz"), "Bergdorf");
+  assert.equal(L.placeName("Musterweg 12" + String.fromCharCode(10) + "9999 Bergdorf"), "Bergdorf");
+  assert.equal(L.placeName("CH-9999 Bergdorf"), "Bergdorf");
+  assert.equal(L.placeName("Musterweg 12"), "");
+  assert.equal(L.placeName(""), "");
 });
 
 test("briefing text puts the weather after the first line", () => {

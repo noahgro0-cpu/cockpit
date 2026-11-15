@@ -192,7 +192,15 @@ Einmalig, ca. 10 Minuten. Danach läuft alles automatisch. Die Bezeichnungen in 
 4. **Am nächsten Morgen:** Steht im Tab **log** um ca. 06:00 wieder «location updated», obwohl das iPhone gesperrt war? Ergebnis hier vermerken.
 5. Danach die Zeilen **shortcutUrl** und **shortcutText** im Tab **config** löschen. Die Zeile auswählen → Rechtsklick → **Zeile löschen**.
 
+### Ergebnis Einrichtung (15.11.)
+- ✔ Automation täglich 06:00, «Sofort ausführen», Mitteilung aus, Standort «Immer». Aktionen: Aktuellen Ort abrufen → Text (JSON) → URL → Inhalte von URL abrufen (POST, Haupttext anfordern: Datei = Text). Für `name` die Eigenschaft **Ort** (iOS bot «Stadt» nicht an).
+- ✔ Manueller Lauf 15:17: Antwort `{ok:true}`, im Log «location updated».
+- Weil «Ort» je nach iOS die ganze Adresse enthalten kann, speichert das Backend seit Deployment @15 nur noch den Ortsnamen (Strasse/Hausnummer werden verworfen, `placeName`).
+- `rotateKey()` schreibt jetzt auch `shortcutUrl`/`shortcutText` neu in den Tab `config`.
+
 ### Offen
+- **16.11. ab 06:00:** Tab `log` → steht um ca. 06:00 «location updated» (iPhone gesperrt)? Ergebnis hier vermerken.
+- **Schlüssel erneuern** einmal, nachdem alle Kurzbefehle und Widgets (Phase 3) eingerichtet sind, und sofort, falls der Schlüssel in einem Chat oder Screenshot sichtbar war. Ablauf: Apps Script → Datei **gas/setup.gs** → **rotateKey** ausführen → neuen Setup-Code in jeder PWA (Einstellungen → neu verbinden) und neuen `shortcutText` in jedem Kurzbefehl einsetzen. Zwischen Rotation und Neueinrichtung schlagen die alten Geräte fehl (`unauthorized`); die Widgets zeigen den letzten Stand.
 - Auf dem Gerät prüfen, ob der Kurzbefehl auf dem gesperrten iPhone den Standort liefert. Wenn nicht: zusätzlich eine Automation **Wecker → Wird gestoppt** mit demselben Kurzbefehl. Bleibt auch das erfolglos, gilt immer der Wohnort.
 - Das erste echte Briefing mit Wetter am Montag 16.11. um 06:30 kontrollieren (Unterrichtstag: Weg + Campus).
 - Für Codex (Phase 3): In `docs/SETUP-iOS.md` den Standort-Kurzbefehl aus Abschnitt B übernehmen. Für den Siri-Kurzbefehl `quickAdd` dieselbe Methode verwenden: Werte über `shortcutSetup` und das Sheet bereitstellen. Die PWA braucht keine Änderung, der Briefing-Text wird nur länger.

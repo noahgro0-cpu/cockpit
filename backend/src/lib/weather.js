@@ -47,13 +47,31 @@ function validateLocationUpdate(p) {
   return { ok: true, value: { lat: lat, lon: lon, name: p.name || "" } };
 }
 
-/** Stored form: rounded to ~1 km, name cleaned and capped. */
+/**
+ * Town name from what iOS sends as "Ort"/"Stadt". Depending on the iOS version this is the town or
+ * a full address ("Street 1, 1234 Town, Country"); only the town is kept, never the street.
+ */
+function placeName(raw) {
+  var parts = String(raw || "")
+    .replace(/[\u0000-\u001f<>]/g, ",")
+    .split(",")
+    .map(function (s) {
+      return s.replace(/\s+/g, " ").trim();
+    })
+    .filter(Boolean);
+  for (var i = 0; i < parts.length; i++) {
+    var m = parts[i].match(/^(?:[A-Z]{1,2}-)?\d{4,5}\s+(.+)$/); // "1234 Town" / "CH-1234 Town"
+    if (m && !/\d/.test(m[1])) return m[1].slice(0, 60);
+  }
+  for (var j = 0; j < parts.length; j++) {
+    if (!/\d/.test(parts[j])) return parts[j].slice(0, 60); // first part without house number / postcode
+  }
+  return "";
+}
+
+/** Stored form: rounded to ~1 km, only the town name. */
 function locationRecord(v, nowIso) {
-  var name = String(v.name || "")
-    .replace(/[\u0000-\u001f<>]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 60);
+  var name = placeName(v.name);
   return { lat: Math.round(v.lat * 100) / 100, lon: Math.round(v.lon * 100) / 100, name: name, at: nowIso };
 }
 
