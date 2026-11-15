@@ -164,14 +164,21 @@ function stampToDue_(st) {
  * Puts umlauts back where the model transliterated them ("Uebung" -> "Übung"), but only for
  * words that appear with umlauts in the original text.
  */
+/**
+ * Spelling-insensitive key: umlauts without dots and "e" after a/o/u removed, so "aufräumen",
+ * "aufraeumen", "aufraumen" and the model's "aufrauemen" all match.
+ */
+function umlautKey_(w) {
+  return w.toLowerCase().replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/([aou])e/g, "$1");
+}
+
 function restoreUmlauts_(title, originalText) {
   var map = {};
   (String(originalText || "").match(/[A-Za-zÄÖÜäöü]*[ÄÖÜäöü][A-Za-zÄÖÜäöü]*/g) || []).forEach(function (w) {
-    var plainWord = w.replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue");
-    map[plainWord.toLowerCase()] = w;
+    map[umlautKey_(w)] = w;
   });
   return title.replace(/[A-Za-z]+/g, function (w) {
-    var orig = map[w.toLowerCase()];
+    var orig = map[umlautKey_(w)];
     if (!orig) return w;
     // keep the casing of the title's first letter
     var first = w.charAt(0) === w.charAt(0).toUpperCase() ? orig.charAt(0).toUpperCase() : orig.charAt(0).toLowerCase();

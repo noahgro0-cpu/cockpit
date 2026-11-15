@@ -325,12 +325,18 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
   - Befund 2 (bekannt seit Phase 0): Die ersten zwei Commits tragen den Vornamen als Autorname.
 - **Eingabevalidierung:** Alle Aktionen haben Validatoren (`src/lib/api.js`), `npm run e2e` prüft falschen Schlüssel, kaputtes JSON und fehlende Felder (23/23).
 - Laufzeitmessung des Triggers vorbereitet (siehe oben, ab Deployment @22).
+- **Codex-Runde 3b geprüft und gepusht** (Commit `419ce07`): 60 Web-Tests, Typprüfung und Build grün, keine Schlüssel oder persönlichen Daten im Diff. GitHub Pages ausgeliefert, das Live-Bundle entspricht dem lokalen Build.
+- **E2E-Test der PWA gegen das echte Backend** (Chromium, 1440×900, live auf GitHub Pages, Setup-Code eingesetzt): Dashboard-Spalten «Heute | To-dos | Nächste 7 Tage», Knopf «Monat» vorhanden. Schnellerfassung «Ich muss heute noch unbedingt das Velo putzen und bis Samstag den Keller aufräumen» → nach 5 s Bestätigung mit zwei Zeilen, «Velo putzen» sofort in der Liste, beide To-dos im Backend; Testeinträge gelöscht. Seitenhöhe am PC noch ca. 1540 px bei 900 px Fensterhöhe (Mails und «Am Horizont» unterhalb), gegenüber vorher deutlich kürzer.
+- Dabei gefunden und behoben (Deployment @25): Die KI schrieb «aufraumen» bzw. «aufrauemen». Die Umlaut-Korrektur vergleicht jetzt schreibweisenunabhängig mit dem Originaltext; danach 3 von 3 korrekt («Keller aufräumen»).
+- Kleinigkeit an Codex (OPEN-QUESTIONS): Feldlänge 2000 statt 500 Zeichen.
 
 ### Offen
 1. **Entscheid des Nutzers:** Historie umschreiben (Force-Push), um Hochschul-Kurzname und Vornamen aus alten Commits zu entfernen? Risiko gering (öffentliche Hochschule, nur Vorname), Aufwand klein, aber alle Klone (Codex) müssen danach neu geholt werden. Ohne Freigabe bleibt die Historie, wie sie ist.
 2. **24-h-Messung:** Am 17.11. im Sheet `log` die Zeile «runtime 2026-11-16: …» lesen (erster voller Tag). Ziel < 45 Min. Zusätzlich möglich: Apps Script → **Ausführungen**.
 3. Nach Codex-Runde 3b: End-to-End-Durchlauf mit dem Nutzer (Mail → Push → To-do → PWA/Widget; Siri → Termin + To-do), dann **API-Schlüssel einmal erneuern** (`rotateKey` in **gas/setup.gs**; danach Setup-Code in PWA und Scriptable, `key` im Siri-Kurzbefehl und im Text der Standort-Automation ersetzen) und `docs/BETRIEB.md` schreiben.
-4. Aus der Wetter-Erweiterung weiterhin offen: 16.11. **location updated** um ca. 06:00 im `log` (iPhone gesperrt) und das erste Wochentags-Briefing mit Wetter.
+4. **Nutzer, Geräte-Abnahme Runde 3b:** PWA auf iPhone und iPad neu laden (App ganz schliessen und neu öffnen). Prüfen: Kalender zeigt 7 Tage ab heute, «Monat» öffnet die Monatsansicht, Schnellerfassung mit einem Satz aus Termin und Aufgabe zeigt die Bestätigung und trägt beides ein. Testeinträge danach löschen.
+5. **Nutzer, alter Testeintrag:** Unter «Am Horizont» steht noch «Cockpit-Test Pruefung (bitte loeschen)» aus Phase 1a. Im Google-Kalender (Prüfungs-Kalender) löschen.
+6. Aus der Wetter-Erweiterung weiterhin offen: 16.11. **location updated** um ca. 06:00 im `log` (iPhone gesperrt) und das erste Wochentags-Briefing mit Wetter.
 
 ## Runde 3b – PWA optimiert (2026-11-15, Codex)
 

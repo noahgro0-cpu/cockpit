@@ -170,6 +170,10 @@ test("umlauts transliterated by the model are restored from the original text", 
   const t = (title, text) => one(JSON.stringify(item({ title })), NOW, [], text, true).fields.title;
   assert.equal(t("Python Uebung fertig machen", "bis Freitag die Python Übung fertig machen"), "Python Übung fertig machen");
   assert.equal(t("Abo loeschen", "Abo löschen nicht vergessen"), "Abo löschen");
+  assert.equal(t("Keller aufraumen", "bis Samstag den Keller aufräumen"), "Keller aufräumen");
+  assert.equal(t("Abo loschen", "Abo löschen"), "Abo löschen");
+  assert.equal(t("Keller aufrauemen", "bis Samstag den Keller aufräumen"), "Keller aufräumen");
+  assert.equal(t("Velo putzen", "das Velo putzen und aufräumen"), "Velo putzen"); // unrelated words untouched
   assert.equal(t("Queue pruefen", "Queue prüfen"), "Queue prüfen"); // "Queue" not in the text with umlaut: unchanged
 });
 
