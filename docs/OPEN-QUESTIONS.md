@@ -30,3 +30,4 @@ Alle drei Wünsche vom 2026-11-14 sind am 2026-11-14 in Phase 1b umgesetzt (DECI
 
 - 2026-11-15 · **Briefing-Text mehrzeilig:** Erledigt in Phase 3. `.briefing p` erhält die Zeilenumbrüche mit `white-space: pre-line`, das Briefing ist auch im Dashboard sichtbar.
 - 2026-11-15 · **Runde 3b (PWA):** Kalender rechts, 7 Tage ab heute, Monatsansicht; kompakterer Kopf; Schnellerfassung über `capture` (mehrere Einträge, `items`, `message`). Details in STATUS.md «Übergabe an Codex (Runde 3b)», Vertrag in `shared/api-types.ts` (`CaptureItem`, `CaptureResult`), Kalender jetzt bis +42 Tage.
+- 2026-11-15 · **Kleinigkeit (Runde 3b):** Das Schnellerfassungsfeld erlaubt `maxLength={2000}`, `capture` akzeptiert höchstens 500 Zeichen (`bad_request`, englische Meldung). Bitte auf 500 begrenzen. Nicht dringend, der Text bleibt bei einem Fehler erhalten.
