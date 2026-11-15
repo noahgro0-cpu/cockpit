@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-15 · Phase 1b abgeschlossen; Erweiterung «Wetter im Briefing» ausgerollt (Abschnitt ganz unten), Kurzbefehl auf dem iPhone noch einzurichten. Phase 1a und 2 abgeschlossen. Nächste Phase: 3 (Codex).
+Stand 2026-11-15 · Phase 3 implementiert. Offen sind die Wochenagenda im Widget und die Abnahme auf iPhone/iPad. Die Standort-Automation ist eingerichtet. Ergebnisse und Schritte stehen im Abschnitt «Phase 3» unten.
 
 ## Erledigt
 ### Phase 0
@@ -250,3 +250,30 @@ Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese
 - ~~«nächste Woche» am Sonntag~~ vom Nutzer so bestätigt (kommende Woche). Neu: «Montag in einer Woche» usw. = nächster solcher Tag + 7 (live geprüft: am So 15.11. → Mo 23.11.).
 - Die KI liess einmal einen Umlaut weg («loschen» statt «löschen»), obwohl die Anweisung das ausdrücklich verbietet. Seltener Ausreisser, beobachten.
 - Ob ein Satz ein Termin oder ein To-do ist, entscheidet die KI. Im Zweifel nimmt sie ein To-do. Ein falsch eingeordneter Satz lässt sich in der App bzw. im Kalender von Hand korrigieren.
+
+## Phase 3 – Widgets und iOS-Kurzbefehle (2026-11-15, Codex)
+
+### Erledigt
+
+- Das Briefing erhält Zeilenumbrüche mit `white-space: pre-line`. Die bisher ausgeblendete Briefing-Karte ist auch im Dashboard sichtbar. Drei Briefing-Zeilen in Chromium bei 375 und 1440 px geprüft, jeweils hell und dunkel.
+- `widgets/Cockpit.js` bietet drei Home-Bildschirmgrössen und ein rechteckiges Sperrbildschirm-Widget. `heute` zeigt die kompakte Ansicht, `todos` priorisiert Aufgaben und `woche` ergänzt Datumsangaben und gibt der Wochenagenda Platz. Home-Bildschirmfarben entsprechen den PWA-Tokens, am Sperrbildschirm bestimmt iOS den Farbton. Der Setup-Code und die PWA-Adresse werden auf dem jeweiligen Gerät eingetragen.
+- `getWidget` wird mit dem bestehenden POST-Vertrag abgerufen. Die letzte gültige Antwort wird lokal auf dem Gerät gespeichert. Bei einem Fehler zeigt das Widget diese mit «Stand hh:mm». Beim Start ohne Cache erscheint eine Fehlermeldung. Die nächste Aktualisierung wird 15 Minuten nach dem Lauf vorgeschlagen.
+- [SETUP-iOS.md](SETUP-iOS.md) dokumentiert die PWA-Installation, alle Widgets, den Siri-Kurzbefehl mit `capture` als JSON und `data.message` als Mitteilung, «Auf Rückseite tippen» sowie die bereits eingerichtete Standort-Automation.
+
+### Abnahme Phase 3 (SPEC §6)
+
+| Kriterium | Ergebnis |
+| --- | --- |
+| Alle vier Grössen zeigen Daten und einen brauchbaren Fehlerzustand | Node prüft Inhalt, PWA-Link, Aktualisierungszeit sowie Rendering mit frischer Antwort, Cache und Fehler ohne Cache mit Scriptable-Attrappen. Die echte `getWidget`-Antwort wurde in allen zwölf Kombinationen aus Grösse und Parameter verarbeitet. Darstellung und Verhalten auf iPhone/iPad sind offen. |
+| Grosses Widget zeigt die Woche und wichtige Mails | Kalender und Mails mit Testdaten geprüft. Der produktive Endpunkt liefert noch kein Feld `week`. Das Widget zeigt die verfügbaren Termine und «Wochenagenda nicht verfügbar». API-Wunsch in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md). |
+| Anleitung ohne Vorwissen befolgbar | Menüpfade mit der Apple- und Scriptable-Dokumentation abgeglichen. Einrichtung und Siri-Mitteilung auf iPhone/iPad sind offen. |
+
+Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) und `npm run build`, `cd backend; npm test` (116). Die Widget-Tests prüfen auch beide Zürcher Zeitumstellungen. Ohne Wochenagenda und Gerätetest bleibt die Phase offen.
+
+### Manuelle Schritte auf iPhone/iPad
+
+1. **PWA installieren.** Auf GitHub **Settings → Pages → Visit site** öffnen. In Safari **Teilen → Zu Home-Bildschirm hinzufügen → Hinzufügen**. Cockpit über das Symbol öffnen und den Setup-Code aus dem Sheet (**config → setupCode**) einsetzen.
+2. **Scriptable einrichten.** **Scriptable → +** öffnen, `widgets/Cockpit.js` einsetzen und als **Cockpit** speichern. In den ersten Zeilen den Setup-Code und die veröffentlichte PWA-Adresse einsetzen. **▶︎** antippen und jede Vorschau prüfen.
+3. **Widgets platzieren und testen.** Home-Bildschirm gedrückt halten → **Bearbeiten → Widget hinzufügen → Scriptable**. Für jede der drei Grössen **Widget bearbeiten → Script → Cockpit** wählen. Sperrbildschirm gedrückt halten → **Anpassen → Sperrbildschirm → Widgets hinzufügen → Scriptable**, rechteckige Grösse wählen und das Skript zuweisen. In Hell/Dunkel und per Antippen prüfen. Für den Cache-Test in den Flugmodus wechseln, WLAN ausschalten und die Scriptable-Vorschau öffnen.
+4. **Siri und Rückseite prüfen.** **Kurzbefehle → Kurzbefehle → +** öffnen und den Kurzbefehl gemäss [Abschnitt 4](SETUP-iOS.md#4-siri-kurzbefehl-cockpit-für-to-dos-und-termine) anlegen. Diktat, Mitteilung und den erzeugten Eintrag kontrollieren. Auf dem iPhone **Einstellungen → Bedienungshilfen → Tippen → Auf Rückseite tippen → Doppeltippen oder Dreimal tippen → Cockpit** wählen.
+5. **Bestehende Standort-Automation kontrollieren.** Im Sheet **log** am Folgetag auf **location updated** um ca. 06:00 prüfen. Details in [Abschnitt 5](SETUP-iOS.md#5-bestehende-automation-standort-fürs-briefing-nachschlagen).
