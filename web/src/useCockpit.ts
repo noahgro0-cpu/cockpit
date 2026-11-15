@@ -27,6 +27,12 @@ export function useCockpit() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  // D26: confirmations disappear after 12 s instead of staying forever.
+  useEffect(() => {
+    if (!confirmation) return;
+    const timer = setTimeout(() => setConfirmation(""), 12000);
+    return () => clearTimeout(timer);
+  }, [confirmation]);
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const [localSettings, setLocalSettings] = useState<Settings | null>(() =>

@@ -16,9 +16,12 @@ import { Icon } from "./Icon";
 export function QuickCapture({
   now,
   mutate,
+  docked = false,
 }: {
   now: Date;
   mutate: (m: Mutation) => Promise<void>;
+  /** D26: part of the dashboard top bar instead of floating at the bottom. */
+  docked?: boolean;
 }) {
   const [text, setText] = useState("");
   const preview = capture(text, now);
@@ -26,7 +29,7 @@ export function QuickCapture({
   const [error, setError] = useState("");
   return (
     <form
-      className="quick-capture"
+      className={docked ? "quick-capture docked" : "quick-capture"}
       onSubmit={async (e) => {
         e.preventDefault();
         if (!text.trim() || saving) return;
@@ -361,10 +364,18 @@ export function Todos({
 }) {
   const [filter, setFilter] = useState("");
   const [expanded, setExpanded] = useState(false);
+  // D26: the dashboard column shows overdue, today and the next 7 days; later ones on demand.
+  const SHOWN = ["Überfällig", "Heute", "Nächste 7 Tage"];
   const groups = groupTodos(
     state.todos.filter((t) => !filter || t.category === filter),
     now,
   );
+  const hidden = Object.entries(groups)
+    .filter(([label]) => !SHOWN.includes(label))
+    .reduce((sum, [, todos]) => sum + todos.length, 0);
+  const visible = Object.entries(groups)
+    .filter(([label]) => SHOWN.includes(label))
+    .reduce((sum, [, todos]) => sum + todos.length, 0);
   return (
     <section className="stack">
       <div className="section-title">
@@ -391,8 +402,7 @@ export function Todos({
           todos.length > 0 &&
           (!compact ||
             expanded ||
-            label === "Überfällig" ||
-            label === "Heute") && (
+            SHOWN.includes(label)) && (
             <section className="card" key={label}>
               <h3 className={label === "Überfällig" ? "danger" : ""}>
                 {label}
@@ -409,17 +419,14 @@ export function Todos({
             </section>
           ),
       )}
-      {compact && (
-        <button aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+      {compact && !expanded && visible === 0 && hidden > 0 && (
+        <p className="empty">In den nächsten 7 Tagen ist nichts fällig.</p>
+      )}
+      {compact && hidden > 0 && (
+        <button className="disclosure" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
           {expanded
             ? "Weniger Aufgaben"
-            : "Weitere Aufgaben (" +
-              Object.entries(groups)
-                .filter(
-                  ([label]) => label !== "Überfällig" && label !== "Heute",
-                )
-                .reduce((sum, [, todos]) => sum + todos.length, 0) +
-              ")"}
+            : `Später und ohne Datum (${hidden})`}
         </button>
       )}
       {Object.values(groups).every((g) => !g.length) && (

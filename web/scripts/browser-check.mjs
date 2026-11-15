@@ -14,14 +14,19 @@ try {
       const page=await context.newPage();
       page.on('pageerror',error=>errors.push(error.message));
       await page.goto(process.env.MOCK_URL || 'http://127.0.0.1:5174/cockpit/');
-      await page.locator('.hero').waitFor();
+      await page.locator(width>=1100?'.next-strip':'.hero').waitFor();
       // D24: lectures never appear as next appointment
-      assert.equal(await page.locator('.hero').getByRole('heading',{name:'Analysis',exact:true}).count(),0);
+      assert.equal(await page.locator(width>=1100?'.next-strip':'.hero').getByText('Analysis',{exact:true}).count(),0);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`overflow ${width} ${theme}`);
       if(width>=1100) {
-        const columns=await page.locator('.dashboard > *').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().x));
+        // D26: Kalender | Mails | To-dos, next-appointment bar and docked capture on top
+        const columns=await page.locator('.board-main > *').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().x));
         assert(columns[0]<columns[1]&&columns[1]<columns[2]);
-        assert(await page.locator('.dashboard > :last-child').getByRole('heading',{name:'Nächste 7 Tage'}).count());
+        assert(await page.locator('.board-main > :first-child').getByRole('heading',{name:'Nächste 7 Tage'}).count());
+        assert(await page.locator('.board-main > :last-child').getByRole('heading',{name:'To-dos'}).count());
+        assert(await page.locator('.board-top .quick-capture.docked #quick').count());
+        const fold=await page.evaluate(()=>[...document.querySelectorAll('.board-main .section-title')].every(el=>el.getBoundingClientRect().bottom<innerHeight));
+        assert(fold,'all three column headings above the fold');
       }
       if(width<1100) await page.getByRole('navigation').getByRole('button',{name:'Kalender',exact:true}).click();
       assert.equal(await page.locator('.calendar .calendar-day').count(),7);
@@ -68,7 +73,7 @@ try {
     }
   }
   console.log('PASS: all views, 375/834/1440 px, light/dark, no horizontal overflow');
-  console.log('PASS: seven days, calendar on right, bounded month navigation and modal focus');
+  console.log('PASS: seven days, calendar left (D26), bounded month navigation and modal focus');
   console.log('PASS: iPad sidebar and modal editing, focus containment/return, Escape and cancelling unsaved edits');
   const context=await browser.newContext({viewport:{width:834,height:1000}});
   const page=await context.newPage();

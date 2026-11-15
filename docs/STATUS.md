@@ -411,3 +411,9 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 4. 17.11.: Laufzeitzeile im `log` (< 45 Min.).
 
 Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an Claude Code; Betriebsanleitung in `docs/BETRIEB.md`.
+
+## D26 – Dashboard und Gestaltung (2026-11-15 spätabends, Claude Code)
+- Dashboard: oben «Nächster Termin» (eine Zeile) + Schnellerfassung mit Bestätigungen; Kalender | Mails | To-dos; darunter Wetter, Am Horizont, Dein Morgen, Unterwegs. Datum neben dem Logo, «Dein Überblick» entfernt.
+- Gestaltung vereinheitlicht (Tokens, Schriftskala, schlichte Knöpfe, Farbe nur mit Bedeutung), hell und dunkel.
+- To-do-Gruppe «Nächste 7 Tage» statt «Diese Woche». Bestätigungen verschwinden nach 12 s.
+- Geprüft: 61 Web-Tests, Build, `browser-check.mjs` (an D26 angepasst, inkl. «alle drei Spaltenköpfe ohne Scrollen sichtbar» bei 1440×900), Screenshots PC hell/dunkel, iPhone (Heute, To-do-Bearbeiten, Einstellungen, Einrichtung). Nicht geprüft: Safari auf iPhone/iPad (Nutzer).

@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Today } from "./Today";
+import {
+  Today,
+  NextStrip,
+  WeatherCard,
+  HorizonCard,
+  BriefingCard,
+  TravelCard,
+} from "./Today";
 import { Calendar } from "./Calendar";
 import { Todos, QuickCapture } from "./Todos";
 import { Mails } from "./Mails";
@@ -151,7 +158,11 @@ export default function App() {
             <Icon name="home" />
           </span>{" "}
           cockpit
-          <span className="brand-caption">DEIN TAG. KLAR IM BLICK.</span>
+          {dashboard && (
+            <span className="brand-caption">
+              {dateLabel(now.toISOString())}
+            </span>
+          )}
         </a>
         <div className="header-actions">
           <span className="status-dot" />
@@ -180,12 +191,13 @@ export default function App() {
         </div>
       </header>
       <main>
-        {cockpit.error && (
+        {!dashboard && cockpit.error && (
           <div className="notice" role="alert">
             {cockpit.error}
           </div>
         )}
-        {state &&
+        {!dashboard &&
+          state &&
           stale(
             state.health.lastTick,
             MOCK ? +now : cockpit.fetchedAt,
@@ -196,7 +208,7 @@ export default function App() {
               möglicherweise veraltet.
             </p>
           )}
-        {cockpit.jobs.length > 0 && (
+        {!dashboard && cockpit.jobs.length > 0 && (
           <p className="notice" role="status">
             {cockpit.jobs.length} Änderung(en) auf diesem Gerät gespeichert ·
             Synchronisierung ausstehend.
@@ -204,16 +216,20 @@ export default function App() {
               " Eingabe prüfen: Einstellungen → Synchronisierung."}
           </p>
         )}
-        {!navigator.onLine && (
+        {!dashboard && !navigator.onLine && (
           <p className="notice">
             Offline · Du siehst den zuletzt gespeicherten Stand.
           </p>
         )}
-        <div className="page-heading">
-          <h1>{dashboard ? "Dein Überblick" : view}</h1>
-          <p>{dateLabel(now.toISOString())}</p>
-        </div>
-        {cockpit.confirmation && (
+        {dashboard ? (
+          <h1 className="sr-only">Dein Überblick</h1>
+        ) : (
+          <div className="page-heading">
+            <h1>{view}</h1>
+            <p>{dateLabel(now.toISOString())}</p>
+          </div>
+        )}
+        {!dashboard && cockpit.confirmation && (
           <p className="notice capture-confirmation" role="status">
             {cockpit.confirmation}
           </p>
@@ -234,22 +250,53 @@ export default function App() {
             </button>
           </div>
         ) : dashboard ? (
-          <div className="dashboard">
-            <section>
-              <h2 className="column-heading">Heute</h2>
-              <Today
-                state={state}
-                now={now}
-                onComplete={complete}
-                travel={<Travel state={state} now={now} />}
-                weather={<Forecast state={state} />}
-              />
-            </section>
-            <div className="stack">
-              <Todos state={state} now={now} mutate={cockpit.mutate} compact />
-              <Mails state={state} mutate={cockpit.mutate} compact />
+          <div className="board">
+            {/* D26: slim next-appointment bar, capture and its feedback on top */}
+            <div className="board-top">
+              <NextStrip state={state} now={now} />
+              <div className="board-capture">
+                <QuickCapture now={now} mutate={cockpit.mutate} docked />
+                <div className="board-notices" aria-live="polite">
+                  {cockpit.error && (
+                    <p className="notice danger" role="alert">
+                      {cockpit.error}
+                    </p>
+                  )}
+                  {cockpit.confirmation && (
+                    <p className="notice capture-confirmation" role="status">
+                      {cockpit.confirmation}
+                    </p>
+                  )}
+                  {cockpit.jobs.length > 0 && (
+                    <p className="notice" role="status">
+                      {cockpit.jobs.length} Änderung(en) warten auf
+                      Synchronisierung
+                      {cockpit.jobs.some((j) => j.blocked) &&
+                        " · prüfen unter Einstellungen → Synchronisierung"}
+                    </p>
+                  )}
+                  {!navigator.onLine && (
+                    <p className="notice">Offline · letzter gespeicherter Stand</p>
+                  )}
+                  {stale(state.health.lastTick, MOCK ? +now : cockpit.fetchedAt, MOCK ? +now : +clock) && (
+                    <p className="notice" role="status">
+                      Stand {time(state.generatedAt)} · möglicherweise veraltet
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-            <Calendar state={state} now={now} compact mutate={cockpit.mutate} />
+            <div className="board-main">
+              <Calendar state={state} now={now} compact mutate={cockpit.mutate} />
+              <Mails state={state} mutate={cockpit.mutate} compact />
+              <Todos state={state} now={now} mutate={cockpit.mutate} compact />
+            </div>
+            <div className="board-extra">
+              <WeatherCard weather={<Forecast state={state} />} />
+              <HorizonCard state={state} now={now} />
+              <BriefingCard state={state} />
+              <TravelCard travel={<Travel state={state} now={now} />} />
+            </div>
           </div>
         ) : view === "Heute" ? (
           <Today
@@ -279,9 +326,9 @@ export default function App() {
           />
         )}
       </main>
-      {state && view !== "Einstellungen" && (
+      {state && !dashboard && view !== "Einstellungen" && (
         <QuickCapture now={now} mutate={cockpit.mutate} />
-      )}{" "}
+      )}
       {!dashboard && (
         <nav aria-label="Hauptnavigation">
           {(

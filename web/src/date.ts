@@ -49,11 +49,12 @@ export function daysUntil(value: string, now: Date) {
 }
 export function groupTodos(todos: Todo[], now: Date) {
   const today = day(now),
-    end = shift(weekStart(now), 6);
+    // D26: same window as the calendar (today + 6 days), also on a Sunday.
+    end = shift(today, 6);
   const groups: Record<string, Todo[]> = {
     Überfällig: [],
     Heute: [],
-    "Diese Woche": [],
+    "Nächste 7 Tage": [],
     Später: [],
     "Ohne Datum": [],
   };
@@ -72,7 +73,7 @@ export function groupTodos(todos: Todo[], now: Date) {
           : d === today
             ? "Heute"
             : d <= end
-              ? "Diese Woche"
+              ? "Nächste 7 Tage"
               : "Später"
     ].push(t);
   }

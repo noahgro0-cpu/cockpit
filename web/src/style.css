@@ -125,7 +125,7 @@ header {
   text-align: center;
 }
 .brand-caption {
-  font-size: 9px;
+  font-size: var(--text-caption2);
   letter-spacing: 1.5px;
   font-weight: 500;
   margin-left: 20px;
@@ -156,7 +156,7 @@ main {
   margin-bottom: 12px;
 }
 .eyebrow {
-  font-size: 10px;
+  font-size: var(--text-caption2);
   letter-spacing: 1.6px;
   font-weight: 650;
   display: flex;
@@ -205,7 +205,7 @@ main {
   margin: 16px 0 4px;
 }
 .hero-time span {
-  font-size: 11px;
+  font-size: var(--text-caption2);
   border: 1px solid var(--line);
   padding: 5px 9px;
   border-radius: 20px;
@@ -217,7 +217,7 @@ main {
   border-top: 1px solid var(--line);
   padding-top: 14px;
   margin-top: 22px;
-  font-size: 11px;
+  font-size: var(--text-caption2);
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -237,7 +237,7 @@ main {
   margin-left: 10px;
 }
 .pill {
-  font-size: 11px;
+  font-size: var(--text-caption2);
   border-radius: 6px;
   background: var(--surface);
   padding: 6px 9px;
@@ -308,7 +308,7 @@ main {
 .urgent {
   float: right;
   color: var(--danger);
-  font-size: 10px;
+  font-size: var(--text-caption2);
 }
 .exam-row {
   display: flex;
@@ -326,7 +326,7 @@ main {
 }
 .days small {
   display: block;
-  font-size: 10px;
+  font-size: var(--text-caption2);
 }
 .briefing {
   grid-column: 1/-1;
@@ -508,7 +508,7 @@ label {
     padding: 7px 6px;
     flex-direction: column;
     gap: 2px;
-    font-size: 10px;
+    font-size: var(--text-caption2);
     min-width: 58px;
   }
   nav button span {
@@ -539,7 +539,7 @@ label {
   min-width: 0;
 }
 .source {
-  font-size: 10px;
+  font-size: var(--text-caption2);
   display: inline-block;
   margin-top: 12px;
 }
@@ -586,7 +586,7 @@ summary {
   align-items: center;
 }
 .calendar-day h3 small {
-  font-size: 9px;
+  font-size: var(--text-caption2);
 }
 .calendar-day.weekend {
   background: var(--bg);
@@ -601,7 +601,7 @@ summary {
   background: var(--blue);
   padding: 8px;
   margin-top: 9px;
-  font-size: 11px;
+  font-size: var(--text-caption2);
   overflow-wrap: anywhere;
 }
 .event strong,
@@ -609,7 +609,7 @@ summary {
   display: block;
 }
 .event small {
-  font-size: 10px;
+  font-size: var(--text-caption2);
 }
 .event.exam,
 .event.deadline {
@@ -623,7 +623,7 @@ summary {
   background: var(--sage);
 }
 .free {
-  font-size: 11px;
+  font-size: var(--text-caption2);
   color: var(--muted);
   display: block;
   margin-top: 20px;
@@ -697,25 +697,11 @@ summary {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
-.dashboard {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-.dashboard .today-grid {
-  grid-template-columns: 1fr;
-}
-.dashboard .today-grid > * {
-  grid-column: auto;
-}
-.dashboard .tasks,
-.dashboard .mail-preview {
-  display: none;
-}
-.dashboard .column-heading {
-  margin-bottom: 18px;
-}
+
+
+
+
+
 .compact .week-grid {
   grid-template-columns: 1fr;
 }
@@ -730,7 +716,7 @@ summary {
 .compact .calendar-day h3 {
   align-self: start;
   flex-wrap: wrap;
-  font-size: 11px;
+  font-size: var(--text-caption2);
 }
 .compact .event,
 .compact .todo-chip {
@@ -747,24 +733,12 @@ summary {
 .dashboard-shell .quick-capture {
   bottom: 20px;
 }
-.dashboard .card {
-  padding: 18px;
-}
-.dashboard .hero-time {
-  font-size: 30px;
-}
-.dashboard .hero-footer span {
-  display: none;
-}
-.dashboard .task-item .todo-row {
-  flex-wrap: wrap;
-}
-.dashboard .task-item .grow {
-  flex-basis: 60%;
-}
-.dashboard .section-title {
-  margin-bottom: 0;
-}
+
+
+
+
+
+
 .dashboard-shell {
   padding-bottom: 120px;
 }
@@ -784,15 +758,9 @@ summary {
   .settings-grid {
     grid-template-columns: 1fr;
   }
-  .dashboard {
-    grid-template-columns: 1fr;
-  }
-  .dashboard .today-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .dashboard .hero {
-    grid-column: 1/-1;
-  }
+
+
+
 }
 @media (max-width: 540px) {
   .quick-capture {
@@ -802,9 +770,7 @@ summary {
   .quick-capture input {
     font-size: 16px;
   }
-  .dashboard .today-grid {
-    grid-template-columns: 1fr;
-  }
+
   .task-item .todo-row {
     flex-wrap: wrap;
   }
@@ -831,7 +797,7 @@ summary {
   border-radius: 5px;
   padding: 2px 6px;
   background: var(--sage);
-  font-size: 10px;
+  font-size: var(--text-caption2);
   color: var(--ink);
 }
 .mail-origin {
@@ -855,9 +821,7 @@ summary {
 .task-item .todo-row > button:not(.check) {
   grid-column: 3;
 }
-.dashboard .task-item .grow {
-  flex-basis: auto;
-}
+
 nav button {
   white-space: nowrap;
 }
@@ -1102,9 +1066,7 @@ nav button,
   flex: 1;
 }
 .today-grid,
-.dashboard {
-  gap: 16px;
-}
+
 @media (max-width: 540px) {
   nav {
     gap: 0;
@@ -1160,29 +1122,12 @@ header {
   margin: 0;
   font-size: var(--text-footnote);
 }
-.dashboard .card {
-  padding: 14px;
-}
-.dashboard .hero-time,
-.dashboard .temperature,
-.dashboard .blue h2 {
-  margin-top: 8px;
-}
-.dashboard .hero-footer {
-  margin-top: 12px;
-  padding-top: 8px;
-}
-.dashboard .stack,
-.dashboard .today-grid {
-  gap: 12px;
-}
-.dashboard .todo-row,
-.dashboard .mail-row {
-  padding-block: 8px;
-}
-.dashboard .column-heading {
-  margin-bottom: 10px;
-}
+
+
+
+
+
+
 .calendar > .section-title {
   margin-bottom: 10px;
   flex-wrap: wrap;
@@ -1472,17 +1417,8 @@ header {
   width: 100%;
   min-height: 44px;
 }
-.dashboard .mail-card p:not(.small) {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.dashboard .mail-card .actions button,
-.dashboard .mail-card .actions .button-link {
-  font-size: var(--text-footnote);
-  padding-inline: 10px;
-}
+
+
 /* To-do notes: two lines in lists (full text in the editor); check circle at the top. */
 .task-item .grow > p:not(.small) {
   display: -webkit-box;
@@ -1555,4 +1491,466 @@ header {
 }
 .shell:not(.dashboard-shell) main > :not(.today-grid) > .section-title {
   justify-content: flex-end;
+}
+
+/* ===========================================================================
+   D26 (2026-11-15): design system pass. Neutral canvas, white surfaces, one
+   tint, colour only with meaning, one type scale (11-34 pt), shadow instead of
+   border, plain secondary buttons, 44 pt targets on touch. Dashboard: slim
+   next-appointment bar + capture on top, Kalender / Mails / To-dos, then
+   Wetter, Am Horizont, Briefing, Unterwegs.
+   =========================================================================== */
+body {
+  -webkit-font-smoothing: antialiased;
+}
+h1 {
+  font-size: var(--text-large-title);
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+h2 {
+  font-size: var(--text-title3);
+  letter-spacing: -0.01em;
+  font-weight: 600;
+}
+h3 {
+  font-size: var(--text-footnote);
+  font-weight: 600;
+}
+small,
+.small {
+  font-size: var(--text-caption);
+}
+strong {
+  font-weight: 600;
+}
+
+/* Controls: filled secondary, tinted primary, plain actions. */
+button {
+  border: 0;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+}
+button:hover {
+  background: color-mix(in srgb, var(--ink) 8%, var(--surface-2));
+}
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+button.primary:hover {
+  background: color-mix(in srgb, var(--ink) 12%, var(--accent));
+}
+.actions {
+  gap: 4px;
+}
+.actions button:not(.primary),
+.actions .button-link {
+  background: transparent;
+  color: var(--accent);
+  padding-inline: 10px;
+}
+.actions button:not(.primary):hover {
+  background: var(--accent-soft);
+}
+.actions button:disabled {
+  color: var(--muted);
+}
+@media (pointer: fine) {
+  button {
+    min-height: 34px;
+    padding: 6px 12px;
+  }
+}
+
+/* Surfaces */
+.card {
+  border: 0;
+  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.hero,
+.weather-card,
+.horizon-card,
+.briefing,
+.travel,
+.blue,
+.peach,
+.lilac {
+  background: var(--surface);
+}
+.eyebrow {
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  align-items: center;
+}
+.eyebrow svg {
+  color: var(--accent);
+}
+.notice {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: var(--text-footnote);
+  padding: 10px 14px;
+}
+.notice.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+/* Header: compact, date next to the brand on the dashboard. */
+header {
+  height: 64px;
+}
+.brand {
+  font-size: var(--text-title3);
+  letter-spacing: -0.02em;
+}
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+}
+.brand-caption {
+  font-size: var(--text-subhead);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+}
+.header-actions button {
+  background: transparent;
+  color: var(--accent);
+}
+.header-actions button:hover {
+  background: var(--accent-soft);
+}
+.status-dot {
+  background: #34a853;
+}
+.page-heading {
+  padding: 24px 0 16px;
+}
+
+/* Heute (iPhone/iPad) */
+.today-grid {
+  gap: 14px;
+}
+.hero-time {
+  font-size: var(--text-large-title);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  margin: 10px 0 2px;
+}
+.hero-time span {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  border: 0;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.hero-empty {
+  margin-top: 10px;
+}
+.hero-footer {
+  font-size: var(--text-footnote);
+  margin-top: 16px;
+}
+.briefing p {
+  white-space: pre-line;
+  color: var(--ink);
+  font-size: var(--text-subhead);
+  line-height: 1.5;
+}
+.briefing.card {
+  display: block;
+}
+.exam-row .days {
+  font-variant-numeric: tabular-nums;
+  color: var(--exam-bar);
+}
+
+/* Dashboard board */
+.dashboard-shell {
+  font-size: var(--text-subhead);
+}
+.dashboard-shell main {
+  max-width: none;
+}
+.board {
+  display: grid;
+  gap: 20px;
+  padding-top: 18px;
+}
+.board-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.next-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 18px 10px 12px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.next-icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.next-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.next-time {
+  font-size: var(--text-title3);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.next-rel {
+  flex: none;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.next-title {
+  font-size: var(--text-headline);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-meta,
+.next-summary {
+  font-size: var(--text-footnote);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.next-summary {
+  flex: none;
+  margin-left: auto;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.board-capture {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.quick-capture.docked {
+  position: static;
+  transform: none;
+  width: auto;
+  left: auto;
+  bottom: auto;
+  z-index: auto;
+  border: 0;
+  padding: 8px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.quick-capture.docked input {
+  min-height: 44px;
+  border-radius: var(--radius-control);
+  padding: 0 14px;
+  background: var(--surface-2);
+}
+.quick-capture.docked button.primary {
+  min-height: 44px;
+  min-width: 44px;
+}
+.quick-capture.docked p.small {
+  margin: 6px 4px 0;
+}
+.board-notices {
+  display: grid;
+  gap: 6px;
+}
+.board-notices:empty {
+  display: none;
+}
+.board-notices .notice {
+  margin: 0;
+}
+.capture-confirmation {
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+.board-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.board-main > * {
+  min-width: 0;
+}
+.board-main .section-title {
+  min-height: 40px;
+  margin-bottom: 10px;
+}
+.board-extra {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+@media (max-width: 1360px) {
+  .board-extra {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1099px) {
+  .board-top,
+  .board-main {
+    grid-template-columns: 1fr;
+  }
+  .next-summary {
+    display: none;
+  }
+}
+
+/* Calendar column: one surface. */
+.week-grid {
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background: var(--surface);
+}
+.calendar-day.is-today {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 var(--accent);
+}
+.calendar-day.weekend {
+  background: var(--surface-2);
+}
+:is(.calendar, .month-sheet) .event {
+  background: var(--event-fill);
+  box-shadow: inset 3px 0 var(--event-bar);
+}
+:is(.calendar, .month-sheet) .event.exam,
+:is(.calendar, .month-sheet) .event.deadline {
+  background: var(--exam-fill);
+  box-shadow: inset 3px 0 var(--exam-bar);
+}
+:is(.calendar, .month-sheet) .event.routine {
+  background: transparent;
+  box-shadow: inset 2px 0 var(--line);
+}
+.cal-legend .legend-event::before {
+  background: var(--event-fill);
+  box-shadow: inset 3px 0 var(--event-bar);
+}
+.cal-legend .legend-routine {
+  background: transparent;
+  color: var(--accent);
+}
+.cal-legend .legend-routine:hover {
+  background: var(--accent-soft);
+}
+
+/* Mails column */
+.mail-card {
+  padding: 16px 18px;
+}
+.mail-card .eyebrow .danger {
+  color: var(--danger);
+}
+.mail-card .mail-title {
+  font-size: var(--text-headline);
+  margin-top: 4px;
+}
+.board .mail-card > p:not(.small):not(.mail-tags) {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--text-subhead);
+}
+.mail-card .actions {
+  margin-top: 8px;
+}
+.disclosure {
+  background: transparent;
+  color: var(--accent);
+}
+.disclosure:hover {
+  background: var(--accent-soft);
+}
+
+/* To-dos column */
+.task-item .todo-row > button:not(.check) {
+  background: transparent;
+  color: var(--muted);
+}
+.task-item .todo-row > button:not(.check):hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.check {
+  background: transparent;
+  color: var(--accent);
+}
+.check:hover {
+  background: var(--accent-soft);
+}
+.category-chip {
+  background: var(--surface-2);
+}
+/* D26 round 2 */
+.board-extra > * {
+  grid-column: auto;
+}
+.briefing.card {
+  padding: 20px;
+}
+.actions button,
+.actions .button-link {
+  font-size: var(--text-subhead);
+  font-weight: 600;
+}
+.cal-legend .legend-event::before,
+.cal-legend .legend-todo::before {
+  width: 16px;
+  height: 12px;
+}
+.board .empty {
+  font-size: var(--text-subhead);
+  padding: 4px 2px;
 }

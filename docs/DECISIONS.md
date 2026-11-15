@@ -124,3 +124,11 @@ Abweichungen von und Präzisierungen zu `SPEC.md`. Format: Datum, Entscheid, Beg
 - **Widget:** Der nächste Termin ignoriert Lektionen und Routine-Einträge wie die PWA; die Tagesagenda zeigt sie weiterhin.
 - **PWA:** To-dos im Kalender blau umrandet und antippbar (Erledigt, Morgen, Nächste Woche, anderes Datum). Keine doppelten Überschriften auf iPhone/iPad.
 **Begründung:** Wünsche des Nutzers vom 2026-11-15 abends. «Neue Nachricht in einer sensiblen Kategorie» war für ihn nicht brauchbar; Betreff und Absender stammen aus den Kopfzeilen, nicht aus dem Inhalt.
+
+## D26 – Dashboard neu angeordnet, Gestaltung vereinheitlicht (2026-11-15)
+**Entscheid:**
+- **Dashboard (ab 1100 px):** oben eine schmale Leiste «Nächster Termin» (eine Zeile, mit Tageszusammenfassung) und daneben die Schnellerfassung samt Bestätigungen und Hinweisen (Fehler, offline, veraltet, ausstehende Synchronisierung). Darunter **Kalender | Mails | To-dos**, darunter mit Trennlinie vier gleich hohe Karten: Wetter, Am Horizont, Dein Morgen, Unterwegs (zuletzt, auf Wunsch entfernbar). Die Überschrift «Dein Überblick» entfällt sichtbar (bleibt für Screenreader), das Datum steht neben dem Logo. Die schwebende Eingabeleiste gibt es nur noch auf iPhone/iPad, im Dashboard verdeckte sie Inhalte.
+- **Gestaltung** nach den übertragbaren HIG-Prinzipien (ohne Apple-Schriften, -Symbole oder Kopie einer Apple-App): neutraler Hintergrund, weisse Flächen, eine Akzentfarbe; Farbe nur mit Bedeutung (Termin orange, Prüfung/Abgabe violett, To-do blau, dringend rot). Eine Schriftskala 11–34 pt (keine 9/10-px-Texte mehr), Schatten statt Rahmen, sekundäre Aktionen als schlichte Textknöpfe, eine Hauptaktion pro Zeile, 44 pt Trefferfläche auf Touch-Geräten (mit Maus kompakter). Hell und dunkel über dieselben Tokens.
+- **To-dos:** Gruppe «Nächste 7 Tage» statt «Diese Woche» (gleiches Fenster wie der Kalender; am Sonntag war «Diese Woche» sonst leer). Das Dashboard zeigt Überfällig, Heute, Nächste 7 Tage; der Rest ist aufklappbar.
+- **Bestätigungen** der Schnellerfassung verschwinden nach 12 s.
+**Begründung:** Wunsch des Nutzers vom 2026-11-15 (Anordnung, Apple-ähnliche Anmutung). Geprüft in Chromium (1440×900 hell/dunkel, iPhone- und iPad-Grösse); Safari auf den Geräten prüft der Nutzer.

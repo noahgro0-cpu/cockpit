@@ -81,7 +81,7 @@ describe("grouping", () => {
     ).toEqual({
       Überfällig: 1,
       Heute: 2,
-      "Diese Woche": 3,
+      "Nächste 7 Tage": 3,
       Später: 1,
       "Ohne Datum": 1,
     });
