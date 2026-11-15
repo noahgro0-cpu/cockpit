@@ -201,3 +201,13 @@ Einmalig, ca. 10 Minuten. Danach läuft alles automatisch. Die Bezeichnungen in 
 ### Bekannte Mängel
 - Die Kleidungsregeln sind Faustregeln: Grenzen bei gefühlten 3/9/15/23 °C, Schirm ab 30 % bzw. 60 %. Anpassen nach den ersten Wochen, wenn die Empfehlungen nicht passen.
 - Der Ortsname am Wochenende kommt vom iPhone («Stadt»). Fehlt er, steht «an deinem Standort».
+
+## Übergabe an Codex für Phase 3 (Stand 2026-11-15)
+
+Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese Punkte erledigen. `backend/` und `shared/` nicht ändern; API-Wünsche in `docs/OPEN-QUESTIONS.md`.
+
+1. **Briefing-Zeilen in der PWA (Fehler, zuerst):** `web/src/Today.tsx` rendert `state.briefing.text` in einem `<p>`, die `\n`-Zeilenumbrüche gehen verloren und die Zeilen laufen ineinander. Lösung: in `web/src/style.css` bei `.briefing p` `white-space: pre-line;` ergänzen oder die Zeilen einzeln rendern. Auch im Dashboard-Modus (`.dashboard .briefing`) prüfen. Mock-Daten: `docs/mock-state.json` → `briefing.text` darf zur Prüfung eine Wetterzeile enthalten (frei erfundener Ort).
+2. **Widgets nach SPEC §4** über `getWidget` (Felder siehe `WidgetState` in `shared/api-types.ts`: `nextEvent`, `today`, `todos` (5), `mails` (3)).
+3. **`docs/SETUP-iOS.md`:** den Standort-Kurzbefehl aus dem Abschnitt «Erweiterung: Wetter … → Manuelle Schritte» oben übernehmen, ebenso den Siri-Kurzbefehl `quickAdd`. URL und Schlüssel kommen für alle Kurzbefehle aus der Editor-Funktion `shortcutSetup()` (schreibt `shortcutUrl`/`shortcutText` in den Tab `config`). Für `quickAdd` den Text entsprechend anpassen: `action` `quickAdd`, `payload` `{text}`.
+4. **Optional (nicht dringend):** die PWA-Anpassungen aus `docs/OPEN-QUESTIONS.md` (`settings.update`, `quickAdd` mit `id`, Sperre bei Mail-Aktionen entfernen).
+5. Am Ende `cd web; npm test; npm run build` und `docs/STATUS.md` nachführen.
