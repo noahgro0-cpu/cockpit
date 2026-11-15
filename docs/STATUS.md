@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-15 abends · Phase 3 abgeschlossen, Siri-Test mit Termin + To-do bestanden. D24 umgesetzt (Erinnerungen, Posteingang aufräumen, ruhigerer Kalender, Web-App-Verbesserungen). Claude Code betreut jetzt alle Ordner. Phase 4 läuft, siehe unten.
+Stand 2026-11-15 abends · **Phase 4 abgeschlossen** (Abnahme unten, zwei Prüfpunkte laufen am 16./17.11. automatisch). Der Nutzer testet das Cockpit eine Woche im Alltag; danach weitere Verbesserungen nach Bedarf. Betrieb: `docs/BETRIEB.md`.
 
 ## Erledigt
 ### Phase 0
@@ -333,9 +333,9 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 ### Offen
 1. ~~Historie umschreiben~~ Vom Nutzer am 15.11. abgelehnt (Risiko gering), Historie bleibt.
 2. **24-h-Messung:** Am 17.11. im Sheet `log` die Zeile «runtime 2026-11-16: …» lesen (erster voller Tag). Ziel < 45 Min. Zusätzlich möglich: Apps Script → **Ausführungen**.
-3. Nach Codex-Runde 3b: End-to-End-Durchlauf mit dem Nutzer (Mail → Push → To-do → PWA/Widget; Siri → Termin + To-do), Schlüsselrotation vorerst nicht (D24, nur bei Verdacht), `docs/BETRIEB.md` schreiben.
+3. ✔ End-to-End-Durchlauf (siehe Abnahme Phase 4), Schlüsselrotation vorerst nicht (D24), `docs/BETRIEB.md` geschrieben.
 4. **Nutzer, Geräte-Abnahme Runde 3b:** PWA auf iPhone und iPad neu laden (App ganz schliessen und neu öffnen). Prüfen: Kalender zeigt 7 Tage ab heute, «Monat» öffnet die Monatsansicht, Schnellerfassung mit einem Satz aus Termin und Aufgabe zeigt die Bestätigung und trägt beides ein. Testeinträge danach löschen.
-5. **Nutzer, alter Testeintrag:** Unter «Am Horizont» steht noch «Cockpit-Test Pruefung (bitte loeschen)» aus Phase 1a. Im Google-Kalender (Prüfungs-Kalender) löschen.
+5. ✔ Alter Testeintrag vom Nutzer gelöscht.
 6. Aus der Wetter-Erweiterung weiterhin offen: 16.11. **location updated** um ca. 06:00 im `log` (iPhone gesperrt) und das erste Wochentags-Briefing mit Wetter.
 
 ## Runde 3b – PWA optimiert (2026-11-15, Codex)
@@ -384,3 +384,30 @@ Wünsche des Nutzers vom 15.11. zur PWA. Backend und Vertrag sind bereit (Deploy
 ### Bekannte Mängel / Vorschläge
 - Lektionstitel sind die Kurzcodes aus dem Stundenplan-Abo. Lesbare Namen wären über eine Zuordnungstabelle im Sheet möglich (nicht umgesetzt).
 - Das Widget zeigt als nächsten Termin weiterhin auch Lektionen (bewusst unverändert, auf Wunsch anpassbar).
+
+## D25 – Postfach, sensible Mails, Fächernamen, To-dos im Kalender (2026-11-15 abends, Claude Code)
+
+### Erledigt
+- **Postfach je Mail:** Backend erkennt das ursprüngliche Postfach (unterster `Delivered-To`, Schul-Domain in To/Cc, eigene Adresse über Gmail-Profil). Regeln in `config.mailAccounts` (Schule / Privat / Geschäftlich). Gespeicherte Mails nachgetragen: alle 10 = «Privat» (sie kamen direkt an die Hauptadresse, auch die ILIAS-Mail). Ob «Schule» und «Geschäftlich» stimmen, zeigt die erste weitergeleitete Mail.
+- **Sensible Mails:** App zeigt Absender, Betreff und «Vertraulich · Kategorie», keine Zusammenfassung. Push und Widget bleiben generisch.
+- **Fächernamen** aus dem Tab «Fächer Namen»: live geprüft, alle 58 Lektionen umbenannt (wirkt auch in Widget und Briefing).
+- **Widget:** nächster Termin ohne Lektionen.
+- **Kalender:** To-dos blau umrandet, antippen → Erledigt / Morgen / Nächste Woche / anderes Datum.
+- **iPhone/iPad:** keine doppelten Überschriften mehr. «Am Horizont» mit Hinweis, wenn leer.
+- Tests: Backend 128, Web 61, Browser-Prüfungen (375/834/1440 px, hell/dunkel, offline) bestanden. Deployment @28, GitHub Pages veröffentlicht.
+
+## Abnahme Phase 4 (SPEC §6)
+
+| Kriterium | Ergebnis |
+|---|---|
+| End-to-End-Durchlauf dokumentiert | ✔ Mail → Bewertung → Push (Phase 1b, echte Fristmail) · Mail → To-do (automatisch) · Siri «Cockpit» → Termin **und** To-do (Nutzer, 15.11.) · PWA-Schnellerfassung gegen das echte Backend (Chromium, 2 To-dos, Bestätigung nach 5 s) · To-do-Erinnerung «Heute noch offen» per Telegram empfangen (Nutzer, 15.11.) · Widget mit echter `getWidget`-Antwort (Phase 3) · `npm run e2e` 23/23 |
+| Sicherheitsprüfung ohne offene Befunde | ✔ Repo und gesamte Git-Historie gegen alle privaten Werte, Wörter aus `PERSOENLICH.md` und Schlüsselmuster geprüft. Einziger Fund (Hochschul-Kurzname in STATUS) im aktuellen Stand entfernt; in der Historie belassen (Entscheid Nutzer). Eingabevalidierung aller Aktionen per E2E geprüft. Schlüsselrotation bewusst nicht (D24). |
+| Trigger-Laufzeit über 24 h < 45 Min. | ⏳ Messung läuft seit 15.11. (`TICK_STATS`). Ergebnis am 17.11. im `log`: «runtime 2026-11-16: …». Nicht vor Abschluss prüfbar; Erwartung aus Einzelläufen deutlich darunter. |
+
+**Nicht vor Abschluss prüfbar (läuft automatisch, Nutzer schaut nach):**
+1. 16.11. ca. 06:00: `log` «location updated» bei gesperrtem iPhone; Briefing mit Wetter.
+2. Erste Info-Mail: Label gesetzt, nicht mehr im Posteingang, kein «label failed» im `log`.
+3. Erste weitergeleitete Mail (Schule/zweites Gmail): richtiges Postfach-Kennzeichen in der App.
+4. 17.11.: Laufzeitzeile im `log` (< 45 Min.).
+
+Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an Claude Code; Betriebsanleitung in `docs/BETRIEB.md`.
