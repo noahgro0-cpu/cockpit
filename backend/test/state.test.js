@@ -85,6 +85,33 @@ test("buildWidget: all-day events count for every covered day", () => {
   assert.equal(L.buildWidget(s, new Date("2026-11-29T10:00:00Z")).nextEvent, null);
 });
 
+test("buildWidget.week: Monday..Sunday incl. events reaching into the week, sorted", () => {
+  const ev = (id, start, end, allDay) => ({ id, calendar: "P", kind: "private", title: id, start, end, allDay: !!allDay });
+  const events = [
+    ev("nextMon", "2026-11-23T08:00:00+01:00", "2026-11-23T09:00:00+01:00"),
+    ev("sun", "2026-11-22T20:00:00+01:00", "2026-11-22T21:00:00+01:00"),
+    ev("tripFromSat", "2026-11-14", "2026-11-17", true),
+    ev("lastSunNight", "2026-11-15T23:00:00+01:00", "2026-11-16T01:00:00+01:00"),
+    ev("lastSun", "2026-11-15T10:00:00+01:00", "2026-11-15T11:00:00+01:00"),
+    ev("wed", "2026-11-18T10:00:00+01:00", "2026-11-18T11:00:00+01:00"),
+    ev("allDayNextMon", "2026-11-23", "2026-11-24", true),
+  ];
+  const s = { generatedAt: "", health: {}, events, todos: [], mails: [] };
+  const w = L.buildWidget(s, new Date("2026-11-18T12:00:00+01:00"));
+  assert.deepEqual(plain(w.week.map((e) => e.id)), ["tripFromSat", "lastSunNight", "wed", "sun"]);
+  // Sunday belongs to the week that started on the Monday before
+  assert.deepEqual(plain(L.buildWidget(s, new Date("2026-11-22T12:00:00+01:00")).week.map((e) => e.id)), ["tripFromSat", "lastSunNight", "wed", "sun"]);
+  assert.deepEqual(plain(L.buildWidget({ ...s, events: [] }, new Date("2026-11-18T12:00:00+01:00")).week), []);
+});
+
+test("calendarRange starts at Monday or yesterday, whichever is earlier", () => {
+  assert.deepEqual(plain(L.calendarRange("2026-11-18")), { from: "2026-11-16", to: "2026-12-10" }); // Wednesday
+  assert.deepEqual(plain(L.calendarRange("2026-11-16")), { from: "2026-11-15", to: "2026-12-08" }); // Monday
+  assert.deepEqual(plain(L.calendarRange("2026-11-22")), { from: "2026-11-16", to: "2026-12-14" }); // Sunday
+  // DST: week of 29.3.2026 (Sunday) starts Monday 23.3.
+  assert.equal(L.weekMonday("2026-03-29"), "2026-03-23");
+});
+
 test("countRecentErrors", () => {
   const rows = [
     ["2026-11-16T06:00:00+01:00", "error", "tick", "x"],

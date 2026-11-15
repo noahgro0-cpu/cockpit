@@ -118,6 +118,12 @@ export interface WidgetState {
   todos: Todo[];
   /** The 3 most important mails (importance desc, then newest first). */
   mails: MailItem[];
+  /**
+   * Events of the Zurich calendar week of `generatedAt` (Monday..Sunday), incl. events that start
+   * earlier and reach into the week; sorted by start. All-day `end` stays exclusive. `[]` = no events.
+   * Optional for compatibility; the backend always sends it since 2026-11-16.
+   */
+  week?: CalEvent[];
 }
 
 // ---------------------------------------------------------------------------

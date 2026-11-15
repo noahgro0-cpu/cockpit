@@ -1,10 +1,10 @@
 # Cockpit auf iPhone und iPad einrichten
 
-Du brauchst Zugriff auf das Cockpit-Google-Sheet und die veröffentlichte Cockpit-Webseite. Der **Setup-Code** verbindet die App und die Widgets mit deinen Daten. Kopiere ihn nur aus deinem Sheet in die Eingabefelder auf deinem Gerät. Der Code und der API-Schlüssel gehören in keine Screenshots oder geteilten Kurzbefehle.
+Du brauchst Zugriff auf das Cockpit-Google-Sheet und die veröffentlichte Cockpit-Webseite. Die Webseite ist öffentlich erreichbar und hat die Adresse `https://<GitHub-Benutzername>.github.io/cockpit/` (dein GitHub-Benutzername, Kleinbuchstaben). Ohne Setup-Code zeigt sie keine Daten. Der **Setup-Code** verbindet die App und die Widgets mit deinen Daten. Kopiere ihn nur aus deinem Sheet in die Eingabefelder auf deinem Gerät. Der Code und der API-Schlüssel gehören in keine Screenshots oder geteilten Kurzbefehle.
 
 ## 1. Cockpit auf dem Home-Bildschirm installieren
 
-1. Öffne das Cockpit-Repository auf GitHub. Tippe oder klicke auf **Settings → Pages → Visit site**. Falls du GitHub am Computer geöffnet hast, öffne dieselbe Seitenadresse in **Safari** auf dem iPhone oder iPad. Diese Adresse brauchst du später für `PWA_URL`.
+1. Öffne in **Safari** auf dem iPhone oder iPad die Cockpit-Adresse (siehe oben). Alternativ: im Cockpit-Repository auf GitHub **Settings → Pages → Visit site**. Diese Adresse brauchst du später für `PWA_URL`.
 2. Tippe in Safari auf **Teilen** (das Quadrat mit dem Pfeil nach oben). Je nach Safari-Layout findest du **Teilen** im Menü **…**.
 3. Scrolle in der Liste nach unten und tippe auf **Zu Home-Bildschirm hinzufügen**. Fehlt die Aktion, tippe unten auf **Aktionen bearbeiten** und füge sie hinzu.
 4. Falls der Schalter **Als Web-App öffnen** erscheint, schalte ihn ein. Tippe auf **Hinzufügen** und öffne Cockpit über das neue Symbol.
@@ -16,7 +16,7 @@ Du brauchst Zugriff auf das Cockpit-Google-Sheet und die veröffentlichte Cockpi
 ## 2. Scriptable installieren und das Skript einrichten
 
 1. Installiere [Scriptable aus dem App Store](https://apps.apple.com/ch/app/scriptable/id1405459188) und öffne die App einmal.
-2. Öffne im Cockpit-Repository in Safari **widgets → Cockpit.js** und tippe auf **Raw**. Lege den Finger auf den Code, wähle **Alles auswählen** und **Kopieren**. Ist die Datei erst lokal vorhanden, übertrage die unveränderte Datei aufs Gerät und kopiere den Code aus der Vorschau in **Dateien**. [Skript im Repository](../widgets/Cockpit.js)
+2. Öffne in Safari `https://raw.githubusercontent.com/<GitHub-Benutzername>/cockpit/main/widgets/Cockpit.js` (oder im Repository **widgets → Cockpit.js → Raw**). Lege den Finger auf den Code, wähle **Alles auswählen** und **Kopieren**. Ist die Datei erst lokal vorhanden, übertrage die unveränderte Datei aufs Gerät und kopiere den Code aus der Vorschau in **Dateien**. [Skript im Repository](../widgets/Cockpit.js)
 3. Wechsle zu Scriptable und tippe in der Skriptübersicht oben rechts auf **+**. Tippe in den Editor und wähle **Einsetzen**. Tippe auf den Skriptnamen oben im Editor und benenne das Skript **Cockpit**.
 4. Kopiere im Sheet unter **config** erneut den Wert neben **setupCode**. Setze ihn in Scriptable in der Zeile `const SETUP_CODE = "";` zwischen die beiden Anführungszeichen ein. Lass die Anführungszeichen stehen.
 5. Kopiere in Safari die veröffentlichte Cockpit-Adresse aus Schritt 1. Setze sie in der Zeile `const PWA_URL = "";` zwischen die Anführungszeichen ein. Nimm die normale Seitenadresse ohne Setup-Code am Ende. Das Widget öffnet diese Adresse beim Antippen.
@@ -37,12 +37,12 @@ Du brauchst Zugriff auf das Cockpit-Google-Sheet und die veröffentlichte Cockpi
 | --- | --- | --- |
 | Klein | Wichtigste Mail mit Absender und Betreff und die nächsten zwei offenen To-dos. Ohne Mail bis zu drei To-dos, ohne Mail und To-dos der nächste Termin. | `heute` |
 | Mittel | Tagesagenda und die drei dringendsten offenen To-dos. | `heute` |
-| Gross | Wochenagenda und wichtige Mails. Solange der Server nur die Tagesagenda und den nächsten Termin liefert, erscheinen diese mit dem Hinweis «Wochenagenda nicht verfügbar». | `woche` |
+| Gross | Wochenagenda (Montag bis Sonntag) und wichtige Mails. | `woche` |
 | Rechteckig | Nächster Termin und nächstes offenes To-do. | `heute` |
 
 - `heute` zeigt die kompakte Ansicht. Im grossen Widget steht die Tagesagenda oben.
 - `todos` rückt To-dos an die erste Stelle. Im grossen Widget erscheint zusätzlich eine Liste mit bis zu drei To-dos.
-- `woche` zeigt, wo ein Datum vorhanden ist, Wochentag und Datum zu den Einträgen. Im grossen Widget erhält die Wochenagenda den meisten Platz, sobald der Server sie liefert.
+- `woche` zeigt, wo ein Datum vorhanden ist, Wochentag und Datum zu den Einträgen. Im grossen Widget erhält die Wochenagenda den meisten Platz.
 
 [Apple-Anleitung zum Hinzufügen und Bearbeiten von Widgets](https://support.apple.com/de-ch/118610) · [Scriptable-Dokumentation zum Widget-Parameter](https://docs.scriptable.app/args/)
 
@@ -68,7 +68,7 @@ iOS entscheidet, wann es ein Widget auf dem Bildschirm aktualisiert. Das Skript 
 ### Adresse und Schlüssel holen
 
 1. Öffne im Cockpit-Google-Sheet den Tab **config**. Suche die Zeilen **shortcutUrl** und **shortcutText**.
-2. Fehlt eine der Zeilen, öffne das Sheet am Computer und wähle **Erweiterungen → Apps Script**. Wähle oben im Feld neben **Ausführen** die Funktion **shortcutSetup** und klicke auf **Ausführen**. Kehre zum Sheet zurück und lade den Tab **config** neu.
+2. Fehlt eine der Zeilen (z. B. weil du sie nach dem Standort-Kurzbefehl gelöscht hast), öffne das Sheet am Computer und wähle **Erweiterungen → Apps Script**. Öffne links unter **Dateien** die Datei **gas/weather.gs**. Wähle oben im Feld neben **Ausführen** die Funktion **shortcutSetup** und klicke auf **Ausführen**. Fragt Google nach einer Berechtigung, bestätige mit deinem Konto. Kehre zum Sheet zurück und lade den Tab **config** neu. Nach dem Einrichten aller Kurzbefehle kannst du die zwei Zeilen wieder löschen.
 3. Die Zelle neben **shortcutUrl** enthält die Google-Adresse für den Kurzbefehl. In der Zelle neben **shortcutText** steht der Schlüssel direkt hinter `"key":"` bis zum nächsten Anführungszeichen. Kopiere die Werte einzeln, sobald du das jeweilige Feld in den nächsten Schritten erreicht hast.
 
 ### Kurzbefehl bauen

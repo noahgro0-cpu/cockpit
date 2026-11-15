@@ -21,11 +21,12 @@ function toCalEvent_(ev, calendarName, config, withTag) {
   return e;
 }
 
-/** events: yesterday .. +21 days (all visible calendars); exams: today .. +120 days. */
+/** events: this week's Monday (or yesterday, if earlier) .. +21 days (all visible calendars); exams: today .. +120 days. */
 function readCalendarEvents_(config, now) {
   var today = toZurichDate(now);
-  var from = zurichMidnight(addDaysIso(today, -1));
-  var to = zurichMidnight(addDaysIso(today, 22));
+  var range = calendarRange(today);
+  var from = zurichMidnight(range.from);
+  var to = zurichMidnight(range.to);
   var events = [];
   var exams = [];
   CalendarApp.getAllCalendars().forEach(function (cal) {

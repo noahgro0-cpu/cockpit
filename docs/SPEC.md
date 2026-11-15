@@ -53,7 +53,7 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 |---|---|---|
 | `ping` | – | `{time}` |
 | `getState` | – | `State` |
-| `getWidget` | – | `WidgetState` (kompakt: nächster Termin, Termine von heute, 5 nächste To-dos, 3 wichtigste Mails, health) |
+| `getWidget` | – | `WidgetState` (kompakt: nächster Termin, Termine von heute, Termine der Kalenderwoche Mo–So `week`, 5 nächste To-dos, 3 wichtigste Mails, health) |
 | `todo.add` | `{id, title, notes?, category?, due?, dueHasTime?, remindAt?, priority?}` (id = UUID vom Client, macht Wiederholungen idempotent) | `Todo` |
 | `todo.update` | `{id, patch}` | `Todo` |
 | `todo.complete` | `{id, done}` | `Todo` |
@@ -79,7 +79,7 @@ interface State {
   generatedAt: ISODateTime;
   health: { lastTick: ISODateTime | null; lastMailSync: ISODateTime | null;
             ai: "ok" | "limited" | "off"; mode: "observe" | "active"; errors24h: number };
-  events: CalEvent[];   // gestern bis +21 Tage, sortiert
+  events: CalEvent[];   // Montag dieser Woche (bzw. gestern, falls früher) bis +21 Tage, sortiert
   exams: CalEvent[];    // kind exam|deadline, bis +120 Tage
   todos: Todo[];        // alle offenen + in den letzten 7 Tagen erledigte
   mails: MailItem[];    // letzte 14 Tage, importance >= 1, nicht verworfen, höchstens 50

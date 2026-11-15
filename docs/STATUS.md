@@ -265,15 +265,21 @@ Prompt «Prompt 3 – Codex» aus `ARBEITSPLAN.md` starten und zusätzlich diese
 | Kriterium | Ergebnis |
 | --- | --- |
 | Alle vier Grössen zeigen Daten und einen brauchbaren Fehlerzustand | Node prüft Inhalt, PWA-Link, Aktualisierungszeit sowie Rendering mit frischer Antwort, Cache und Fehler ohne Cache mit Scriptable-Attrappen. Die echte `getWidget`-Antwort wurde in allen zwölf Kombinationen aus Grösse und Parameter verarbeitet. Darstellung und Verhalten auf iPhone/iPad sind offen. |
-| Grosses Widget zeigt die Woche und wichtige Mails | Kalender und Mails mit Testdaten geprüft. Der produktive Endpunkt liefert noch kein Feld `week`. Das Widget zeigt die verfügbaren Termine und «Wochenagenda nicht verfügbar». API-Wunsch in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md). |
+| Grosses Widget zeigt die Woche und wichtige Mails | ✔ Backend liefert `week` seit Deployment @21 (Claude Code, 15.11.). Das Widget-Modell wurde mit der echten `getWidget`-Antwort in allen vier Grössen geprüft, ohne Hinweis «nicht verfügbar». |
 | Anleitung ohne Vorwissen befolgbar | Menüpfade mit der Apple- und Scriptable-Dokumentation abgeglichen. Einrichtung und Siri-Mitteilung auf iPhone/iPad sind offen. |
 
-Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) und `npm run build`, `cd backend; npm test` (116). Die Widget-Tests prüfen auch beide Zürcher Zeitumstellungen. Ohne Wochenagenda und Gerätetest bleibt die Phase offen.
+Tests und Build vor Ort: `cd widgets; npm test` (10), `cd web; npm test` (47) und `npm run build`, `cd backend; npm test` (116). Die Widget-Tests prüfen auch beide Zürcher Zeitumstellungen. Offen bleibt nur der Gerätetest auf iPhone/iPad.
 
 ### Manuelle Schritte auf iPhone/iPad
 
-1. **PWA installieren.** Auf GitHub **Settings → Pages → Visit site** öffnen. In Safari **Teilen → Zu Home-Bildschirm hinzufügen → Hinzufügen**. Cockpit über das Symbol öffnen und den Setup-Code aus dem Sheet (**config → setupCode**) einsetzen.
+1. **PWA installieren.** In Safari `https://<GitHub-Benutzername>.github.io/cockpit/` öffnen (oder GitHub **Settings → Pages → Visit site**). In Safari **Teilen → Zu Home-Bildschirm hinzufügen → Hinzufügen**. Cockpit über das Symbol öffnen und den Setup-Code aus dem Sheet (**config → setupCode**) einsetzen.
 2. **Scriptable einrichten.** **Scriptable → +** öffnen, `widgets/Cockpit.js` einsetzen und als **Cockpit** speichern. In den ersten Zeilen den Setup-Code und die veröffentlichte PWA-Adresse einsetzen. **▶︎** antippen und jede Vorschau prüfen.
 3. **Widgets platzieren und testen.** Home-Bildschirm gedrückt halten → **Bearbeiten → Widget hinzufügen → Scriptable**. Für jede der drei Grössen **Widget bearbeiten → Script → Cockpit** wählen. Sperrbildschirm gedrückt halten → **Anpassen → Sperrbildschirm → Widgets hinzufügen → Scriptable**, rechteckige Grösse wählen und das Skript zuweisen. In Hell/Dunkel und per Antippen prüfen. Für den Cache-Test in den Flugmodus wechseln, WLAN ausschalten und die Scriptable-Vorschau öffnen.
 4. **Siri und Rückseite prüfen.** **Kurzbefehle → Kurzbefehle → +** öffnen und den Kurzbefehl gemäss [Abschnitt 4](SETUP-iOS.md#4-siri-kurzbefehl-cockpit-für-to-dos-und-termine) anlegen. Diktat, Mitteilung und den erzeugten Eintrag kontrollieren. Auf dem iPhone **Einstellungen → Bedienungshilfen → Tippen → Auf Rückseite tippen → Doppeltippen oder Dreimal tippen → Cockpit** wählen.
 5. **Bestehende Standort-Automation kontrollieren.** Im Sheet **log** am Folgetag auf **location updated** um ca. 06:00 prüfen. Details in [Abschnitt 5](SETUP-iOS.md#5-bestehende-automation-standort-fürs-briefing-nachschlagen).
+
+### Prüfung durch Claude Code (15.11.)
+- Codex-Arbeit geprüft: Widget-Tests 10/10, Web-Typprüfung grün, keine Schlüssel oder persönlichen Daten im Skript (Setup-Code und PWA-Adresse sind leere Konstanten), Abruf per POST `text/plain` wie vertraglich vorgesehen.
+- `getWidget` liefert `week` (D21-Folge, OPEN-QUESTIONS.md). Kalender-Lesebereich ab Montag dieser Woche (`calendarRange`), behebt fehlende Wochenanfangs-Termine in der PWA-Wochenansicht. 118 Backend-Tests, `npm run e2e` 23/23.
+- `SETUP-iOS.md` nachgeführt: Adresse der Webseite und der Raw-Datei konkret angegeben, `shortcutSetup` in der Datei **gas/weather.gs**, Hinweis zur Wochenagenda entfernt.
+- GitHub Pages ist öffentlich erreichbar (HTTP 200). Die Briefing-Korrektur von Codex ist mit diesem Push live.

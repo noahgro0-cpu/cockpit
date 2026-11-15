@@ -256,6 +256,44 @@ function buildState(input) {
 }
 
 /** Compact widget state derived from a full State. */
+/** Monday (ISODate) of the Zurich calendar week that contains isoDate. */
+function weekMonday(isoDate) {
+  var wd = weekdayOfIso(isoDate);
+  return addDaysIso(isoDate, wd === 0 ? -6 : 1 - wd);
+}
+
+/**
+ * Calendar read range: from the earlier of yesterday and this week's Monday (the PWA calendar and
+ * the week widget start on Monday) to +22 days. Returns ISODates; the end is exclusive.
+ */
+function calendarRange(today) {
+  var yesterday = addDaysIso(today, -1);
+  var monday = weekMonday(today);
+  return { from: monday < yesterday ? monday : yesterday, to: addDaysIso(today, 22) };
+}
+
+/** Events that overlap the Zurich calendar week of today (Monday..Sunday), sorted by start. */
+function weekEvents(events, today) {
+  var monday = weekMonday(today);
+  var nextMonday = addDaysIso(monday, 7);
+  var fromMs = zurichMidnight(monday).getTime();
+  var toMs = zurichMidnight(nextMonday).getTime();
+  return events
+    .filter(function (e) {
+      if (e.allDay) return e.start < nextMonday && e.end > monday;
+      return Date.parse(e.start) < toMs && Date.parse(e.end) > fromMs;
+    })
+    .sort(function (a, b) {
+      var sa = e2ms_(a);
+      var sb = e2ms_(b);
+      return sa - sb;
+    });
+}
+
+function e2ms_(e) {
+  return e.allDay ? zurichMidnight(e.start).getTime() : Date.parse(e.start);
+}
+
 function buildWidget(state, now) {
   var nowMs = now.getTime();
   var today = toZurichDate(now);
@@ -280,6 +318,7 @@ function buildWidget(state, now) {
     today: todayEvents,
     todos: openTodos.slice(0, 5),
     mails: mails.slice(0, 3),
+    week: weekEvents(state.events, today),
   };
 }
 
