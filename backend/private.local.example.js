@@ -18,6 +18,8 @@ var COCKPIT_PRIVATE = {
     { id: "math", label: "Mathematik", color: "#BFD7EA", group: "schule" },
     { id: "privat", label: "Privat", color: "#E8E2C8", group: "privat" },
   ],
+  // Starter keywords per subject (school category id -> words matched at word starts in titles).
+  subjects: { math: ["Mathe", "Analysis"] },
   // Mail categories = your Gmail labels (exact names); sensitive ones never go to the AI.
   mailCategories: ["Studium", "Privat", "Rechnungen", "Gesundheit", "Unwichtig"],
   sensitiveCategories: ["Gesundheit"],

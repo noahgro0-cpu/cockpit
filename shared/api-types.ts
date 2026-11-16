@@ -36,6 +36,11 @@ export interface CalEvent {
    * `config.calRoutine` (e.g. week numbers). Shown muted; "next appointment" ignores it.
    */
   routine?: boolean;
+  /**
+   * Subject (id of a category with group "schule", D27): explicit tag of events created by Cockpit,
+   * else matched by the subject keywords in the title. Missing = no subject.
+   */
+  subject?: string;
 }
 
 export interface Todo {
@@ -86,6 +91,36 @@ export interface Category {
   group: "schule" | "privat";
 }
 
+export interface SubjectLink {
+  label: string;
+  /** http(s) only. */
+  url: string;
+}
+
+/**
+ * Subject page ("Fächer", D27): one per category with group "schule" (same id). Stored in the
+ * sheet tab `faecher`. Label and colour come from the category.
+ */
+export interface Subject {
+  id: string;
+  /** Words that assign calendar entries and rule-based to-dos (match at word starts). Empty = the category label. */
+  keywords: string[];
+  /** Basic info, plain text, at most 2000 characters. */
+  info: string;
+  /** At most 20. */
+  links: SubjectLink[];
+  /** Plain text, at most 20 000 characters. */
+  notes: string;
+  updatedAt: ISODateTime | null;
+}
+
+export interface SubjectPatch {
+  keywords?: string[];
+  info?: string;
+  links?: SubjectLink[];
+  notes?: string;
+}
+
 export interface Briefing {
   date: ISODate;
   text: string;
@@ -113,6 +148,8 @@ export interface State {
   mails: MailItem[];
   briefing: Briefing | null;
   settings: Settings;
+  /** One per school category (D27). Optional: missing in states cached before 2026-11-16. */
+  subjects?: Subject[];
 }
 
 /** Compact state for Scriptable widgets (action `getWidget`). */
@@ -214,9 +251,25 @@ export interface ApiActions {
   "mail.feedback": { payload: { id: string; verdict: "wichtig" | "unwichtig" }; data: { ruleAdded: boolean } };
   /** Writes the given fields to the sheet tab `config`; returns the new settings. Idempotent. */
   "settings.update": { payload: SettingsPatch; data: Settings };
+  /**
+   * D27: "exams" = all-day exam/deadline in the exams calendar; "default" = appointment in
+   * `config.calCapture` (else the default calendar), all-day without `start`, end default +60 min.
+   * Idempotent per calendar + title + start. `subject` is stored as an event tag.
+   */
   "event.add": {
-    payload: { calendar: "exams"; title: string; date: ISODate; kind: "exam" | "deadline" };
+    payload:
+      | { calendar: "exams"; title: string; date: ISODate; kind: "exam" | "deadline"; subject?: string }
+      | { calendar: "default"; title: string; date: ISODate; start?: string; end?: string; location?: string; subject?: string };
     data: CalEvent;
+  };
+  /**
+   * Updates a subject page (D27). Idempotent. `base` = textHash (FNV-1a, see web/src/subjects.ts) of
+   * the info/notes text the edit started from: if the stored text changed meanwhile on another
+   * device, the backend keeps both versions instead of overwriting one.
+   */
+  "subject.update": {
+    payload: { id: string; patch: SubjectPatch; base?: { info?: string; notes?: string } };
+    data: Subject;
   };
   /**
    * Sent by the iOS shortcut (D20). Stores only the latest location, rounded to ~1 km; it is used

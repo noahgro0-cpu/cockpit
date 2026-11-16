@@ -20,15 +20,43 @@ function noPayload_(p) {
   return { ok: false, message: "payload must be an object" };
 }
 
+/**
+ * event.add (D27): {calendar: "exams", title, date, kind, subject?} = all-day exam/deadline;
+ * {calendar: "default", title, date, start?: "HH:MM", end?: "HH:MM", location?, subject?} = appointment.
+ */
 function validateEventAdd(p) {
   if (!isPlainObject(p)) return { ok: false, message: "payload must be an object" };
-  if (p.calendar !== "exams") return { ok: false, message: 'calendar must be "exams"' };
+  if (p.calendar !== "exams" && p.calendar !== "default") return { ok: false, message: 'calendar must be "exams" or "default"' };
   if (typeof p.title !== "string" || p.title.trim() === "" || p.title.length > 200) {
     return { ok: false, message: "title must be 1-200 characters" };
   }
   if (!isIsoDate(p.date)) return { ok: false, message: "date must be ISODate" };
-  if (p.kind !== "exam" && p.kind !== "deadline") return { ok: false, message: 'kind must be "exam" or "deadline"' };
+  if (p.calendar === "exams" && p.kind !== "exam" && p.kind !== "deadline") {
+    return { ok: false, message: 'kind must be "exam" or "deadline"' };
+  }
+  if (p.calendar === "exams" && (p.start !== undefined || p.end !== undefined)) {
+    return { ok: false, message: "exams are all-day: no start/end" };
+  }
+  if (p.start !== undefined && parseHhmm(p.start) === null) return { ok: false, message: "start must be HH:MM" };
+  if (p.end !== undefined && (p.start === undefined || parseHhmm(p.end) === null)) {
+    return { ok: false, message: "end must be HH:MM and needs start" };
+  }
+  if (p.location !== undefined && (typeof p.location !== "string" || p.location.length > 200)) {
+    return { ok: false, message: "location must be at most 200 characters" };
+  }
+  if (p.subject !== undefined && (typeof p.subject !== "string" || !ID_PATTERN.test(p.subject))) {
+    return { ok: false, message: "subject is invalid" };
+  }
   return { ok: true, value: p };
+}
+
+/** Validated event.add payload -> {allDay, start?: Date, end?: Date} (end default +60 min, never before start). */
+function eventAddSpan(p) {
+  if (p.calendar === "exams" || p.start === undefined) return { allDay: true };
+  var start = zurichInstant(p.date, parseHhmm(p.start));
+  var end = p.end !== undefined ? zurichInstant(p.date, parseHhmm(p.end)) : null;
+  if (!end || end <= start) end = new Date(start.getTime() + 60 * MS_PER_MIN);
+  return { allDay: false, start: start, end: end };
 }
 
 /** briefing.preview {date?}: today up to +7 days, previewed as at the briefing time of that date. */
@@ -69,6 +97,7 @@ function apiActions_() {
   "mail.feedback": { validate: validateMailFeedback, write: true },
   "event.add": { validate: validateEventAdd, write: true },
   "settings.update": { validate: validateSettingsUpdate, write: true },
+  "subject.update": { validate: validateSubjectUpdate, write: true },
   // Sent by the iOS shortcut; stored in a script property, so no sheet lock needed.
   "location.update": { validate: validateLocationUpdate, write: false },
   "briefing.preview": { validate: validateBriefingPreview, write: false },

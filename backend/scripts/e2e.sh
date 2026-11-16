@@ -44,10 +44,26 @@ check "event.add again is idempotent" "$(post "$(req event.add "$EV")")" 'r.ok'
 
 S=$(post "$(req getState)")
 [ -n "${STATE_OUT:-}" ] && echo "$S" > "$STATE_OUT"
-check "getState: schema, health, settings" "$S" 'r.ok && r.data.schema===1 && r.data.health.mode==="observe" && r.data.settings.categories.length>0'
+check "getState: schema, health, settings" "$S" 'r.ok && r.data.schema===1 && /^(observe|active)$/.test(r.data.health.mode) && r.data.settings.categories.length>0'
 check "getState: lectures in next 21 days" "$S" 'r.data.events.some(e=>e.kind==="lecture")'
 check "getState: exams contain test event once" "$S" 'r.data.exams.filter(e=>e.title.startsWith("Cockpit-Test")).length===1'
 check "getState: no todo left over" "$S" "!r.data.todos.some(t=>t.id==='$ID')"
+# D27 subjects: validation, and a round trip of text that looks like a formula/date on a subject
+# whose notes are empty (restored to empty afterwards). Skipped when every subject has notes.
+check "getState: subjects" "$S" "Array.isArray(r.data.subjects) && r.data.subjects.every(x=>typeof x.notes===\"string\")"
+check "subject.update unknown -> not_found" "$(post "$(req subject.update '{"id":"does-not-exist","patch":{"notes":"x"}}')")" '!r.ok && r.error.code==="not_found"'
+check "subject.update javascript link -> bad_request" "$(post "$(req subject.update '{"id":"x","patch":{"links":[{"label":"x","url":"javascript:alert(1)"}]}}')")" '!r.ok && r.error.code==="bad_request"'
+SID=$(R="$S" node -e "const s=(JSON.parse(process.env.R).data.subjects||[]).find(x=>!x.notes&&!x.info);console.log(s?s.id:\"\")")
+if [ -n "$SID" ]; then
+  NOTE='"=1+1\n- 2026-11-20\n+41 Test"'   # JSON string literal
+  UP=$(printf '{"id":"%s","patch":{"notes":%s},"base":{"notes":"811c9dc5"}}' "$SID" "$NOTE")
+  check "subject.update keeps formula-like text" "$(post "$(req subject.update "$UP")")" "r.ok && r.data.notes===$NOTE"
+  check "getState shows the note as text" "$(post "$(req getState)")" "r.ok && r.data.subjects.find(x=>x.id==='$SID').notes===$NOTE"
+  check "subject.update restores empty note" "$(post "$(req subject.update "{\"id\":\"$SID\",\"patch\":{\"notes\":\"\"}}")")" 'r.ok && r.data.notes===""'
+else
+  echo "skip subject round trip (all subjects have notes)"
+fi
+
 check "getWidget" "$(post "$(req getWidget)")" 'r.ok && r.data.schema===1 && Array.isArray(r.data.today) && r.data.todos.length<=5'
 
 # CORS: the final response must allow any origin, so a browser can read it without preflight.

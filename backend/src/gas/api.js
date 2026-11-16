@@ -125,6 +125,9 @@ function apiHandlers_() {
     "mail.feedback": function (p) {
       return mailFeedback_(p.id, p.verdict);
     },
+    "subject.update": function (p) {
+      return updateSubject_(p);
+    },
     "settings.update": function (p) {
       settingsToConfigPairs(p).forEach(function (kv) {
         setConfigValue_(kv[0], kv[1]);
@@ -132,7 +135,7 @@ function apiHandlers_() {
       return settingsFromConfig(readConfig_());
     },
     "event.add": function (p) {
-      return addExamEvent_(p);
+      return addEvent_(p);
     },
     "location.update": function (p) {
       return saveLocation_(p);
@@ -193,6 +196,7 @@ function buildCurrentState_() {
     mails: readRows_("mails").map(rowToMail),
     briefing: briefing,
     settings: settingsFromConfig(config),
+    subjects: readSubjectRecords_(),
   });
 }
 
@@ -227,7 +231,13 @@ function capture_(p, allowEvents) {
   var config = readConfig_();
   var parsed = null;
   if (aiAvailable_(config) && !isSensitiveText(text, loadRules_())) {
-    var cats = settingsFromConfig(config).categories;
+    var kw = {};
+    subjectMatchers_(config).forEach(function (m) {
+      kw[m.id] = m.keywords;
+    });
+    var cats = settingsFromConfig(config).categories.map(function (c) {
+      return kw[c.id] && kw[c.id].length ? Object.assign({ keywords: kw[c.id] }, c) : c;
+    });
     var req = buildCaptureRequest(text, now, cats);
     // One retry: a failed or unusable answer would otherwise store the whole sentence as title.
     for (var attempt = 0; attempt < 2 && !parsed; attempt++) {
@@ -240,6 +250,14 @@ function capture_(p, allowEvents) {
   }
   if (!parsed) parsed = captureFallback(text, now);
   if (!allowEvents) parsed = parsed.slice(0, 1); // quickAdd returns a single to-do
+  // D27: to-dos without a category get a subject from its keywords (also without AI).
+  var matchers = subjectMatchers_(config);
+  parsed.forEach(function (r) {
+    if (r.type === "todo" && !r.fields.category) {
+      var subject = matchSubject(r.fields.title, matchers);
+      if (subject) r.fields.category = subject;
+    }
+  });
 
   var todoCount = parsed.filter(function (r) {
     return r.type === "todo";
@@ -294,7 +312,7 @@ function mailToTodo_(mailId) {
       return existing.todo;
     }
   }
-  var todo = todoFromMail(rec, Utilities.getUuid(), nowIso_(), "");
+  var todo = todoFromMail(rec, Utilities.getUuid(), nowIso_(), "", subjectMatchers_());
   saveTodo_(todo, "", 0);
   setCells_("mails", rec.rowNum, { todoId: todo.id });
   return todo;

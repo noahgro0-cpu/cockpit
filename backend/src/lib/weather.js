@@ -285,3 +285,49 @@ function lecturesOn(events, isoDate) {
       return Date.parse(a.start) - Date.parse(b.start);
     });
 }
+
+// --- Robust fetching (2026-11-16): Open-Meteo answered HTTP 429 to the shared Apps Script IPs ---
+
+/** Ticks in this window before the briefing fill the forecast cache. */
+var WEATHER_PREFETCH_MIN = 90;
+/** The briefing waits at most this long (minutes after its time) for missing weather. */
+var WEATHER_HOLD_MIN = 40;
+var WEATHER_UNAVAILABLE = "Wetter zurzeit nicht abrufbar (Wetterdienst überlastet).";
+
+/** Cache key of a place's forecast for one Zurich day (coordinates rounded to ~1 km). */
+function forecastCacheKey(place, isoDate) {
+  return "wx:" + Number(place.lat).toFixed(2) + "," + Number(place.lon).toFixed(2) + ":" + isoDate;
+}
+
+/** Whether a tick at nowMinute should prefetch the forecasts (briefing not sent yet, shortly before its time). */
+function weatherPrefetchDue(nowMinute, briefingMinute, sentToday) {
+  if (sentToday || briefingMinute === null || briefingMinute === undefined) return false;
+  return nowMinute >= briefingMinute - WEATHER_PREFETCH_MIN && nowMinute < briefingMinute;
+}
+
+/** Whether the briefing should wait for the next tick because its weather is missing. */
+function briefingWaitsForWeather(weatherMissing, nowMinute, briefingMinute) {
+  return !!weatherMissing && nowMinute - briefingMinute < WEATHER_HOLD_MIN;
+}
+
+/** Distinct places to prefetch: home, campus and a fresh reported location. */
+function prefetchPlaces(places, here) {
+  var seen = {};
+  return [places.home, places.campus, here].filter(function (p) {
+    if (!validPlace_(p)) return false;
+    var k = Number(p.lat).toFixed(2) + "," + Number(p.lon).toFixed(2);
+    if (seen[k]) return false;
+    seen[k] = true;
+    return true;
+  });
+}
+
+/** Short reason from an Open-Meteo error body ({error:true, reason:"..."}), for the log. */
+function openMeteoReason(bodyText) {
+  try {
+    var b = JSON.parse(bodyText);
+    return b && b.reason ? String(b.reason).slice(0, 160) : "";
+  } catch (e) {
+    return String(bodyText || "").slice(0, 80);
+  }
+}

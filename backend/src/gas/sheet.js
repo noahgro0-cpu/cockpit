@@ -11,6 +11,7 @@ function tabSpecs_() {
     regeln: RULE_COLUMNS,
     config: ["key", "value"],
     log: ["ts", "level", "area", "message"],
+    faecher: SUBJECT_COLUMNS,
   };
 }
 

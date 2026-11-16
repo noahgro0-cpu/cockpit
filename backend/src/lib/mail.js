@@ -285,8 +285,8 @@ function mailRowObject(row) {
   return o;
 }
 
-/** To-do for a mail (automatic or via `mail.toTodo`). */
-function todoFromMail(mail, id, nowIso, title) {
+/** To-do for a mail (automatic or via `mail.toTodo`). matchers (optional, D27): subject by keywords in the subject line. */
+function todoFromMail(mail, id, nowIso, title, matchers) {
   var t = {
     id: id,
     title: mail.sensitive
@@ -297,6 +297,8 @@ function todoFromMail(mail, id, nowIso, title) {
   };
   if (mail.deadline && isIsoDate(mail.deadline)) t.due = mail.deadline;
   if (!mail.sensitive && mail.summary) t.notes = mail.summary;
+  var subject = mail.sensitive ? "" : matchSubject(mail.subject + " " + (title || ""), matchers);
+  if (subject) t.category = subject;
   return newTodo(t, nowIso, "mail");
 }
 

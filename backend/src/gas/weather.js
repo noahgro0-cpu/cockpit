@@ -20,40 +20,88 @@ function saveLocation_(v) {
   return { at: rec.at };
 }
 
-/** places -> hourly blocks (same order); null entries on failure. */
-function fetchForecasts_(places) {
-  var requests = places.map(function (p) {
-    return {
-      url:
-        "https://api.open-meteo.com/v1/forecast?latitude=" + p.lat + "&longitude=" + p.lon +
-        "&hourly=" + OPEN_METEO_HOURLY + "&timezone=Europe%2FZurich&forecast_days=8",
-      muteHttpExceptions: true,
-    };
+/**
+ * places -> hourly blocks (same order); null entries on failure. Successful forecasts are cached
+ * per place and day for 6 h (CacheService; a value is ~10 KB, too big for a script property),
+ * so the ticks before the briefing can collect them one by one despite HTTP 429 (shared IPs, D27).
+ */
+function fetchForecasts_(places, isoDate, retry) {
+  var cache = CacheService.getScriptCache();
+  var keys = places.map(function (p) {
+    return forecastCacheKey(p, isoDate);
+  });
+  var hit = cache.getAll(keys);
+  var out = keys.map(function (k) {
+    try {
+      return hit[k] ? JSON.parse(hit[k]) : null;
+    } catch (e) {
+      return null;
+    }
   });
   function attempt() {
-    return UrlFetchApp.fetchAll(requests).map(function (res) {
-      if (res.getResponseCode() !== 200) return { error: "HTTP " + res.getResponseCode() };
-      var body = JSON.parse(res.getContentText());
-      return body && body.hourly ? { hourly: body.hourly } : { error: "no hourly data" };
+    var missing = [];
+    out.forEach(function (h, i) {
+      if (!h) missing.push(i);
     });
+    if (!missing.length) return 0;
+    var responses = UrlFetchApp.fetchAll(missing.map(function (i) {
+      var p = places[i];
+      return {
+        url:
+          "https://api.open-meteo.com/v1/forecast?latitude=" + p.lat + "&longitude=" + p.lon +
+          "&hourly=" + OPEN_METEO_HOURLY + "&timezone=Europe%2FZurich&forecast_days=8",
+        muteHttpExceptions: true,
+      };
+    }));
+    var failed = 0;
+    responses.forEach(function (res, j) {
+      var i = missing[j];
+      var code = res.getResponseCode();
+      var body = res.getContentText();
+      if (code === 200) {
+        try {
+          var hourly = JSON.parse(body).hourly;
+          if (hourly) {
+            out[i] = hourly;
+            cache.put(keys[i], JSON.stringify(hourly), 21600);
+            return;
+          }
+        } catch (e) {
+          // counted as a failure below
+        }
+      }
+      failed++;
+      var why = code === 200 ? "" : openMeteoReason(body);
+      log_("warn", "weather", "Open-Meteo " + (code === 200 ? "no hourly data" : "HTTP " + code) + (why ? " (" + why + ")" : "") + " for place " + i);
+    });
+    return failed;
   }
-  var results = attempt();
-  var failed = results.some(function (r) {
-    return r.error;
-  });
-  if (failed) {
-    Utilities.sleep(3000); // one retry: Open-Meteo limits per IP and Apps Script shares IPs
-    results = attempt();
+  if (attempt() && retry) {
+    Utilities.sleep(3000); // a second request may leave through another IP
+    attempt();
   }
-  return results.map(function (r, i) {
-    if (r.error) log_("warn", "weather", "Open-Meteo " + r.error + " for place " + i);
-    return r.hourly || null;
-  });
+  return out;
 }
 
-/** Weather text for today's briefing; "" when disabled or on any failure (briefing goes out anyway). */
-function weatherTextFor_(config, now, events) {
-  if (config.weatherInBriefing === "false") return "";
+/** tick: shortly before the briefing, fill the forecast cache (no calendar read needed). */
+function prefetchWeather_() {
+  var config = readConfig_();
+  if (config.weatherInBriefing === "false") return 0;
+  var now = new Date();
+  var today = toZurichDate(now);
+  var at = parseHhmm(briefingTimeFor(today, config));
+  if (!weatherPrefetchDue(zurichMinuteOfDay(now), at, props_().getProperty("BRIEFING_SENT") === today)) return 0;
+  var places = prefetchPlaces(placesFromConfig(config), freshLocation(readLocation_(), now.getTime()));
+  if (!places.length) return 0;
+  return fetchForecasts_(places, today, false).filter(Boolean).length;
+}
+
+/**
+ * Weather for the briefing of `now`: {text, missing}. text = "" when disabled or nothing is
+ * planned; missing = a forecast could not be fetched (the briefing may then wait, see runBriefing_).
+ */
+function weatherFor_(config, now, events) {
+  if (config.weatherInBriefing === "false") return { text: "", missing: false };
   try {
     var today = toZurichDate(now);
     var places = placesFromConfig(config);
@@ -64,19 +112,24 @@ function weatherTextFor_(config, now, events) {
       here: freshLocation(readLocation_(), now.getTime()),
       nowMinute: zurichMinuteOfDay(now),
     });
-    if (!plan.length) return "";
+    if (!plan.length) return { text: "", missing: false };
     var hourly = fetchForecasts_(
       plan.map(function (seg) {
         return seg.place;
-      })
+      }),
+      today,
+      true
     );
     plan.forEach(function (seg, i) {
       seg.summary = summarizeHours(hourly[i], today, seg.from, seg.to);
     });
-    return buildWeatherText(plan);
+    var missing = hourly.some(function (h) {
+      return !h;
+    });
+    return { text: buildWeatherText(plan), missing: missing };
   } catch (e) {
     log_("warn", "weather", "weather skipped: " + e);
-    return "";
+    return { text: "", missing: true };
   }
 }
 

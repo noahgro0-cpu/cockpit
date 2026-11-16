@@ -108,7 +108,9 @@ function buildCaptureRequest(text, now, categories) {
     now: toZurichIso(now).slice(0, 16) + " (" + weekdays[weekdayOfIso(today)] + ")",
     vagueDates: vague,
     categories: categories.map(function (c) {
-      return { id: c.id, label: c.label };
+      var o = { id: c.id, label: c.label };
+      if (c.keywords && c.keywords.length) o.keywords = c.keywords; // D27: subject keywords help the AI
+      return o;
     }),
     text: text,
   };
@@ -231,6 +233,12 @@ function parseCaptureItem_(d, now, categories, originalText, allowEvents, vague)
       var ev = { title: title };
       var loc = boundedText_(d.location, CAPTURE_LIMITS.location, 400);
       if (loc) ev.location = loc;
+      // D27: a school category marks the event's subject (stored as a calendar tag).
+      if (typeof d.category === "string" && categories.some(function (c) {
+        return c.id === d.category && c.group === "schule";
+      })) {
+        ev.subject = d.category;
+      }
       if (st.minutes === null) {
         ev.allDay = true;
         ev.start = st.date;

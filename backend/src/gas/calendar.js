@@ -1,6 +1,8 @@
 /** Google Calendar access. */
 
 var EVENT_KIND_TAG = "cockpitKind";
+// D27: subject (school category id) of events created by Cockpit; other events match by keywords.
+var EVENT_SUBJECT_TAG = "cockpitSubject";
 
 function toCalEvent_(ev, calendarName, config, withTag, subjects) {
   var allDay = ev.isAllDayEvent();
@@ -27,6 +29,8 @@ function toCalEvent_(ev, calendarName, config, withTag, subjects) {
     recurring = false;
   }
   if (isRoutineEvent(e.kind, calendarName, recurring, config)) e.routine = true;
+  var subject = withTag ? ev.getTag(EVENT_SUBJECT_TAG) || "" : "";
+  if (subject) e.subject = subject;
   return e;
 }
 
@@ -39,13 +43,16 @@ function readCalendarEvents_(config, now) {
   var events = [];
   var exams = [];
   var subjects = readSubjectNames_();
+  var captureId = captureCalendar_(config).getId();
   CalendarApp.getAllCalendars().forEach(function (cal) {
     var name = cal.getName();
     var ours = name === config.calLectures || name === config.calExams;
     if (!ours && (cal.isHidden() || !cal.isSelected())) return;
     var isExams = name === config.calExams;
+    // Tags exist only on events Cockpit created: read them only in its own calendars.
+    var tagged = isExams || cal.getId() === captureId;
     cal.getEvents(from, to).forEach(function (ev) {
-      events.push(toCalEvent_(ev, name, config, isExams, subjects));
+      events.push(toCalEvent_(ev, name, config, tagged, subjects));
     });
     if (isExams) {
       cal.getEvents(zurichMidnight(today), zurichMidnight(addDaysIso(today, 121))).forEach(function (ev) {
@@ -75,33 +82,47 @@ function examCalendar_(config) {
   return cals.length ? cals[0] : null;
 }
 
-/** `event.add`: all-day event in the exams calendar. Idempotent per title + date. */
-function addExamEvent_(p) {
+/**
+ * `event.add` (D27): calendar "exams" = all-day exam/deadline in the exams calendar; calendar
+ * "default" = appointment in config.calCapture (else the default calendar), all-day without
+ * `start`, else timed (end default +60 min). Idempotent per calendar + title + start.
+ */
+function addEvent_(p) {
   var config = readConfig_();
-  var cal = examCalendar_(config);
+  var cal = p.calendar === "exams" ? examCalendar_(config) : captureCalendar_(config);
   if (!cal) throw apiError("not_found", "Exam calendar not found (run setup)");
+  var title = p.title.trim();
+  var span = eventAddSpan(p);
   var parts = p.date.split("-");
   var day = new Date(+parts[0], +parts[1] - 1, +parts[2]); // script time zone = Europe/Zurich
-  var title = p.title.trim();
   var existing = cal.getEventsForDay(day).filter(function (ev) {
-    return ev.isAllDayEvent() && ev.getTitle() === title;
+    if (ev.getTitle() !== title || ev.isAllDayEvent() !== span.allDay) return false;
+    return span.allDay || ev.getStartTime().getTime() === span.start.getTime();
   });
-  var ev = existing.length ? existing[0] : cal.createAllDayEvent(title, day);
-  ev.setTag(EVENT_KIND_TAG, p.kind);
-  return toCalEvent_(ev, cal.getName(), config, true);
+  var ev = existing.length ? existing[0] : null;
+  if (!ev) {
+    var opts = p.location ? { location: p.location.trim() } : {};
+    ev = span.allDay ? cal.createAllDayEvent(title, day, opts) : cal.createEvent(title, span.start, span.end, opts);
+  }
+  if (p.calendar === "exams") ev.setTag(EVENT_KIND_TAG, p.kind);
+  if (p.subject) ev.setTag(EVENT_SUBJECT_TAG, p.subject);
+  return toCalEvent_(ev, cal.getName(), config, true, readSubjectNames_());
+}
+
+function captureCalendar_(config) {
+  if (config.calCapture) {
+    var found = CalendarApp.getCalendarsByName(config.calCapture);
+    if (found.length) return found[0];
+  }
+  return CalendarApp.getDefaultCalendar();
 }
 
 /**
  * Calendar for captured events: config.calCapture (name) or the default calendar.
- * ev = {title, allDay, start, end, location?} from parseCaptureResult.
+ * ev = {title, allDay, start, end, location?, subject?} from parseCaptureResult.
  */
 function createCaptureEvent_(ev, config) {
-  var cal = null;
-  if (config.calCapture) {
-    var found = CalendarApp.getCalendarsByName(config.calCapture);
-    if (found.length) cal = found[0];
-  }
-  if (!cal) cal = CalendarApp.getDefaultCalendar();
+  var cal = captureCalendar_(config);
   var opts = ev.location ? { location: ev.location } : {};
   var created;
   if (ev.allDay) {
@@ -110,5 +131,6 @@ function createCaptureEvent_(ev, config) {
   } else {
     created = cal.createEvent(ev.title, ev.start, ev.end, opts);
   }
-  return toCalEvent_(created, cal.getName(), config, false);
+  if (ev.subject) created.setTag(EVENT_SUBJECT_TAG, ev.subject);
+  return toCalEvent_(created, cal.getName(), config, true);
 }

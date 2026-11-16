@@ -195,3 +195,35 @@ test("API accepts location.update and briefing.preview", () => {
   assert.equal(v({ date: "2026-11-16" }).ok, true);
   assert.equal(v({ date: "16.11.2026" }).ok, false);
 });
+
+// --- D27: Open-Meteo HTTP 429 (shared Apps Script IPs): cache, prefetch, bounded hold ---
+
+test("prefetch window: 90 min before the briefing until its time, not after sending", () => {
+  const at = 390; // 06:30
+  assert.equal(L.weatherPrefetchDue(299, at, false), false);
+  assert.equal(L.weatherPrefetchDue(300, at, false), true);
+  assert.equal(L.weatherPrefetchDue(389, at, false), true);
+  assert.equal(L.weatherPrefetchDue(390, at, false), false); // the briefing itself fetches
+  assert.equal(L.weatherPrefetchDue(350, at, true), false);
+  assert.equal(L.weatherPrefetchDue(350, null, false), false);
+});
+
+test("briefing waits for missing weather at most 40 min, never when weather is there", () => {
+  const at = 390;
+  assert.equal(L.briefingWaitsForWeather(true, 398, at), true);
+  assert.equal(L.briefingWaitsForWeather(true, 429, at), true);
+  assert.equal(L.briefingWaitsForWeather(true, 430, at), false);
+  assert.equal(L.briefingWaitsForWeather(false, 398, at), false);
+});
+
+test("forecast cache key: rounded coordinates and day; prefetch places deduplicated", () => {
+  assert.equal(L.forecastCacheKey({ lat: 47.0012, lon: 8.4 }, "2026-11-16"), "wx:47.00,8.40:2026-11-16");
+  const places = L.prefetchPlaces({ home: HOME, campus: CAMPUS }, { lat: 47.001, lon: 8.0, name: "x" });
+  assert.deepEqual(plain(places.map((p) => p.name)), ["Musterdorf", "Campusstadt"]);
+  assert.equal(L.prefetchPlaces({ home: null, campus: null }, null).length, 0);
+});
+
+test("Open-Meteo error reason is extracted for the log", () => {
+  assert.equal(L.openMeteoReason('{"error":true,"reason":"Daily API request limit exceeded"}'), "Daily API request limit exceeded");
+  assert.equal(L.openMeteoReason("<html>busy</html>"), "<html>busy</html>");
+});

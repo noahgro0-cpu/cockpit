@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "8";
+var SCHEMA_VERSION = "9";
 
 function tick() {
   var lock = LockService.getDocumentLock();
@@ -27,6 +27,7 @@ function tick() {
       return runMailPipeline_(t0 + TICK_BUDGET_MS);
     });
     step("reminders", runReminders_);
+    step("weather", prefetchWeather_);
     step("briefing", runBriefing_);
     step("notify", function () {
       markMailsNotified_(flushNotifications_());
@@ -91,6 +92,7 @@ function ensureSchema_() {
     ensureTabs_(ss_());
     ensureConfig_();
     seedRules_();
+    seedSubjects_(); // D27
     // One-time: values for the iOS shortcuts, so no editor run is needed (D20).
     if (props_().getProperty("SHORTCUT_ROWS") !== "1") writeShortcutRows_();
     // One-time (user request 2026-11-15, D24): unimportant mails leave the inbox. Reversible in

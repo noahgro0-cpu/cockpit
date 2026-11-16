@@ -168,7 +168,7 @@ function runMailPipeline_(deadlineMs) {
         if (threadTodo[e.threadId]) {
           e.todoId = threadTodo[e.threadId]; // at most one to-do per thread
         } else {
-          var todo = todoFromMail(e, Utilities.getUuid(), nowIso, e.todoTitle);
+          var todo = todoFromMail(e, Utilities.getUuid(), nowIso, e.todoTitle, subjectMatchers_());
           newTodos.push(todoToRow(todo, ""));
           e.todoId = todo.id;
           threadTodo[e.threadId] = todo.id;
@@ -261,17 +261,27 @@ function runReminders_() {
   return due.length;
 }
 
-/** Morning briefing once per day, as soon as the briefing time is reached (DECISIONS.md D11). */
+/**
+ * Morning briefing once per day, as soon as the briefing time is reached (DECISIONS.md D11).
+ * Missing weather (e.g. Open-Meteo HTTP 429) holds it for up to WEATHER_HOLD_MIN minutes so the
+ * next ticks retry; after that it goes out with a short note instead (D27).
+ */
 function runBriefing_() {
   var config = readConfig_();
   var now = new Date();
   var p = props_();
   if (!briefingDue(now, config, p.getProperty("BRIEFING_SENT"))) return false;
   var today = toZurichDate(now);
-  var text = briefingTextNow_(now);
+  var at = parseHhmm(briefingTimeFor(today, config));
+  var mayWait = briefingWaitsForWeather(true, zurichMinuteOfDay(now), at);
+  var parts = briefingParts_(now, !mayWait);
+  if (parts.weatherMissing && mayWait) {
+    log_("info", "briefing", "waiting for weather (next tick retries)");
+    return false;
+  }
+  var text = parts.text;
   p.setProperty("BRIEFING", JSON.stringify({ date: today, text: text }));
   p.setProperty("BRIEFING_SENT", today);
-  var at = parseHhmm(briefingTimeFor(today, config));
   // If the backend was down for hours, keep the text for the app but do not push it late.
   if (zurichMinuteOfDay(now) - at <= 180) {
     notify({ title: briefingTitle(today), body: text, priority: 3, tag: "sunrise" }, { key: "briefing:" + today, ignoreQuiet: true, config: config });
@@ -281,16 +291,23 @@ function runBriefing_() {
 
 /** Briefing text for `now` (calendar, to-dos, mails, weather); sends and stores nothing. */
 function briefingTextNow_(now) {
+  return briefingParts_(now, true).text;
+}
+
+/** {text, weatherMissing}. noteMissing: mention a missing forecast in the text (final version). */
+function briefingParts_(now, noteMissing) {
   var config = readConfig_();
   var cal = readCalendarEvents_(config, now);
-  return buildBriefingText({
+  var weather = weatherFor_(config, now, cal.events);
+  var text = buildBriefingText({
     now: now,
     events: cal.events,
     exams: cal.exams,
     todos: readRows_("todos").map(rowToTodo),
     mails: selectMails(readRows_("mails").map(rowToMail), now),
-    weatherText: weatherTextFor_(config, now, cal.events),
+    weatherText: weather.missing && noteMissing && !weather.text ? WEATHER_UNAVAILABLE : weather.text,
   });
+  return { text: text, weatherMissing: weather.missing };
 }
 
 /** Once per day: delete mail entries older than mailRetentionDays. */
