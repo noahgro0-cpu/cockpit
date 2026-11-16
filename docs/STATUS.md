@@ -456,7 +456,7 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 - **Termine nachträglich ändern:** Termin antippen (Kalender, Fächer → Termine) → Titel, Datum, ganztägig/Uhrzeit, Ort, bei Prüfungen die Art, Fach; Löschen mit Rückfrage. Lektionen, Serientermine und abonnierte Kalender: nur das Fach (gilt für die ganze Serie). To-dos: wie bisher alles über den Stift, neu auch im Kalender über «Bearbeiten».
 - **Notizseiten pro Fach** (z. B. eine pro Lektion) mit Formatierung: Stile, Schriftgrösse, fett/kursiv/unterstrichen/durchgestrichen, Farben und Markierungen, Listen, Checklisten zum Abhaken, Tabellen, Bilder aus der Fotomediathek (auch Einfügen und Ziehen), Formeln (LaTeX), Links, Merksatz, Trennlinie, Datum, Rückgängig. Die bisherigen Notizen werden beim nächsten Lauf automatisch zur Seite «Notizen».
 - **Web-App (HIG):** einheitliche Kartentitel, grössere Nebentexte, mehr Abstand unter der iPad-Statusleiste in der Home-Bildschirm-App.
-- Tests: Backend 154, Web 71, Widget 12; Browser-Prüfung `web/scripts/browser-check.mjs` und neu `web/scripts/notes-check.mjs` (Editor, Speichern über Neuladen, Termin- und To-do-Bearbeitung) grün; Live-Test `backend/scripts/e2e.sh` siehe unten.
+- Tests: Backend 154, Web 71, Widget 12; Browser-Prüfung `web/scripts/browser-check.mjs` und neu `web/scripts/notes-check.mjs` (Editor, Speichern über Neuladen, Termin- und To-do-Bearbeitung) und `web/scripts/editor-probe.mjs` (Checkliste endet mit zweimal Enter) grün; Live-Test `backend/scripts/e2e.sh` gegen @34: 39/39 (Notizseiten, Termin ändern inkl. Datum hin und zurück, Bild ohne Freigabe = klare Ablehnung). Migration live geprüft: die bisherigen Notizen sind jetzt die Seite «Notizen».
 
 ### Manuelle Schritte für den Nutzer
 1. **Widget-Skript ersetzen (iPhone und iPad):** In Scriptable das Skript **Cockpit** öffnen → die zwei Zeilen `const SETUP_CODE = …` und `const PWA_URL = …` kopieren und in einer Notiz sichern → den ganzen Inhalt durch `widgets/Cockpit.js` aus dem Repo ersetzen → die zwei gesicherten Zeilen wieder oben einsetzen → **Fertig**. Das Widget aktualisiert sich innert 15 Min.; sofort: Widget lange drücken → **Widget bearbeiten** → ausserhalb tippen.
@@ -472,7 +472,7 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 
 ### Bekannte Mängel / Grenzen
 - Bis zur Freigabe (Schritt 4) sind eingefügte Bilder nur auf dem Gerät sichtbar, auf dem sie eingefügt wurden.
-- Titel und Zeit von Serienterminen und Lektionen nur im Kalender selbst änderbar (Cockpit: nur das Fach).
+- Titel und Zeit von Serienterminen und Lektionen nur im Kalender selbst änderbar (Cockpit: nur das Fach). Ebenso Einladungen anderer Personen und die Daten mehrtägiger Termine.
 - Eine Notizseite fasst höchstens 45 000 Zeichen HTML (Hinweis ab 85 %). Für eine neue Lektion eine neue Seite beginnen.
 - Gelöschte Bilder und Seiten: Die Bilddateien bleiben im Drive-Ordner (Aufräumen von Hand möglich).
 - HIG-Auditor-Skill war in dieser Sitzung nicht verfügbar (vermutlich erst nach einem Neustart von Claude Code); geprüft nach den offiziellen Apple-HIG.
