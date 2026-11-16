@@ -120,7 +120,11 @@ function driveFetch_(url, options) {
   var code = res.getResponseCode();
   // 401/403: the Drive permission (scope drive.file) is not granted yet: a clear, kept error
   // instead of endless retries (the PWA keeps the picture on the device, D28).
-  if (code === 401 || code === 403) throw apiError("bad_request", "Bilder sind noch nicht freigeschaltet (Google-Drive-Berechtigung fehlt, siehe STATUS).");
+  if (code === 401 || code === 403) {
+    // Google's reason (missing scope vs. API disabled) goes to the execution log only.
+    Logger.log("Drive HTTP " + code + ": " + res.getContentText().slice(0, 500));
+    throw apiError("bad_request", "Bilder sind noch nicht freigeschaltet (Google-Drive-Berechtigung fehlt, siehe STATUS).");
+  }
   if (code >= 300) throw apiError("unavailable", "Google Drive antwortet mit HTTP " + code);
   return res;
 }
