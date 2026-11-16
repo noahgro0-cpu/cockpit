@@ -171,6 +171,13 @@ export interface WidgetState {
    * Optional for compatibility; the backend always sends it since 2026-11-16.
    */
   week?: CalEvent[];
+  /**
+   * D27: events that have not ended and start within the next 7 days, incl. lectures, without other
+   * routine entries; sorted, at most 12. Optional for compatibility with cached responses.
+   */
+  upcoming?: CalEvent[];
+  /** D27: number of all open to-dos (`todos` holds only 5). Optional for compatibility. */
+  todoCount?: number;
 }
 
 // ---------------------------------------------------------------------------

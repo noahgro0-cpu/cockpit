@@ -340,6 +340,21 @@ function e2ms_(e) {
   return e.allDay ? zurichMidnight(e.start).getTime() : Date.parse(e.start);
 }
 
+/**
+ * Widget "Nächste Termine" (D27): events that have not ended and start within 7 days, incl.
+ * lectures, without other routine entries (week numbers, series); sorted, at most 12.
+ */
+function upcomingEvents(events, now) {
+  var nowMs = now.getTime();
+  var today = toZurichDate(now);
+  var limitMs = zurichMidnight(addDaysIso(today, 8)).getTime();
+  return sortEvents((events || []).filter(function (e) {
+    if (e.routine && e.kind !== "lecture") return false;
+    var endMs = e.allDay ? zurichMidnight(e.end).getTime() : Date.parse(e.end);
+    return endMs > nowMs && eventStartMs(e) < limitMs;
+  })).slice(0, 12);
+}
+
 function buildWidget(state, now) {
   var nowMs = now.getTime();
   var today = toZurichDate(now);
@@ -364,8 +379,10 @@ function buildWidget(state, now) {
     nextEvent: timed.length ? timed[0] : null,
     today: todayEvents,
     todos: openTodos.slice(0, 5),
+    todoCount: openTodos.length,
     mails: mails.slice(0, 3),
     week: weekEvents(state.events, today),
+    upcoming: upcomingEvents(state.events, now),
   };
 }
 

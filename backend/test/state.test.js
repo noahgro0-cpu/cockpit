@@ -164,3 +164,21 @@ test("widget next event skips lectures and routine entries (D25)", () => {
   assert.equal(w.nextEvent.title, "Zahnarzt");
   assert.equal(w.today.length, 3, "today's agenda keeps lectures");
 });
+
+test("buildWidget.upcoming: not ended, within 7 days, lectures yes, other routine no; todoCount", () => {
+  const ev = (id, start, end, extra) => Object.assign({ id, calendar: "P", kind: "private", title: id, start, end, allDay: start.length === 10 }, extra);
+  const now = new Date("2026-11-16T12:00:00+01:00");
+  const events = [
+    ev("past", "2026-11-16T08:00:00+01:00", "2026-11-16T09:00:00+01:00"),
+    ev("running", "2026-11-16T11:30:00+01:00", "2026-11-16T12:30:00+01:00"),
+    ev("lecture", "2026-11-16T12:30:00+01:00", "2026-11-16T14:55:00+01:00", { kind: "lecture", routine: true }),
+    ev("weeknum", "2026-11-16", "2026-11-17", { routine: true }),
+    ev("tomorrow", "2026-11-17T09:00:00+01:00", "2026-11-17T10:00:00+01:00"),
+    ev("in8days", "2026-11-24T09:00:00+01:00", "2026-11-24T10:00:00+01:00"),
+  ];
+  const todos = [1, 2, 3, 4, 5, 6, 7].map((i) => ({ id: "t" + i, title: "T" + i, status: "open", dueHasTime: false, priority: 0, createdAt: "", updatedAt: "" }));
+  const w = L.buildWidget({ generatedAt: "", health: {}, events, todos, mails: [] }, now);
+  assert.deepEqual(w.upcoming.map((e) => e.id), ["running", "lecture", "tomorrow"]);
+  assert.equal(w.todos.length, 5);
+  assert.equal(w.todoCount, 7);
+});
