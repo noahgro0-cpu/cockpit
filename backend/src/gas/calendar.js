@@ -139,6 +139,26 @@ function createCaptureEvent_(ev, config) {
   return toCalEvent_(created, cal.getName(), config, true, null, true);
 }
 
+/** Invitations from others sit in own calendars too but cannot be changed by us. */
+function ownEvent_(ev) {
+  try {
+    return ev.isOwnedByMe();
+  } catch (e) {
+    return false;
+  }
+}
+
+/** A refused calendar change is a clear, final answer (bad_request), never an endless retry. */
+function calendarCall_(fn) {
+  try {
+    fn();
+  } catch (e) {
+    if (e && e.apiError) throw e;
+    log_("warn", "calendar", "edit refused: " + (e && e.message ? e.message : e));
+    throw apiError("bad_request", "Der Kalender hat die Änderung abgelehnt: " + String(e && e.message ? e.message : e).slice(0, 160));
+  }
+}
+
 /** Own calendars are writable; subscribed and read-only shared ones are not (D28). */
 function calendarWritable_(cal) {
   try {
@@ -182,8 +202,9 @@ function updateEvent_(p) {
   });
   if (changes.length) {
     var view = eventView_(found.cal, found.ev, config);
-    if (!view.editable) throw apiError("bad_request", "Dieser Termin kann nur im Kalender selbst geändert werden.");
+    if (!view.editable || !ownEvent_(found.ev)) throw apiError("bad_request", "Dieser Termin kann nur im Kalender selbst geändert werden.");
     var ev = found.ev;
+    calendarCall_(function () {
     if (patch.title !== undefined) ev.setTitle(patch.title.trim());
     if (patch.location !== undefined) ev.setLocation(patch.location.trim());
     var span = eventPatchSpan(patch);
@@ -194,6 +215,7 @@ function updateEvent_(p) {
       else ev.setTime(span.start, span.end);
     }
     if (patch.kind !== undefined && view.calendar === config.calExams) ev.setTag(EVENT_KIND_TAG, patch.kind);
+    });
   }
   return eventView_(found.cal, found.ev, config);
 }
@@ -203,10 +225,12 @@ function deleteEvent_(p) {
   var config = readConfig_();
   var found = findEvent_(p.calendar, p.id);
   if (!found) return { id: p.id };
-  if (!eventView_(found.cal, found.ev, config).editable) {
+  if (!eventView_(found.cal, found.ev, config).editable || !ownEvent_(found.ev)) {
     throw apiError("bad_request", "Dieser Termin kann nur im Kalender selbst gelöscht werden.");
   }
-  found.ev.deleteEvent();
+  calendarCall_(function () {
+    found.ev.deleteEvent();
+  });
   setEventSubject_(eventKey(p.id), null);
   return { id: p.id };
 }

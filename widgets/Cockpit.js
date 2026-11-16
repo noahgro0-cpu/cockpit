@@ -41,21 +41,27 @@ const WIDGET_SIZES = [
   [360, 780, 155, 329, 345], [320, 568, 141, 292, 311],
   [768, 1024, 141, 305.5, 305.5], [744, 1133, 141, 305.5, 305.5], [810, 1080, 146, 320.5, 320.5],
   [820, 1180, 155, 342, 342], [834, 1112, 150, 327.5, 327.5], [834, 1194, 155, 342, 342],
-  [1024, 1366, 170, 378.5, 378.5],
+  [954, 1373, 162, 350, 350], [970, 1389, 162, 350, 350], [1024, 1366, 170, 378.5, 378.5],
+  [1192, 1590, 188, 412, 412],
 ];
 /**
- * Usable sizes inside the widget padding for a screen; unknown screens get the smallest listed
- * size. Heights bound the rows, widths pin every card so a long text never widens it (D28).
+ * Usable sizes inside the widget padding for a screen. Heights bound the rows, widths pin every
+ * card so a long text never widens it (D28). A screen missing from the table (newer iPhones) uses
+ * the largest listed screen that is not bigger: widgets grow with the screen, so this never
+ * overflows; with nothing smaller listed, the smallest size and no pinned width.
  */
 function heightsFor(screen) {
   const w = Math.min(screen?.width ?? 0, screen?.height ?? 0);
   const h = Math.max(screen?.width ?? 0, screen?.height ?? 0);
-  const row = WIDGET_SIZES.find(([sw, sh]) => sw === w && sh === h);
-  const [, , box, wide, large] = row ?? [0, 0, 141, 292, 305.5];
+  const fits = WIDGET_SIZES.filter(([sw, sh]) => sw <= w && sh <= h && (sw < 600) === (w < 600))
+    .sort((a, b) => b[0] - a[0] || b[1] - a[1]);
+  const row = WIDGET_SIZES.find(([sw, sh]) => sw === w && sh === h) ?? fits[0];
+  const [, , box, wide, large] = row ?? [0, 0, 141, 0, 305.5];
   const inner = v => Math.floor(v - 2 * METRICS.pad);
   return {
     small: inner(box), medium: inner(box), large: inner(large),
-    width: { small: inner(box), medium: inner(wide), large: inner(wide) },
+    // Unknown screen: no pinned width (cards follow the widget), only the height budget is safe.
+    width: wide ? { small: inner(box), medium: inner(wide), large: inner(wide) } : null,
   };
 }
 // Default (iPhone 390x844); the widget uses heightsFor(Device.screenSize()).
@@ -583,7 +589,7 @@ function renderWidget(model, pwaUrl, now) {
     columns.topAlignContent();
     for (const [index, card] of model.cards.entries()) {
       if (index > 0) columns.addSpacer(METRICS.gap);
-      const width = Math.floor((model.heights.width.medium - METRICS.gap) / 2);
+      const width = model.heights.width ? Math.floor((model.heights.width.medium - METRICS.gap) / 2) : 0;
       const box = renderCard(columns, card, palette, width);
       box.size = new Size(width, model.heights.medium - (model.status ? METRICS.status : 0));
       box.addSpacer();

@@ -63,6 +63,10 @@ if [ -n "$SID" ]; then
   check "note.delete" "$(post "$(req note.delete "{\"id\":\"$NID\"}")")" 'r.ok'
   check "note.update deleted -> not_found" "$(post "$(req note.update "{\"id\":\"$NID\",\"patch\":{\"title\":\"x\"}}")")" '!r.ok && r.error.code==="not_found"'
 fi
+# Without the Drive permission (D28) a picture is a clear bad_request, never an endless retry.
+if [ -n "$SID" ]; then
+  check "image.add without Drive scope -> bad_request (or ok once granted)" "$(post "$(req image.add "{\"id\":\"e2e-img\",\"subject\":\"$SID\",\"type\":\"image/jpeg\",\"data\":\"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==\"}")")" 'r.ok || r.error.code==="bad_request"'
+fi
 check "image.add svg -> bad_request" "$(post "$(req image.add '{"id":"x","subject":"x","type":"image/svg+xml","data":"QQ=="}')")" '!r.ok && r.error.code==="bad_request"'
 # D28 event edit: subject chosen by hand on the test exam, title change, both reverted.
 TEV=$(R="$S" node -e "const e=JSON.parse(process.env.R).data.exams.find(e=>e.title.startsWith('Cockpit-Test'));console.log(e?JSON.stringify({id:e.id,calendar:e.calendar}):'')")
@@ -71,6 +75,11 @@ if [ -n "$TEV" ] && [ -n "$SID" ]; then
   check "test exam is editable" "$S" "r.data.exams.find(e=>e.title.startsWith('Cockpit-Test')).editable===true"
   check "event.update subject + title" "$(post "$(req event.update "$REF,\"patch\":{\"subject\":\"$SID\",\"title\":\"Cockpit-Test Pruefung (geaendert)\"}}")")" "r.ok && r.data.subject==='$SID' && r.data.title==='Cockpit-Test Pruefung (geaendert)'"
   check "event.update back (automatic subject)" "$(post "$(req event.update "$REF,\"patch\":{\"subject\":null,\"title\":\"Cockpit-Test Pruefung (bitte loeschen)\"}}")")" "r.ok && r.data.title==='Cockpit-Test Pruefung (bitte loeschen)'"
+  # Date change: the id follows the new start; then back to the original day.
+  R1=$(post "$(req event.update "$REF,\"patch\":{\"date\":\"2027-01-09\"}}")")
+  check "event.update date (new id)" "$R1" "r.ok && r.data.start==='2027-01-09' && r.data.allDay && r.data.id!==JSON.parse('$TEV').id"
+  NREF=$(R="$R1" node -e "const e=JSON.parse(process.env.R).data;console.log(JSON.stringify({id:e.id,calendar:e.calendar}).slice(0,-1))")
+  check "event.update date back" "$(post "$(req event.update "$NREF,\"patch\":{\"date\":\"2027-01-08\"}}")")" "r.ok && r.data.start==='2027-01-08'"
 fi
 check "event.update unknown -> not_found" "$(post "$(req event.update '{"id":"nope@x_1","calendar":"Prüfungen","patch":{"title":"x"}}')")" '!r.ok && r.error.code==="not_found"'
 

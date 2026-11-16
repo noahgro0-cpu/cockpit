@@ -147,6 +147,9 @@ test("every size stays within its height budget, even with much data and a cache
       }
   assert.equal(logic.heightsFor({ width: 1133, height: 744 }).large, 289); // landscape iPad mini
   assert.equal(logic.heightsFor({ width: 999, height: 999 }).large, 289); // unknown: smallest
+  assert.equal(logic.heightsFor({ width: 402, height: 874 }).large, 338); // iPhone not in the table: next smaller (393x852)
+  assert.equal(logic.heightsFor({ width: 402, height: 874 }).width.medium, 322);
+  assert.equal(logic.heightsFor({ width: 300, height: 500 }).width, null); // smaller than every listed screen: no pinned width
   const large = logic.widgetModel(busy, "large", "", now);
   assert.deepEqual([...large.cards.map(card => card.rows.length)], [3, 2, 2]);
   assert.equal(large.cards[0].more, 6);

@@ -36,6 +36,8 @@ export function EventSheet({
 }) {
   const subjects = state.settings.categories.filter((c) => c.group === "schule");
   const exam = event.kind === "exam" || event.kind === "deadline";
+  // Several days long: the sheet sets one day or one time span, so the dates stay in the calendar.
+  const multiDay = event.allDay && Date.parse(event.end) - Date.parse(event.start) > 86400000;
   const [allDay, setAllDay] = useState(event.allDay);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
@@ -83,14 +85,15 @@ export function EventSheet({
               const date = String(f.get("date"));
               const start = allDay ? "" : String(f.get("start") || "");
               const end = allDay ? "" : String(f.get("end") || "");
-              if (!allDay && !start) {
+              if (!multiDay && !allDay && !start) {
                 setError("Bitte eine Startzeit eingeben oder «Ganztägig» wählen.");
                 return;
               }
               const timeChanged =
-                date !== day(event.start) ||
+                !multiDay &&
+                (date !== day(event.start) ||
                 allDay !== event.allDay ||
-                (!allDay && (start !== time(event.start) || end !== time(event.end)));
+                (!allDay && (start !== time(event.start) || end !== time(event.end))));
               if (timeChanged) {
                 patch.date = date;
                 if (!allDay) {
@@ -120,17 +123,21 @@ export function EventSheet({
                   <option value="deadline">Abgabe</option>
                 </select>
               </label>
-            ) : (
+            ) : multiDay ? null : (
               <label className="check">
                 <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
                 Ganztägig
               </label>
             )}
-            <label>
-              Datum
-              <input type="date" name="date" required defaultValue={day(event.start)} />
-            </label>
-            {!allDay && (
+            {multiDay ? (
+              <p className="small">Mehrtägiger Termin: Daten im Kalender selbst ändern.</p>
+            ) : (
+              <label>
+                Datum
+                <input type="date" name="date" required defaultValue={day(event.start)} />
+              </label>
+            )}
+            {!allDay && !multiDay && (
               <div className="time-pair">
                 <label>
                   Von

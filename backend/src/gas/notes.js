@@ -99,11 +99,17 @@ function migrateSubjectNotes_() {
   if (pages.length) log_("info", "setup", pages.length + " subject notes moved to note pages");
 }
 
-/** A notes patch from a client older than D28 lands on a new page instead of the retired cell. */
+/**
+ * A notes patch from a client older than D28 lands on one page per subject ("Notizen (älteres
+ * Gerät)", overwritten by later autosaves) instead of the retired cell.
+ */
 function notesToPage_(subjectId, text) {
   if (!text.trim()) return;
+  var id = "legacy-" + subjectId;
+  var rowNum = findRow_("notizen", id);
   var now = nowIso_();
-  writeTextRow_("notizen", 0, noteToRow({ id: Utilities.getUuid(), subject: subjectId, title: "Notizen (älteres Gerät)", html: plainToHtml(text), createdAt: now, updatedAt: now }), NOTE_COLUMNS.length);
+  var created = rowNum ? rowToNote(sheet_("notizen").getRange(rowNum, 1, 1, NOTE_COLUMNS.length).getValues()[0]).createdAt : now;
+  writeTextRow_("notizen", rowNum, noteToRow({ id: id, subject: subjectId, title: "Notizen (älteres Gerät)", html: plainToHtml(text), createdAt: created, updatedAt: now }), NOTE_COLUMNS.length);
 }
 
 // --- Images (Google Drive REST, scope drive.file: only files Cockpit created) ---------

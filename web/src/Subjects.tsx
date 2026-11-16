@@ -163,7 +163,7 @@ function NotePageView({
           onBlur={content.onBlur}
           images={images}
           label={`Notizen ${subject.label}: ${note.title}`}
-          placeholder={`Notizen zu ${subject.label} …  Tipp: «[ ] » beginnt eine Checkliste, «# » eine Überschrift, «$x^2$» eine Formel.`}
+          placeholder={`Notizen zu ${subject.label} …  Tipp: «[ ] » beginnt eine Checkliste, «# » eine Überschrift, «$$x^2$$» eine Formel.`}
         />
       </Suspense>
       <div className="note-page-foot">
