@@ -289,9 +289,25 @@ export default function App() {
             </button>
           </div>
         ) : dashboard && page === "Fächer" ? (
-          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} />
+          <>
+            {/* the board notices live in the Cockpit page; the Fächer page needs its own */}
+            <div className="board-notices" aria-live="polite">
+              {cockpit.error && (
+                <p className="notice danger" role="alert">
+                  {cockpit.error}
+                </p>
+              )}
+              {!navigator.onLine && <p className="notice">Offline · Änderungen bleiben auf diesem Gerät gespeichert</p>}
+              {cockpit.jobs.some((j) => j.blocked) && (
+                <p className="notice" role="status">
+                  Eine Änderung braucht deine Prüfung: Einstellungen → Synchronisierung
+                </p>
+              )}
+            </div>
+            <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} jobs={cockpit.jobs} />
+          </>
         ) : view === "Fächer" && !dashboard ? (
-          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} />
+          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} jobs={cockpit.jobs} />
         ) : dashboard ? (
           <div className="board">
             {/* D26: slim next-appointment bar, capture and its feedback on top */}

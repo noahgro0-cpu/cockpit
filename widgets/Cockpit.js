@@ -33,8 +33,26 @@ const METRICS = {
   separator: 6.5, // 3 + 0.5 + 3
   status: 13,
 };
-// Usable height inside the widget padding (iPhone sizes; larger devices just get more air).
-const HEIGHT = { small: 142, medium: 142, large: 338 };
+// Widget heights in points by portrait screen size (Apple HIG, Widgets → Specifications; iPad =
+// layout canvas). [screen width, screen height, small/medium height, large height]
+const WIDGET_HEIGHTS = [
+  [430, 932, 170, 382], [428, 926, 170, 382], [414, 896, 169, 379], [414, 736, 157, 357],
+  [393, 852, 158, 354], [390, 844, 158, 354], [375, 812, 155, 345], [375, 667, 148, 324],
+  [360, 780, 155, 345], [320, 568, 141, 311],
+  [768, 1024, 141, 305.5], [744, 1133, 141, 305.5], [810, 1080, 146, 320.5], [820, 1180, 155, 342],
+  [834, 1112, 150, 327.5], [834, 1194, 155, 342], [1024, 1366, 170, 378.5],
+];
+/** Usable heights inside the widget padding for a screen; unknown screens get the smallest listed size. */
+function heightsFor(screen) {
+  const w = Math.min(screen?.width ?? 0, screen?.height ?? 0);
+  const h = Math.max(screen?.width ?? 0, screen?.height ?? 0);
+  const row = WIDGET_HEIGHTS.find(([sw, sh]) => sw === w && sh === h);
+  const [, , box, large] = row ?? [0, 0, 141, 305.5];
+  const inner = v => Math.floor(v - 2 * METRICS.pad);
+  return { small: inner(box), medium: inner(box), large: inner(large) };
+}
+// Default (iPhone 390x844); the widget uses heightsFor(Device.screenSize()).
+const HEIGHT = heightsFor({ width: 390, height: 844 });
 const ROW_HEIGHT = { todos: METRICS.line, events: METRICS.line + METRICS.detail + 1, mails: METRICS.line + METRICS.detail + 1 };
 const MAX_ROWS = { todos: 6, events: 4, mails: 3 };
 const TARGET_ROWS = { todos: 3, events: 2, mails: 2 };
@@ -246,7 +264,7 @@ function fillCards(cards, budget, horizontal) {
   }));
 }
 
-function widgetModel(state, family, parameter, now, status = null) {
+function widgetModel(state, family, parameter, now, status = null, heights = HEIGHT) {
   const { mode, lectures } = parseParameter(family, parameter);
   const todos = selectTodos(state.todos);
   const mails = selectMails(state.mails);
@@ -301,8 +319,8 @@ function widgetModel(state, family, parameter, now, status = null) {
   } else {
     cards = order.map(kind => card[kind](false));
   }
-  const budget = HEIGHT[family === "small" || family === "medium" ? family : "large"] - (status ? METRICS.status : 0);
-  return { family, cards: fillCards(cards, budget, family === "medium"), status };
+  const budget = heights[family === "small" || family === "medium" ? family : "large"] - (status ? METRICS.status : 0);
+  return { family, cards: fillCards(cards, budget, family === "medium"), status, heights };
 }
 
 function cacheEntry(text, url) {
@@ -527,7 +545,7 @@ function renderWidget(model, pwaUrl, now) {
     for (const [index, card] of model.cards.entries()) {
       if (index > 0) columns.addSpacer(METRICS.gap);
       const box = renderCard(columns, card, palette);
-      box.size = new Size(0, HEIGHT.medium - (model.status ? METRICS.status : 0));
+      box.size = new Size(0, model.heights.medium - (model.status ? METRICS.status : 0));
       box.addSpacer();
     }
   } else {
@@ -553,6 +571,7 @@ function messageModel(family, message) {
     cards: [{ kind: "message", title: "Cockpit", compact: true, more: 0, empty: "",
       rows: [{ text: "Cockpit", tone: "ink" }, { text: message, tone: "ink" }, { text: "In Scriptable öffnen und prüfen", tone: "muted" }] }],
     status: null,
+    heights: HEIGHT,
   };
 }
 
@@ -573,7 +592,13 @@ async function buildWidget(family, parameter, setupCode, pwaAddress) {
   }
   const now = new Date();
   const status = result.fetchedAt ? cacheLabel(result.fetchedAt, now) : null;
-  const model = result.state ? widgetModel(result.state, family, parameter, now, status) : messageModel(family, result.message);
+  let heights = HEIGHT;
+  try {
+    heights = heightsFor(Device.screenSize());
+  } catch {
+    // Device is missing outside Scriptable (tests): keep the default.
+  }
+  const model = result.state ? widgetModel(result.state, family, parameter, now, status, heights) : messageModel(family, result.message);
   return renderWidget(model, validPwa ? pwaUrl : null, now);
 }
 

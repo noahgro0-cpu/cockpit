@@ -119,7 +119,7 @@ function escapeRegex_(s) {
 
 /**
  * Subject id for a text (event or to-do title), or "". A keyword matches at the start of a word,
- * case-insensitive ("Mathe" matches "Mathematik 1B", not "Arithmetik"). Without own keywords the
+ * case-insensitive ("Mathe" matches "Mathematik 2", not "Arithmetik"). Without own keywords the
  * category label counts. The longest matching keyword wins.
  * matchers: [{id, label, keywords}]
  */
@@ -235,11 +235,17 @@ function applySubjectPatch(rec, payload, nowIso, stampLabel) {
   ["info", "notes"].forEach(function (f) {
     if (patch[f] === undefined) return;
     var incoming = patch[f];
-    if (base[f] && base[f] !== textHash(r[f]) && incoming !== r[f] && r[f] !== "") {
+    var max = f === "info" ? SUBJECT_LIMITS.info : SUBJECT_LIMITS.notes;
+    var mark = "\n\n--- Auch auf einem anderen Gerät geändert (";
+    var at = r[f].lastIndexOf(mark);
+    var tail = at >= 0 ? r[f].indexOf(") ---\n", at) : -1;
+    var stale = base[f] && base[f] !== textHash(r[f]);
+    if (stale && tail >= 0 && textHash(r[f].slice(tail + 6)) === base[f]) {
+      // After a merge the other device keeps editing its own part: replace it, never append again.
+      r[f] = (r[f].slice(0, tail + 6) + incoming).slice(0, max);
+    } else if (stale && incoming !== r[f] && r[f] !== "") {
       conflict = true;
-      var merged = r[f] + "\n\n--- Auch auf einem anderen Gerät geändert (" + stampLabel + ") ---\n" + incoming;
-      var max = f === "info" ? SUBJECT_LIMITS.info : SUBJECT_LIMITS.notes;
-      r[f] = merged.slice(0, max);
+      r[f] = (r[f] + mark + stampLabel + ") ---\n" + incoming).slice(0, max);
     } else {
       r[f] = incoming;
     }

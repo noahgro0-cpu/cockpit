@@ -2284,3 +2284,22 @@ button.category-chip {
     grid-column: 1 / -1;
   }
 }
+/* D27: 44 pt touch targets on touch screens; the chip keeps its look, the hit area grows */
+@media (pointer: coarse) {
+  .segmented button,
+  .subject-tabs button {
+    min-height: 44px;
+  }
+  button.category-chip {
+    min-height: 0;
+    position: relative;
+  }
+  button.category-chip::before {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
+  }
+}
+.subject-notes .danger {
+  color: var(--danger);
+}

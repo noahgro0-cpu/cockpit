@@ -93,7 +93,13 @@ function prefetchWeather_() {
   if (!weatherPrefetchDue(zurichMinuteOfDay(now), at, props_().getProperty("BRIEFING_SENT") === today)) return 0;
   var places = prefetchPlaces(placesFromConfig(config), freshLocation(readLocation_(), now.getTime()));
   if (!places.length) return 0;
-  return fetchForecasts_(places, today, false).filter(Boolean).length;
+  try {
+    return fetchForecasts_(places, today, false).filter(Boolean).length;
+  } catch (e) {
+    // A network exception here must not count as a failed tick (3 in a row = outage push).
+    log_("warn", "weather", "prefetch failed: " + e);
+    return 0;
+  }
 }
 
 /**

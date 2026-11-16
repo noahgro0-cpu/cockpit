@@ -7,7 +7,7 @@ import { Script } from "node:vm";
 const source = readFileSync(new URL("./Cockpit.js", import.meta.url), "utf8");
 const script = new Script(`(async () => {
   ${source}
-  return { buildWidget, cacheLabel, clock, day, decodeSetup, formatTodo, widgetModel, plannedHeight, HEIGHT, METRICS };
+  return { buildWidget, cacheLabel, clock, day, decodeSetup, formatTodo, widgetModel, plannedHeight, HEIGHT, METRICS, heightsFor };
 })()`, { filename: "Cockpit.js" });
 const logic = await script.runInNewContext();
 const now = new Date("2026-11-16T08:00:00+01:00");
@@ -134,14 +134,19 @@ test("every size stays within its height budget, even with much data and a cache
   const many = Array.from({ length: 9 }, (_, i) => task(`Aufgabe ${i}`, "2026-11-18"));
   const mails = Array.from({ length: 3 }, (_, i) => mail(`Mail ${i}`, 2, "2026-11-16T06:00:00Z"));
   const busy = state({ todos: many, mails, upcoming: [...upcoming, event("Später", "2026-11-18T09:00:00+01:00", "2026-11-18T10:00:00+01:00")] });
+  // Smallest iPhone, iPad mini (canvas 305.5 pt large), default iPhone, largest iPhone.
+  const screens = [{ width: 320, height: 568 }, { width: 1133, height: 744 }, { width: 390, height: 844 }, { width: 430, height: 932 }];
+  for (const heights of screens.map(logic.heightsFor))
   for (const family of ["small", "medium", "large"])
     for (const param of ["", "todos", "termine", "mails"])
       for (const status of [null, "Stand 07:30"]) {
-        const model = logic.widgetModel(busy, family, param, now, status);
+        const model = logic.widgetModel(busy, family, param, now, status, heights);
         const height = logic.plannedHeight(model.cards, family === "medium") + (status ? logic.METRICS.status : 0);
-        assert.ok(height <= logic.HEIGHT[family], `${family}/${param}/${status}: ${height}`);
+        assert.ok(height <= heights[family], `${family}/${param}/${status}: ${height}`);
         assert.ok(model.cards.every(card => card.rows.length >= 1), `${family}/${param}: empty card`);
       }
+  assert.equal(logic.heightsFor({ width: 1133, height: 744 }).large, 289); // landscape iPad mini
+  assert.equal(logic.heightsFor({ width: 999, height: 999 }).large, 289); // unknown: smallest
   const large = logic.widgetModel(busy, "large", "", now);
   assert.deepEqual([...large.cards.map(card => card.rows.length)], [3, 2, 2]);
   assert.equal(large.cards[0].more, 6);

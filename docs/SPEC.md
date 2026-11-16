@@ -54,7 +54,7 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 |---|---|---|
 | `ping` | – | `{time}` |
 | `getState` | – | `State` |
-| `getWidget` | – | `WidgetState` (kompakt: nächster Termin, Termine von heute, Termine der Kalenderwoche Mo–So `week`, 5 nächste To-dos, 3 wichtigste Mails, health) |
+| `getWidget` | – | `WidgetState` (kompakt: nächster Termin, Termine von heute, Termine der Kalenderwoche Mo–So `week`, nicht beendete Termine der nächsten 7 Tage `upcoming`, 5 nächste To-dos, Anzahl offener To-dos `todoCount`, 3 wichtigste Mails, health; D27) |
 | `todo.add` | `{id, title, notes?, category?, due?, dueHasTime?, remindAt?, priority?}` (id = UUID vom Client, macht Wiederholungen idempotent) | `Todo` |
 | `todo.update` | `{id, patch}` | `Todo` |
 | `todo.complete` | `{id, done}` | `Todo` |

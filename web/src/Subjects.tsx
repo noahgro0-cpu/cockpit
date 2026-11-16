@@ -2,7 +2,7 @@
 // appointments below, then free notes that save themselves. Quick entry for a to-do or an event.
 import { useEffect, useRef, useState } from "react";
 import type { CalEvent, State, SubjectLink } from "../../shared/api-types";
-import type { Mutation } from "./outbox";
+import type { Job, Mutation } from "./outbox";
 import { BottomSheet } from "./BottomSheet";
 import { Icon } from "./Icon";
 import { TodoRow } from "./Todos";
@@ -91,16 +91,28 @@ function useAutosave(server: string, save: (text: string, baseHash: string) => v
   };
 }
 
-function Notes({ subject, mutate }: { subject: SubjectView; mutate: Mutate }) {
+function Notes({ subject, mutate, jobs }: { subject: SubjectView; mutate: Mutate; jobs: Job[] }) {
   const notes = useAutosave(subject.notes, (text, base) =>
     void mutate({ action: "subject.update", payload: { id: subject.id, patch: { notes: text }, base: { notes: base } } }),
   );
+  // Honest status: "Gespeichert" only once the backend confirmed (no job left for this subject).
+  const mine = jobs.filter((j) => j.action === "subject.update" && j.payload.id === subject.id);
+  const blocked = mine.some((j) => j.blocked);
+  const queued = mine.length > 0;
   return (
     <section className="card subject-notes">
       <div className="section-title">
         <h3>Notizen</h3>
-        <span className="small" role="status">
-          {notes.pending ? "Wird gespeichert …" : subject.updatedAt ? "Gespeichert" : ""}
+        <span className={blocked ? "small danger" : "small"} role="status">
+          {blocked
+            ? "Nicht gespeichert · Einstellungen → Synchronisierung"
+            : notes.pending
+              ? "Wird gespeichert …"
+              : queued
+                ? "Auf diesem Gerät gespeichert · wird synchronisiert"
+                : subject.updatedAt
+                  ? "Gespeichert"
+                  : ""}
         </span>
       </div>
       <label className="sr-only" htmlFor={`notes-${subject.id}`}>
@@ -435,7 +447,7 @@ export function EntrySheet({
           <p className="small">
             {kind === "event"
               ? "Landet in deinem Kalender für Termine (Google Kalender, also auch auf dem iPhone)."
-              : "Landet im Kalender «Prüfungen & Abgaben» und im Countdown."}
+              : "Landet im Kalender für Prüfungen und Abgaben und im Countdown."}
           </p>
         )}
         {error && <p role="alert">{error}</p>}
@@ -452,8 +464,10 @@ export function Subjects({
   categories,
   now,
   mutate,
+  jobs,
 }: {
   state: State;
+  jobs: Job[];
   /** Server categories (D27): the subject list must not follow a per-device settings copy. */
   categories: State["settings"]["categories"];
   now: Date;
@@ -553,7 +567,7 @@ export function Subjects({
               <p className="empty">Keine Termine, Prüfungen oder Abgaben in den nächsten Wochen.</p>
             )}
           </section>
-          <Notes subject={subject} mutate={mutate} />
+          <Notes subject={subject} mutate={mutate} jobs={jobs} />
         </div>
       </div>
       {entry && (

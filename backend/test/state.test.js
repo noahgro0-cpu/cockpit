@@ -149,9 +149,9 @@ test("tick runtime: accumulates per Zurich day and reports the finished day", ()
 });
 
 test("subject names (D25): exact match, else the longest contained key; unknown stays", () => {
-  const pairs = [["Stundenplan", "Anzeige"], ["KX-MATHE1", "Mathematik 1"], ["KX-MATHE1B-26", "Mathematik 1B"], ["PHYS", "Physik"], ["", "leer"]];
-  assert.equal(L.subjectName("KX-MATHE1B-26", pairs), "Mathematik 1B");
-  assert.equal(L.subjectName("kx-mathe1b-26 ", pairs), "Mathematik 1B");
+  const pairs = [["Stundenplan", "Anzeige"], ["KX-MATHE1", "Mathematik 1"], ["KX-MATHE2A-26", "Mathematik 2A"], ["PHYS", "Physik"], ["", "leer"]];
+  assert.equal(L.subjectName("KX-MATHE2A-26", pairs), "Mathematik 2A");
+  assert.equal(L.subjectName("kx-mathe2a-26 ", pairs), "Mathematik 2A");
   assert.equal(L.subjectName("KX-MATHE1-K-27", pairs), "Mathematik 1");
   assert.equal(L.subjectName("KX-PHYS-L-26", pairs), "Physik");
   assert.equal(L.subjectName("KX-CHEM-26", pairs), "KX-CHEM-26");

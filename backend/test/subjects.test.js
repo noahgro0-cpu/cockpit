@@ -6,27 +6,27 @@ const plain = (o) => JSON.parse(JSON.stringify(o));
 
 const CATS = [
   { id: "ana", label: "Analysis", color: "#BFD7EA", group: "schule" },
-  { id: "efp", label: "EFP", color: "#AED9E0", group: "schule" },
+  { id: "thermo", label: "TD", color: "#AED9E0", group: "schule" },
   { id: "privat", label: "Privat", color: "#E8E2C8", group: "privat" },
 ];
 const REC = (id, keywords) => ({ id, keywords, info: "", links: [], notes: "", updatedAt: null });
 
 test("matchSubject: keyword at a word start, label as default, longest wins", () => {
-  const m = L.subjectMatchers(CATS, [REC("efp", ["Energie", "Fluid", "EFP"])]);
+  const m = L.subjectMatchers(CATS, [REC("thermo", ["Thermo", "Wärme", "TD"])]);
   assert.equal(L.matchSubject("Analysis Vorlesung", m), "ana");
-  assert.equal(L.matchSubject("Labor Fluid", m), "efp");
-  assert.equal(L.matchSubject("Energien, Fluide & Prozesse", m), "efp");
+  assert.equal(L.matchSubject("Labor Wärmelehre", m), "thermo");
+  assert.equal(L.matchSubject("Thermodynamik & Wärme", m), "thermo");
   assert.equal(L.matchSubject("Training", m), "");
   assert.equal(L.matchSubject("Psychoanalysis-Kurs", m), ""); // not at a word start
   assert.equal(L.matchSubject("Prüfung (Analysis)", m), "ana");
-  const m2 = L.subjectMatchers(CATS, [REC("ana", ["Mathe"]), REC("efp", ["Mathematik 1B"])]);
-  assert.equal(L.matchSubject("Mathematik 1B Übung", m2), "efp");
+  const m2 = L.subjectMatchers(CATS, [REC("ana", ["Mathe"]), REC("thermo", ["Analysis 2"])]);
+  assert.equal(L.matchSubject("Analysis 2 Übung", m2), "thermo");
   assert.equal(L.matchSubject("privat", m), ""); // non-school categories never match
 });
 
 test("subjectsForState: one per school category, merged with records", () => {
-  const s = L.subjectsForState(CATS, [REC("efp", ["EFP"]), REC("unknown", [])]);
-  assert.deepEqual(plain(s.map((x) => [x.id, x.keywords])), [["ana", []], ["efp", ["EFP"]]]);
+  const s = L.subjectsForState(CATS, [REC("thermo", ["TD"]), REC("unknown", [])]);
+  assert.deepEqual(plain(s.map((x) => [x.id, x.keywords])), [["ana", []], ["thermo", ["TD"]]]);
   assert.equal(s[0].updatedAt, null);
 });
 
@@ -89,12 +89,12 @@ test("textHash is stable (same values as web/src/subjectData.ts)", () => {
 test("assignEventSubjects: valid tag wins, else keywords; unknown tags dropped", () => {
   const m = L.subjectMatchers(CATS, []);
   const out = L.assignEventSubjects([
-    { id: "1", title: "Treffen", subject: "efp" },
+    { id: "1", title: "Treffen", subject: "thermo" },
     { id: "2", title: "Analysis" },
     { id: "3", title: "Analysis", subject: "privat" },
     { id: "4", title: "Kino" },
   ], m);
-  assert.deepEqual(out.map((e) => e.subject), ["efp", "ana", "ana", undefined]);
+  assert.deepEqual(out.map((e) => e.subject), ["thermo", "ana", "ana", undefined]);
 });
 
 test("event.add: exams all-day; default calendar timed with +60 min default", () => {
@@ -118,4 +118,13 @@ test("mail to-do gets its subject from keywords, sensitive mails never", () => {
   const mail = { id: "m1", subject: "Analysis: Serie 8", importance: 2, sensitive: false, category: "Schule" };
   assert.equal(L.todoFromMail(mail, "t1", "2026-11-16T08:00:00+01:00", "Serie lösen", m).category, "ana");
   assert.equal(L.todoFromMail(Object.assign({}, mail, { sensitive: true }), "t2", "2026-11-16T08:00:00+01:00", "", m).category, undefined);
+});
+
+test("after a merge, further saves of the same device replace its part instead of appending again", () => {
+  const stored = { id: "ana", keywords: [], info: "", links: [], notes: "AB", updatedAt: "T" };
+  const merged = L.applySubjectPatch(stored, { id: "ana", patch: { notes: "AC" }, base: { notes: L.textHash("A") } }, "T1", "x").record;
+  // The other device did not see the merge yet and saves again, based on its own last text "AC".
+  const next = L.applySubjectPatch(merged, { id: "ana", patch: { notes: "ACD" }, base: { notes: L.textHash("AC") } }, "T2", "y");
+  assert.equal(next.conflict, false);
+  assert.equal(next.record.notes, "AB\n\n--- Auch auf einem anderen Gerät geändert (x) ---\nACD");
 });
