@@ -83,7 +83,7 @@ export function QuickCapture({
     </form>
   );
 }
-function TodoRow({
+export function TodoRow({
   todo,
   state,
   now,
@@ -96,6 +96,7 @@ function TodoRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [tagging, setTagging] = useState(false);
   const category = state.settings.categories.find(
     (c) => c.id === todo.category,
   );
@@ -149,8 +150,12 @@ function TodoRow({
         <div className="grow">
           <strong>{todo.title}</strong>
           <p className="small">
-            <span
+            {/* D27: one tap to fix a subject the AI or the keywords got wrong */}
+            <button
+              type="button"
               className="category-chip"
+              aria-label={`Fach oder Kategorie von «${todo.title}» ändern: ${category?.label || "Allgemein"}`}
+              onClick={() => setTagging(true)}
               style={
                 category && /^#[0-9a-f]{6}$/i.test(category.color)
                   ? { borderInlineStart: `4px solid ${category.color}` }
@@ -158,7 +163,7 @@ function TodoRow({
               }
             >
               {category?.label || "Allgemein"}
-            </span>
+            </button>
             {todo.due &&
               ` · ${dateLabel(todo.due, "d. MMM")}${todo.dueHasTime ? " " + time(todo.due) : ""}`}
             {todo.priority === 2 ? " · Hohe Priorität" : ""}
@@ -194,6 +199,34 @@ function TodoRow({
           <Icon name="arrow" />
         </button>
       </div>
+      {tagging && (
+        <BottomSheet title="Fach oder Kategorie" onClose={() => setTagging(false)}>
+          <div className="tag-choices">
+            {[...state.settings.categories]
+              .sort((a, b) => (a.group === b.group ? 0 : a.group === "schule" ? -1 : 1))
+              .concat([{ id: "", label: "Allgemein", color: "#d9dde3", group: "privat" }])
+              .map((c) => (
+                <button
+                  key={c.id || "none"}
+                  type="button"
+                  aria-pressed={(todo.category || "") === c.id}
+                  className={(todo.category || "") === c.id ? "active" : ""}
+                  onClick={() => {
+                    void mutate({
+                      action: "todo.update",
+                      payload: { id: todo.id, patch: { category: c.id || null } },
+                    });
+                    setTagging(false);
+                  }}
+                >
+                  <span className="swatch" style={{ background: c.color }} aria-hidden="true" />
+                  {c.label}
+                  {c.group === "schule" && <span className="small"> · Fach</span>}
+                </button>
+              ))}
+          </div>
+        </BottomSheet>
+      )}
       {moving && (
         <BottomSheet title="To-do verschieben" onClose={() => setMoving(false)}>
           <div className="actions">
@@ -297,7 +330,7 @@ function TodoEditor({
         <textarea name="notes" maxLength={2000} defaultValue={todo.notes} />
       </label>
       <label>
-        Kategorie
+        Fach / Kategorie
         <select name="category" defaultValue={todo.category || ""}>
           <option value="">Allgemein</option>
           {state.settings.categories.map((c) => (

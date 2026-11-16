@@ -270,7 +270,7 @@ export interface ApiActions {
     data: CalEvent;
   };
   /**
-   * Updates a subject page (D27). Idempotent. `base` = textHash (FNV-1a, see web/src/subjects.ts) of
+   * Updates a subject page (D27). Idempotent. `base` = textHash (FNV-1a, see web/src/subjectData.ts) of
    * the info/notes text the edit started from: if the stored text changed meanwhile on another
    * device, the backend keeps both versions instead of overwriting one.
    */

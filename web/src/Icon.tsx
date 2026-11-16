@@ -1,6 +1,9 @@
 import {
   ArrowLeft,
   ArrowUpRight,
+  BookOpen,
+  Link2,
+  Trash2,
   CalendarDays,
   Check,
   Circle,
@@ -18,6 +21,9 @@ import {
 const icons = {
   back: ArrowLeft,
   arrow: ArrowUpRight,
+  book: BookOpen,
+  link: Link2,
+  trash: Trash2,
   calendar: CalendarDays,
   check: Check,
   circle: Circle,

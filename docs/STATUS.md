@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-15 abends · **Phase 4 abgeschlossen** (Abnahme unten, zwei Prüfpunkte laufen am 16./17.11. automatisch). Der Nutzer testet das Cockpit eine Woche im Alltag; danach weitere Verbesserungen nach Bedarf. Betrieb: `docs/BETRIEB.md`.
+Stand 2026-11-16 · **D27: Wetter-Fix, neues Widget, Fächer-Seite** (Abschnitt zuunterst). Phase 4 abgeschlossen (Abnahme unten, zwei Prüfpunkte laufen am 16./17.11. automatisch). Der Nutzer testet das Cockpit eine Woche im Alltag; danach weitere Verbesserungen nach Bedarf. Betrieb: `docs/BETRIEB.md`.
 
 ## Erledigt
 ### Phase 0
@@ -417,3 +417,34 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 - Gestaltung vereinheitlicht (Tokens, Schriftskala, schlichte Knöpfe, Farbe nur mit Bedeutung), hell und dunkel.
 - To-do-Gruppe «Nächste 7 Tage» statt «Diese Woche». Bestätigungen verschwinden nach 12 s.
 - Geprüft: 61 Web-Tests, Build, `browser-check.mjs` (an D26 angepasst, inkl. «alle drei Spaltenköpfe ohne Scrollen sichtbar» bei 1440×900), Screenshots PC hell/dunkel, iPhone (Heute, To-do-Bearbeiten, Einstellungen, Einrichtung). Nicht geprüft: Safari auf iPhone/iPad (Nutzer).
+
+## D27 – Wetter-Fix, Widget nach Vorlage, Fächer-Seite (2026-11-16, Claude Code)
+
+### Ergebnis 1. Morgen (16.11.)
+- ✔ Standort-Kurzbefehl lieferte um 06:00 bei gesperrtem iPhone («location updated»).
+- ✘ Briefing ohne Wetter: Open-Meteo antwortete um 06:38 mit HTTP 429 für beide Orte (geteilte Google-IPs, wie bei ntfy). Behoben, siehe unten.
+
+### Erledigt
+- **Wetter:** Vorhersagen werden 6 h zwischengespeichert und ab 90 Min. vor dem Briefing bei jedem Lauf vorab geholt. Fehlt das Wetter trotzdem, wartet das Briefing bis zu 40 Min. und geht dann mit «Wetter zurzeit nicht abrufbar» hinaus. Das Log nennt jetzt den Grund der 429-Antwort.
+- **Widget** wie die Vorlage: Karten «To-dos» (mit Anzahl, Fälligkeit rechts, überfällig rot), «Nächste Termine» (Balken; «Heute, 12:30», «Morgen, 09:00»; Prüfungen violett, Lektionen hellblau), «Wichtige neue Mails» (oranger Punkt, rot bei dringend). Hell/dunkel. Neue Parameter: `todos`, `termine`, `mails`, `ohne Lektionen`. Vorschau-Bilder: `private/previews/widget-light.png` und `widget-dark.png` (nur eine Annäherung, Schrift und Symbole weichen ab).
+- **Fächer-Seite** in der Web-App: pro Fach Grundinfos (mit automatisch nächster Lektion und Prüfungs-Countdown), Links, offene To-dos, Termine/Prüfungen/Abgaben, Notizen (speichern sich selbst, auch offline). Knopf **Erfassen** für To-do, Termin, Prüfung oder Abgabe mit vorgewähltem Fach. iPhone: Tab «Fächer» (Einstellungen weiterhin über das Zahnrad oben rechts). PC/iPad quer: Umschalter **Cockpit | Fächer** oben in der Mitte.
+- **Fach-Zuordnung:** Fächer = deine Schul-Kategorien. Termine bekommen ihr Fach über Stichwörter (z. B. «Mathe», «EFP, Energien, Fluid»); diese Startwerte stehen im neuen Sheet-Tab **faecher**. To-dos: das Fach-Etikett an jedem To-do antippen → anderes Fach wählen.
+- Backend Deployment @31 (dieselbe ID). Tests: Backend 143, Web 67, Widgets 12, `npm run e2e` 29/29 (inkl. Notiz mit «=» am Anfang), `browser-check.mjs` bestanden (375/834/1440 px, hell/dunkel, Fächer-Seite, Offline).
+
+### Manuelle Schritte für den Nutzer
+1. **Morgen 17.11. ab ca. 06:40 prüfen:** Telegram-Briefing enthält wieder eine Wetterzeile. Im Sheet, Tab **log**: Stehen zwischen 05:00 und 06:30 Zeilen «Open-Meteo HTTP 429 (…)»? Wenn ja, den Text in Klammern an Claude melden (zeigt, welches Limit greift). «briefing waiting for weather» heisst: das Briefing hat auf Wetter gewartet.
+2. **Widget-Skript ersetzen** (iPhone und iPad, je ca. 3 Min.):
+   1. App **Scriptable** öffnen → Skript **Cockpit** antippen → oben die zwei Zeilen `const SETUP_CODE = "…";` und `const PWA_URL = "…";` markieren → **Kopieren** und z. B. in Notizen sichern (die werden beim Ersetzen überschrieben).
+   2. In Safari `https://raw.githubusercontent.com/<GitHub-Benutzername>/cockpit/main/widgets/Cockpit.js` öffnen → ganzen Text markieren → **Kopieren**.
+   3. Zurück in Scriptable: im Skript alles markieren → **Einsetzen**. Dann die zwei gesicherten Zeilen wieder oben einsetzen (die leeren Zeilen `const SETUP_CODE = "";` und `const PWA_URL = "";` ersetzen) → **Fertig**.
+   4. **▶︎** antippen → **Gross** wählen und die Vorschau ansehen, dann **Mittel** und **Klein**.
+   5. Optional: Widget gedrückt halten → **Widget bearbeiten** → **Parameter** z. B. `termine` oder `ohne Lektionen`.
+   6. Bitte je einen Screenshot vom grossen Widget in **hell und dunkel** an Claude schicken, falls etwas abgeschnitten oder verschoben aussieht.
+3. **Fächer-Stichwörter kontrollieren:** Sheet → Tab **faecher** → Spalte **stichworte**. Termine, deren Titel mit einem dieser Wörter beginnt, landen bei diesem Fach. Alternativ in der App: **Fächer** → Fach → **Grundinfos · Bearbeiten**. Fehlt bei «Termine» eine Lektion oder Prüfung, das passende Stichwort ergänzen.
+4. **Web-App neu laden:** PWA ganz schliessen und neu öffnen (iPhone/iPad), am PC **Aktualisieren**. Dann **Fächer** öffnen, bei einem Fach einen ILIAS-Link hinzufügen und eine Notiz schreiben; auf einem zweiten Gerät prüfen, ob sie nach ca. 1 Min. dort erscheint.
+
+### Bekannte Mängel / Hinweise
+- Das Fach eines **Termins** lässt sich in der App nicht nachträglich ändern (nur über Stichwörter oder beim Erfassen). Bei Bedarf als nächster Schritt: Termin antippen → Fach wählen.
+- Notizen sind Klartext (keine Fett-/Listen-Formatierung). Gleichzeitiges Bearbeiten auf zwei Geräten verliert nichts, setzt aber beide Fassungen untereinander.
+- Die Widget-Vorschau auf dem PC ist eine Annäherung; massgebend ist die Darstellung auf dem Gerät.
+- Ein Ordner `private/previews/` enthält Screenshots mit erfundenen Daten (nicht im Repo).

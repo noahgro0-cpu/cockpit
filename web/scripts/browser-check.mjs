@@ -46,7 +46,7 @@ try {
       assert.equal(await page.getByRole('button',{name:'Monat',exact:true}).evaluate(el=>el===document.activeElement),true);
       if(width<1100) await page.getByRole('navigation').getByRole('button',{name:'Heute',exact:true}).click();
       await page.screenshot({path:new URL(`final-${width}-${theme}.png`,output).pathname.replace(/^\/([A-Z]:)/,'$1'),fullPage:true});
-      if(width<1100)for(const view of ['Kalender','To-dos','Mails','Einstellungen']) {
+      if(width<1100)for(const view of ['Kalender','To-dos','Mails','Fächer']) {
         await page.getByRole('navigation').getByRole('button',{name:view,exact:true}).click();
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`overflow ${view} ${width}`);
         if(view==='To-dos') {
@@ -64,10 +64,30 @@ try {
           assert.equal(await page.getByRole('dialog').getByLabel('Titel',{exact:true}).inputValue(),'Velo-Service buchen');
           await page.getByRole('dialog').getByRole('button',{name:'Schliessen'}).click();
         }
+        if(view==='Fächer') {
+          // D27: subject tabs, info/links, to-dos, events and notes
+          await page.locator('.subject-panel .notes-area').waitFor();
+          assert(await page.getByRole('tab',{name:'Physik'}).count());
+          assert.equal(await page.locator('.quick-capture:not(.docked)').count(),0,'no floating capture over the notes');
+        }
         if(view==='Kalender'&&width===834) {
           const box=await page.getByRole('navigation').boundingBox();
           assert(box.width<200&&box.y<200,'iPad uses a leading sidebar');
         }
+      }
+      // D27: settings via the header gear; on the dashboard the page switch Cockpit | Fächer
+      await page.getByRole('button',{name:'Einstellungen',exact:true}).click();
+      await page.getByRole('heading',{name:'Synchronisierung'}).waitFor();
+      await page.getByRole('button',{name:'Zurück zur Übersicht'}).click();
+      if(width>=1100) {
+        await page.getByRole('tab',{name:'Fächer'}).click();
+        await page.locator('.subject-panel .notes-area').waitFor();
+        const side=await page.locator('.subject-tabs').boundingBox();
+        assert(side.width<=240,'PC: subject list as a sidebar');
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'overflow Fächer 1440');
+        await page.screenshot({path:new URL(`faecher-${width}-${theme}.png`,output).pathname.replace(/^\/([A-Z]:)/,'$1')});
+        await page.getByRole('tab',{name:'Cockpit'}).click();
+        await page.locator('.next-strip').waitFor();
       }
       await context.close();
     }

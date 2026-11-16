@@ -79,7 +79,7 @@ test("applySubjectPatch: sequential saves apply, a concurrent edit keeps both ve
   assert.equal(r4.record.updatedAt, "T4");
 });
 
-test("textHash is stable (same values as web/src/subjects.ts)", () => {
+test("textHash is stable (same values as web/src/subjectData.ts)", () => {
   assert.equal(L.textHash(""), "811c9dc5");
   assert.equal(L.textHash("Notiz äöü"), L.textHash("Notiz äöü"));
   assert.notEqual(L.textHash("a"), L.textHash("b"));

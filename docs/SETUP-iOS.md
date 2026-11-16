@@ -35,14 +35,14 @@ Du brauchst Zugriff auf das Cockpit-Google-Sheet und die veröffentlichte Cockpi
 
 | Grösse | Inhalt | Parameter, wenn das Feld leer bleibt |
 | --- | --- | --- |
-| Klein | Wichtigste Mail mit Absender und Betreff und die nächsten zwei offenen To-dos. Ohne Mail bis zu drei To-dos, ohne Mail und To-dos der nächste Termin. | `heute` |
-| Mittel | Tagesagenda und die drei dringendsten offenen To-dos. | `heute` |
-| Gross | Wochenagenda (Montag bis Sonntag) und wichtige Mails. | `woche` |
+| Klein | Karte «To-dos» (die nächsten offenen) und darunter die wichtigste Mail. Ohne To-dos die nächsten Termine. | `heute` |
+| Mittel | Zwei Karten nebeneinander: «Termine» und «To-dos». | `heute` |
+| Gross | Drei Karten wie in der Vorlage: «To-dos» (mit Anzahl), «Nächste Termine», «Wichtige neue Mails». | `heute` |
 | Rechteckig | Nächster Termin und nächstes offenes To-do. | `heute` |
 
-- `heute` zeigt die kompakte Ansicht. Im grossen Widget steht die Tagesagenda oben.
-- `todos` rückt To-dos an die erste Stelle. Im grossen Widget erscheint zusätzlich eine Liste mit bis zu drei To-dos.
-- `woche` zeigt, wo ein Datum vorhanden ist, Wochentag und Datum zu den Einträgen. Im grossen Widget erhält die Wochenagenda den meisten Platz.
+- `todos`, `termine` oder `mails` stellt diese Karte an die erste Stelle und gibt ihr am meisten Platz (im mittleren Widget: diese Karte plus To-dos bzw. Termine).
+- `ohne Lektionen` (auch kombiniert, z. B. `termine, ohne Lektionen`) blendet Lektionen unter «Nächste Termine» aus. Sonst füllen Lektionen freie Zeilen; echte Termine haben immer Vorrang.
+- Überfällige To-dos erscheinen rot, dringende Mails mit rotem Punkt. Vertrauliche Mails zeigen nur «Vertrauliche Nachricht» und die Kategorie.
 
 [Apple-Anleitung zum Hinzufügen und Bearbeiten von Widgets](https://support.apple.com/de-ch/118610) · [Scriptable-Dokumentation zum Widget-Parameter](https://docs.scriptable.app/args/)
 

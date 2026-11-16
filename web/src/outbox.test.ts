@@ -231,3 +231,34 @@ describe("capture queue", () => {
     expect(await storage.jobs()).toEqual([]);
   });
 });
+
+describe("subject notes (D27)", () => {
+  beforeEach(async () => {
+    await storage.clear();
+  });
+  it("projects a notes save optimistically and keeps rejected text without blocking later jobs", async () => {
+    const save = makeJob({ action: "subject.update", payload: { id: "physik", patch: { notes: "Versuch 4" }, base: { notes: "811c9dc5" } } });
+    const projected = optimistic(mock as unknown as State, save);
+    expect(projected.subjects?.find((s) => s.id === "physik")?.notes).toBe("Versuch 4");
+    await storage.put(save);
+    await storage.put(makeJob({ action: "todo.delete", payload: { id: "other" } }));
+    const send = vi.fn(async (job: Job) => {
+      if (job.action === "subject.update") throw new ApiFailure("bad_request", "notes is too long");
+      return {};
+    });
+    await drain(storage, send);
+    expect(send).toHaveBeenCalledTimes(2);
+    const [kept] = await storage.jobs();
+    expect(kept.blocked).toBe("notes is too long");
+    expect(kept.action === "subject.update" && kept.payload.patch.notes).toBe("Versuch 4");
+  });
+  it("shows an appointment from the default calendar as timed, not as an exam", () => {
+    const job = makeJob({ action: "event.add", payload: { calendar: "default", title: "Lerngruppe", date: "2026-11-19", start: "17:00", subject: "physik" } });
+    const next = optimistic(mock as unknown as State, job);
+    const ev = next.events.find((e) => e.title === "Lerngruppe")!;
+    expect(ev).toMatchObject({ allDay: false, subject: "physik", kind: "private" });
+    expect(Date.parse(ev.start)).toBe(Date.parse("2026-11-19T17:00:00+01:00"));
+    expect(Date.parse(ev.end) - Date.parse(ev.start)).toBe(3600000);
+    expect(next.exams.some((e) => e.title === "Lerngruppe")).toBe(false);
+  });
+});

@@ -1,11 +1,13 @@
 import { openDB } from "idb";
 import type {
   ApiActions,
+  CalEvent,
   CaptureResult,
   State,
   Todo,
 } from "../../shared/api-types";
 import { ApiFailure } from "./api";
+import { localDateTime } from "./date";
 export type WriteAction =
   | "capture"
   | "todo.add"
@@ -15,7 +17,8 @@ export type WriteAction =
   | "mail.toTodo"
   | "mail.dismiss"
   | "mail.feedback"
-  | "event.add";
+  | "event.add"
+  | "subject.update";
 export type Mutation = {
   [A in WriteAction]: { action: A; payload: ApiActions[A]["payload"] };
 }[WriteAction];
@@ -141,17 +144,35 @@ export function optimistic(state: State, job: Job): State {
     if (mail) mail.importance = job.payload.verdict === "wichtig" ? 2 : 1;
   } else if (job.action === "event.add") {
     const payload = job.payload;
-    const event = {
+    const nextDay = new Date(Date.parse(payload.date) + 86400000)
+      .toISOString()
+      .slice(0, 10);
+    let start: string = payload.date;
+    let end: string = nextDay;
+    let allDay = true;
+    if (payload.calendar === "default" && payload.start) {
+      try {
+        start = localDateTime(payload.date, payload.start);
+        end =
+          payload.end && payload.end > payload.start
+            ? localDateTime(payload.date, payload.end)
+            : new Date(Date.parse(start) + 3600000).toISOString();
+        allDay = false;
+      } catch {
+        // nonexistent local time: shown as all-day until the server answers
+      }
+    }
+    const event: CalEvent = {
       id: job.id,
-      calendar: "exams",
-      kind: payload.kind,
+      calendar: payload.calendar,
+      kind: payload.calendar === "exams" ? payload.kind : "private",
       title: payload.title,
-      start: payload.date,
-      end: new Date(Date.parse(payload.date) + 86400000)
-        .toISOString()
-        .slice(0, 10),
-      allDay: true,
+      start,
+      end,
+      allDay,
     };
+    if (payload.subject) event.subject = payload.subject;
+    if (payload.calendar === "default" && payload.location) event.location = payload.location;
     if (
       !next.events.some(
         (e) =>
@@ -161,8 +182,17 @@ export function optimistic(state: State, job: Job): State {
       )
     ) {
       next.events.push(event);
-      next.exams.push(event);
+      if (payload.calendar === "exams") next.exams.push(event);
     }
+  } else if (job.action === "subject.update") {
+    const { id, patch } = job.payload;
+    next.subjects = next.subjects ?? [];
+    let s = next.subjects.find((x) => x.id === id);
+    if (!s) {
+      s = { id, keywords: [], info: "", links: [], notes: "", updatedAt: null };
+      next.subjects.push(s);
+    }
+    Object.assign(s, patch);
   }
   return next;
 }
@@ -179,7 +209,7 @@ export async function drain(
   rejected?: (job: Job, error: ApiFailure) => void,
 ) {
   for (let job of await store.jobs()) {
-    if (job.action === "capture" && job.blocked) continue;
+    if ((job.action === "capture" || job.action === "subject.update") && job.blocked) continue;
     if (job.blocked || job.nextAttempt > now) break;
     if (
       job.action === "capture" &&
@@ -219,7 +249,8 @@ export async function drain(
         error instanceof ApiFailure &&
         ["bad_request", "not_found"].includes(error.code)
       ) {
-        if (job.action === "capture")
+        // Rejected captures and notes keep their text for the user instead of vanishing (D27).
+        if (job.action === "capture" || job.action === "subject.update")
           await store.put({ ...job, blocked: error.message });
         else await store.remove(job.id);
         rejected?.(job, error);

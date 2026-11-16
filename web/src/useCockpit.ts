@@ -111,6 +111,13 @@ export function useCockpit() {
                 ],
               };
             }
+            if (job.action === "subject.update" && result && typeof result === "object" && "notes" in result) {
+              const subject = result as NonNullable<State["subjects"]>[number];
+              state = {
+                ...state,
+                subjects: [...(state.subjects ?? []).filter((s) => s.id !== subject.id), subject],
+              };
+            }
             if (
               job.action === "event.add" &&
               result &&
@@ -130,7 +137,7 @@ export function useCockpit() {
                   ...state.exams.filter(
                     (e) => e.id !== job.id && e.id !== event.id,
                   ),
-                  event,
+                  ...(job.payload.calendar === "exams" ? [event] : []),
                 ],
               };
             }
@@ -291,6 +298,8 @@ export function useCockpit() {
     busy,
     jobs,
     fetchedAt: snapshot?.fetchedAt ?? 0,
+    /** D27: subjects come from the server categories, not the per-device settings copy. */
+    serverCategories: snapshot?.state.settings.categories ?? [],
     refresh,
     mutate,
     setup,

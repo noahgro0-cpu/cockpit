@@ -161,6 +161,13 @@ export function Settings({
                   <textarea readOnly value={j.payload.text} />
                 </label>
               )}
+              {j.action === "subject.update" &&
+                (j.payload.patch.notes ?? j.payload.patch.info) !== undefined && (
+                  <label>
+                    Gespeicherter Text (Fach)
+                    <textarea readOnly value={j.payload.patch.notes ?? j.payload.patch.info} />
+                  </label>
+                )}
               <button disabled={busy} onClick={() => void discard(j.id)}>
                 Änderung verwerfen
               </button>

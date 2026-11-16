@@ -16,7 +16,17 @@ import { dateLabel, stale, time } from "./date";
 import { stored, useCockpit } from "./useCockpit";
 import { MOCK } from "./model";
 import { Icon } from "./Icon";
-type View = "Heute" | "Kalender" | "To-dos" | "Mails" | "Einstellungen";
+import { Subjects } from "./Subjects";
+type View = "Heute" | "Kalender" | "To-dos" | "Mails" | "Fächer" | "Einstellungen";
+type Page = "Cockpit" | "Fächer";
+// D27: settings stay in the header (gear), so the tab bar keeps 5 items with "Fächer".
+const TABS: [View, Parameters<typeof Icon>[0]["name"]][] = [
+  ["Heute", "home"],
+  ["Kalender", "calendar"],
+  ["To-dos", "todos"],
+  ["Mails", "mail"],
+  ["Fächer", "book"],
+];
 function Setup({ setup }: { setup: (code: string) => Promise<void> }) {
   const [code, setCode] = useState(() => {
     const hash = new URLSearchParams(location.hash.slice(1));
@@ -105,6 +115,18 @@ export default function App() {
   }, []);
   const cockpit = useCockpit();
   const [view, setView] = useState<View>("Heute");
+  // D27: on PC and iPad landscape (dashboard) two pages, Cockpit and Fächer; remembered per device.
+  const [page, setPageState] = useState<Page>(() =>
+    stored<Page>("cockpit.page", "Cockpit") === "Fächer" ? "Fächer" : "Cockpit",
+  );
+  const setPage = (next: Page) => {
+    setPageState(next);
+    try {
+      localStorage.setItem("cockpit.page", JSON.stringify(next));
+    } catch {
+      // per-device convenience only
+    }
+  };
   const [theme, setTheme] = useState(() =>
     stored<string>("cockpit.theme", "auto"),
   );
@@ -152,6 +174,7 @@ export default function App() {
           onClick={(e) => {
             e.preventDefault();
             setView("Heute");
+            setPage("Cockpit");
           }}
         >
           <span className="brand-mark">
@@ -164,6 +187,22 @@ export default function App() {
             </span>
           )}
         </a>
+        {dashboard && state && (
+          <div className="page-switch segmented" role="tablist" aria-label="Seite">
+            {(["Cockpit", "Fächer"] as Page[]).map((p) => (
+              <button
+                key={p}
+                role="tab"
+                aria-selected={page === p}
+                className={page === p ? "active" : ""}
+                onClick={() => setPage(p)}
+              >
+                <Icon name={p === "Cockpit" ? "home" : "book"} size={18} />
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="header-actions">
           <span className="status-dot" />
           <span className="small">
@@ -249,6 +288,10 @@ export default function App() {
               Verbindung neu einrichten
             </button>
           </div>
+        ) : dashboard && page === "Fächer" ? (
+          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} />
+        ) : view === "Fächer" && !dashboard ? (
+          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} />
         ) : dashboard ? (
           <div className="board">
             {/* D26: slim next-appointment bar, capture and its feedback on top */}
@@ -326,27 +369,19 @@ export default function App() {
           />
         )}
       </main>
-      {state && !dashboard && view !== "Einstellungen" && (
+      {state && !dashboard && view !== "Einstellungen" && view !== "Fächer" && (
         <QuickCapture now={now} mutate={cockpit.mutate} />
       )}
       {!dashboard && (
         <nav aria-label="Hauptnavigation">
-          {(
-            ["Heute", "Kalender", "To-dos", "Mails", "Einstellungen"] as View[]
-          ).map((v, i) => (
+          {TABS.map(([v, icon]) => (
             <button
               key={v}
               aria-current={view === v ? "page" : undefined}
               className={view === v ? "active" : ""}
               onClick={() => setView(v)}
             >
-              <Icon
-                name={
-                  (["home", "calendar", "todos", "mail", "settings"] as const)[
-                    i
-                  ]
-                }
-              />
+              <Icon name={icon} />
               {v}
             </button>
           ))}
