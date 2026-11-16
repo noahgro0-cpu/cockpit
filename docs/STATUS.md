@@ -1,6 +1,6 @@
 # Status
 
-Stand 2026-11-16 · **D27: Wetter-Fix, neues Widget, Fächer-Seite** (Abschnitt zuunterst). Phase 4 abgeschlossen (Abnahme unten, zwei Prüfpunkte laufen am 16./17.11. automatisch). Der Nutzer testet das Cockpit eine Woche im Alltag; danach weitere Verbesserungen nach Bedarf. Betrieb: `docs/BETRIEB.md`.
+Stand 2026-11-16 · **D28: Termine bearbeiten, Notizseiten mit Formatierung, Widget getönt** (Abschnitt zuunterst; davor D27). Phase 4 abgeschlossen (Abnahme unten). Der Nutzer testet das Cockpit eine Woche im Alltag; danach weitere Verbesserungen nach Bedarf. Betrieb: `docs/BETRIEB.md`.
 
 ## Erledigt
 ### Phase 0
@@ -448,3 +448,31 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 - Notizen sind Klartext (keine Fett-/Listen-Formatierung). Gleichzeitiges Bearbeiten auf zwei Geräten verliert nichts, setzt aber beide Fassungen untereinander.
 - Die Widget-Vorschau auf dem PC ist eine Annäherung; massgebend ist die Darstellung auf dem Gerät.
 - Ein Ordner `private/previews/` enthält Screenshots mit erfundenen Daten (nicht im Repo).
+
+## D28 – Termine bearbeiten, Notizseiten, Widget im getönten Modus, HIG-Durchgang (2026-11-16, Claude Code)
+
+### Erledigt
+- **Widget:** Auf dem iPad mit Home-Bildschirm-Stil «Getönt» war es ein schwarzes Feld mit drei weissen Kästen: Deckende Karten verdeckten im getönten Modus ihren Text. Karten, Kacheln und Linien sind jetzt halbtransparent, die Symbole sind zentriert, und jede Karte hat eine feste Breite (kein Text mehr über dem Rand). Vorschau inkl. Simulation «getönt»: `node widgets/preview.mjs` → `private/previews/widget-tinted.png`.
+- **Termine nachträglich ändern:** Termin antippen (Kalender, Fächer → Termine) → Titel, Datum, ganztägig/Uhrzeit, Ort, bei Prüfungen die Art, Fach; Löschen mit Rückfrage. Lektionen, Serientermine und abonnierte Kalender: nur das Fach (gilt für die ganze Serie). To-dos: wie bisher alles über den Stift, neu auch im Kalender über «Bearbeiten».
+- **Notizseiten pro Fach** (z. B. eine pro Lektion) mit Formatierung: Stile, Schriftgrösse, fett/kursiv/unterstrichen/durchgestrichen, Farben und Markierungen, Listen, Checklisten zum Abhaken, Tabellen, Bilder aus der Fotomediathek (auch Einfügen und Ziehen), Formeln (LaTeX), Links, Merksatz, Trennlinie, Datum, Rückgängig. Die bisherigen Notizen werden beim nächsten Lauf automatisch zur Seite «Notizen».
+- **Web-App (HIG):** einheitliche Kartentitel, grössere Nebentexte, mehr Abstand unter der iPad-Statusleiste in der Home-Bildschirm-App.
+- Tests: Backend 154, Web 71, Widget 12; Browser-Prüfung `web/scripts/browser-check.mjs` und neu `web/scripts/notes-check.mjs` (Editor, Speichern über Neuladen, Termin- und To-do-Bearbeitung) grün; Live-Test `backend/scripts/e2e.sh` siehe unten.
+
+### Manuelle Schritte für den Nutzer
+1. **Widget-Skript ersetzen (iPhone und iPad):** In Scriptable das Skript **Cockpit** öffnen → die zwei Zeilen `const SETUP_CODE = …` und `const PWA_URL = …` kopieren und in einer Notiz sichern → den ganzen Inhalt durch `widgets/Cockpit.js` aus dem Repo ersetzen → die zwei gesicherten Zeilen wieder oben einsetzen → **Fertig**. Das Widget aktualisiert sich innert 15 Min.; sofort: Widget lange drücken → **Widget bearbeiten** → ausserhalb tippen.
+2. **Screenshot «getönt»:** Auf dem iPad einen Screenshot vom grossen Widget machen und in den Chat einfügen (in Claude Code: Bild in das Terminalfenster ziehen) oder unter `private/screenshots/` ablegen.
+3. **Web-App neu laden** (auf dem iPad die App schliessen und neu öffnen) → **Fächer** → ein Fach → **Notizen** → «Neue Seite». Einen Termin im Kalender antippen und z. B. den Ort ändern.
+4. **Bilder freischalten** (erst zusammen mit Claude Code, sonst laufen Automatik und Briefing bis zur Freigabe nicht): Claude Code schreiben «Bilder freischalten». Claude Code ergänzt die Berechtigung und meldet sich. Dann:
+   1. Am PC https://script.google.com öffnen → Projekt **Cockpit**.
+   2. Links **Editor** (Symbol `< >`) → Datei **gas/notes.gs** anklicken.
+   3. Oben im Auswahlfeld neben **Ausführen** die Funktion **authorizeDrive** wählen → **Ausführen**.
+   4. **Berechtigungen prüfen** → eigenes Google-Konto wählen → **Erweitert** → **Zu Cockpit wechseln (unsicher)** → **Zulassen**. Die neue Berechtigung heisst sinngemäss «Nur die Google Drive-Dateien sehen, bearbeiten, erstellen und löschen, die Sie mit dieser App verwenden».
+   5. Im Ausführungsprotokoll erscheint «Drive ready». In Google Drive gibt es jetzt den Ordner **Cockpit Bilder**.
+   6. Claude Code «fertig» schreiben: Es veröffentlicht die neue Version, danach laden bereits eingefügte Bilder automatisch hoch (Einstellungen → Synchronisierung → «Jetzt erneut versuchen», falls nötig).
+
+### Bekannte Mängel / Grenzen
+- Bis zur Freigabe (Schritt 4) sind eingefügte Bilder nur auf dem Gerät sichtbar, auf dem sie eingefügt wurden.
+- Titel und Zeit von Serienterminen und Lektionen nur im Kalender selbst änderbar (Cockpit: nur das Fach).
+- Eine Notizseite fasst höchstens 45 000 Zeichen HTML (Hinweis ab 85 %). Für eine neue Lektion eine neue Seite beginnen.
+- Gelöschte Bilder und Seiten: Die Bilddateien bleiben im Drive-Ordner (Aufräumen von Hand möglich).
+- HIG-Auditor-Skill war in dieser Sitzung nicht verfügbar (vermutlich erst nach einem Neustart von Claude Code); geprüft nach den offiziellen Apple-HIG.

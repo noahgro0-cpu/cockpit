@@ -67,6 +67,10 @@ Antwort: `{ok:true,data}` oder `{ok:false,error:{code,message}}`, immer HTTP 200
 | `settings.update` | `Partial<Settings>`, mindestens ein Feld | `Settings` (schreibt in `config`; idempotent) |
 | `event.add` | `{calendar: "exams", title, date, kind: "exam"\|"deadline", subject?}` oder `{calendar: "default", title, date, start?, end?, location?, subject?}` | `CalEvent` (exams: ganztägig; default: Kalender `calCapture` bzw. Standardkalender, ohne `start` ganztägig, Ende Standard +60 Min.; idempotent über Kalender + Titel + Beginn; `kind` und `subject` als Event-Tags, D27) |
 | `subject.update` | `{id, patch: {keywords?, info?, links?, notes?}, base?: {info?, notes?}}` | `Subject` (D27; `base` = Hash des Ausgangstexts: hat ein anderes Gerät den Text inzwischen geändert, bleiben beide Fassungen erhalten) |
+| `event.update` | `{id, calendar, patch: {title?, date?, start?, end?, location?, kind?, subject?}}` | `CalEvent` (D28; Felder ausser `subject` nur bei `editable`: einzelne Termine in eigenen Kalendern, keine Lektionen/Serien/Abos. `date` allein = ganztägig, mit `start` mit Uhrzeit. `subject`: Fach-ID, `"-"` = kein Fach, `null` = automatisch; gilt für die ganze Serie, Tab `termin_faecher`. Die ID ändert sich mit dem Beginn) |
+| `event.delete` | `{id, calendar}` | `{id}` (D28; nur `editable`, idempotent) |
+| `note.add` / `note.update` / `note.delete` | `{id, subject, title, html?}` / `{id, patch: {title?, html?}, base?: {html}}` / `{id}` | `NotePage` bzw. `{id}` (D28; Notizseiten im Tab `notizen`, HTML des Editors, höchstens 45 000 Zeichen; `base` wie bei `subject.update`) |
+| `image.add` / `image.get` | `{id, subject, type: jpeg|png|webp, data: base64}` / `{id}` | `{id}` bzw. `{id, type, data}` (D28; Bild in Google Drive, Ordner «Cockpit Bilder», Scope `drive.file`; Tab `bilder`) |
 | `location.update` | `{lat, lon, name?}` (Zahlen oder Text mit Dezimalkomma) | `{at}` (nur letzter Standort, gerundet; nie im State; im Log nur «location updated» ohne Koordinaten/Ort; D20) |
 | `briefing.preview` | `{date?}` (heute bis +7 Tage) | `{text}` (Briefing inkl. Wetter zur Briefing-Zeit des Tages, ohne Versand) |
 

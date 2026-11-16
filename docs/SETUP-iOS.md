@@ -43,6 +43,7 @@ Du brauchst Zugriff auf das Cockpit-Google-Sheet und die veröffentlichte Cockpi
 - `todos`, `termine` oder `mails` stellt diese Karte an die erste Stelle und gibt ihr am meisten Platz (im mittleren Widget: diese Karte plus To-dos bzw. Termine).
 - `ohne Lektionen` (auch kombiniert, z. B. `termine, ohne Lektionen`) blendet Lektionen unter «Nächste Termine» aus. Sonst füllen Lektionen freie Zeilen; echte Termine haben immer Vorrang.
 - Überfällige To-dos erscheinen rot, dringende Mails mit rotem Punkt. Vertrauliche Mails zeigen nur «Vertrauliche Nachricht» und die Kategorie.
+- Das Widget passt sich allen Home-Bildschirm-Stilen an (Hell, Dunkel, Getönt, Klar). In «Getönt» und «Klar» färbt iOS alles einfarbig ein; die Karten bleiben dann als zarte Flächen sichtbar (D28).
 
 [Apple-Anleitung zum Hinzufügen und Bearbeiten von Widgets](https://support.apple.com/de-ch/118610) · [Scriptable-Dokumentation zum Widget-Parameter](https://docs.scriptable.app/args/)
 
