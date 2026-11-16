@@ -464,11 +464,12 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 3. **Web-App neu laden** (auf dem iPad die App schliessen und neu öffnen) → **Fächer** → ein Fach → **Notizen** → «Neue Seite». Einen Termin im Kalender antippen und z. B. den Ort ändern.
 4. **Bilder freischalten** (Berechtigung ist seit 16.11. hochgeladen, aber noch nicht veröffentlicht – bis zur Zustimmung laufen Automatik und Briefing nicht, darum bald erledigen):
    1. Am PC https://script.google.com öffnen → Projekt **Cockpit**.
-   2. Links **Editor** (Symbol `< >`) → Datei **gas/notes.gs** anklicken.
+   2. Seite neu laden (F5), damit der Editor den neuesten Stand zeigt. Links **Editor** (Symbol `< >`) → Datei **gas/notes.gs** anklicken.
    3. Oben im Auswahlfeld neben **Ausführen** die Funktion **authorizeDrive** wählen → **Ausführen**.
    4. **Berechtigungen prüfen** → eigenes Google-Konto wählen → **Erweitert** → **Zu Cockpit wechseln (unsicher)** → **Zulassen**. Die neue Berechtigung heisst sinngemäss «Nur die Google Drive-Dateien sehen, bearbeiten, erstellen und löschen, die Sie mit dieser App verwenden».
-   5. Im Ausführungsprotokoll erscheint «Drive ready». In Google Drive gibt es jetzt den Ordner **Cockpit Bilder**.
-   6. Claude Code «fertig» schreiben: Es veröffentlicht die neue Version, danach laden bereits eingefügte Bilder automatisch hoch (Einstellungen → Synchronisierung → «Jetzt erneut versuchen», falls nötig).
+   5. Erscheint statt «Drive ready» wieder «Bilder sind noch nicht freigeschaltet»: die Zeile «Drive HTTP …» darüber an Claude Code schicken. Falls dort «has not been used» oder «disabled» steht: links bei **Dienste** auf **+** → **Drive API** → **Hinzufügen**, dann Schritt 3 wiederholen.
+   6. Im Ausführungsprotokoll erscheint «Drive ready». In Google Drive gibt es jetzt den Ordner **Cockpit Bilder**.
+   7. Claude Code «fertig» schreiben: Es veröffentlicht die neue Version, danach laden bereits eingefügte Bilder automatisch hoch (Einstellungen → Synchronisierung → «Jetzt erneut versuchen», falls nötig).
 
 ### Bekannte Mängel / Grenzen
 - Bis zur Freigabe (Schritt 4) sind eingefügte Bilder nur auf dem Gerät sichtbar, auf dem sie eingefügt wurden.
