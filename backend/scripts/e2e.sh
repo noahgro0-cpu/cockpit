@@ -63,9 +63,10 @@ if [ -n "$SID" ]; then
   check "note.delete" "$(post "$(req note.delete "{\"id\":\"$NID\"}")")" 'r.ok'
   check "note.update deleted -> not_found" "$(post "$(req note.update "{\"id\":\"$NID\",\"patch\":{\"title\":\"x\"}}")")" '!r.ok && r.error.code==="not_found"'
 fi
-# Without the Drive permission (D28) a picture is a clear bad_request, never an endless retry.
+# Drive permission granted 2026-11-16: a picture is stored in Drive and comes back unchanged.
 if [ -n "$SID" ]; then
-  check "image.add without Drive scope -> bad_request (or ok once granted)" "$(post "$(req image.add "{\"id\":\"e2e-img\",\"subject\":\"$SID\",\"type\":\"image/jpeg\",\"data\":\"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==\"}")")" 'r.ok || r.error.code==="bad_request"'
+  check "image.add (Drive)" "$(post "$(req image.add "{\"id\":\"e2e-img\",\"subject\":\"$SID\",\"type\":\"image/jpeg\",\"data\":\"/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==\"}")")" 'r.ok && r.data.id==="e2e-img"'
+  check "image.get (Drive)" "$(post "$(req image.get '{"id":"e2e-img"}')")" 'r.ok && r.data.type==="image/jpeg" && r.data.data.startsWith("/9j/")'
 fi
 check "image.add svg -> bad_request" "$(post "$(req image.add '{"id":"x","subject":"x","type":"image/svg+xml","data":"QQ=="}')")" '!r.ok && r.error.code==="bad_request"'
 # D28 event edit: subject chosen by hand on the test exam, title change, both reverted.
