@@ -5,7 +5,7 @@
  */
 
 var TICK_BUDGET_MS = 4 * 60 * 1000;
-var SCHEMA_VERSION = "9";
+var SCHEMA_VERSION = "10";
 
 function tick() {
   var lock = LockService.getDocumentLock();
@@ -93,6 +93,7 @@ function ensureSchema_() {
     ensureConfig_();
     seedRules_();
     seedSubjects_(); // D27
+    migrateSubjectNotes_(); // D28
     // One-time: values for the iOS shortcuts, so no editor run is needed (D20).
     if (props_().getProperty("SHORTCUT_ROWS") !== "1") writeShortcutRows_();
     // One-time (user request 2026-11-15, D24): unimportant mails leave the inbox. Reversible in

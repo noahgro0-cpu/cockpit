@@ -20,6 +20,16 @@ function updateSubject_(p) {
   if (!isSubject) throw apiError("not_found", "No school category with this id");
   var rowNum = findRow_("faecher", p.id);
   var rec = rowNum ? rowToSubjectRecord(sheet_("faecher").getRange(rowNum, 1, 1, SUBJECT_COLUMNS.length).getValues()[0]) : null;
+  if (p.patch.notes !== undefined && props_().getProperty("NOTES_MIGRATED") === "1") {
+    // D28: notes live on note pages now; an edit from a client older than D28 becomes a page.
+    notesToPage_(p.id, p.patch.notes);
+    var rest = Object.assign({}, p.patch);
+    delete rest.notes;
+    if (!Object.keys(rest).length) {
+      return subjectFromRecord(rec || { id: p.id, keywords: [], info: "", links: [], notes: "", updatedAt: null });
+    }
+    p = { id: p.id, patch: rest, base: p.base };
+  }
   var stamp = toZurichIso(new Date());
   var label = stamp.slice(8, 10) + "." + stamp.slice(5, 7) + ". " + stamp.slice(11, 16);
   var r = applySubjectPatch(rec, p, nowIso_(), label);

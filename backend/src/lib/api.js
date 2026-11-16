@@ -98,6 +98,14 @@ function apiActions_() {
   "event.add": { validate: validateEventAdd, write: true },
   "settings.update": { validate: validateSettingsUpdate, write: true },
   "subject.update": { validate: validateSubjectUpdate, write: true },
+  // D28: event edits, note pages and note images.
+  "event.update": { validate: validateEventUpdate, write: true },
+  "event.delete": { validate: validateEventDelete, write: true },
+  "note.add": { validate: validateNoteAdd, write: true },
+  "note.update": { validate: validateNoteUpdate, write: true },
+  "note.delete": { validate: validateIdPayload, write: true },
+  "image.add": { validate: validateImageAdd, write: true },
+  "image.get": { validate: validateIdPayload, write: false },
   // Sent by the iOS shortcut; stored in a script property, so no sheet lock needed.
   "location.update": { validate: validateLocationUpdate, write: false },
   "briefing.preview": { validate: validateBriefingPreview, write: false },

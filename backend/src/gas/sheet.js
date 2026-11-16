@@ -12,6 +12,9 @@ function tabSpecs_() {
     config: ["key", "value"],
     log: ["ts", "level", "area", "message"],
     faecher: SUBJECT_COLUMNS,
+    notizen: NOTE_COLUMNS, // D28
+    bilder: IMAGE_COLUMNS,
+    termin_faecher: EVENT_SUBJECT_COLUMNS,
   };
 }
 

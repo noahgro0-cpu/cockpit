@@ -157,14 +157,20 @@ function subjectMatchers(categories, records) {
  * Sets `subject` on events: a valid explicit tag (event.subject from the calendar layer) wins,
  * else keyword matching on the title. Unknown ids are dropped. Returns new event objects.
  */
-function assignEventSubjects(events, matchers) {
+function assignEventSubjects(events, matchers, chosen) {
   var valid = {};
   (matchers || []).forEach(function (m) {
     valid[m.id] = true;
   });
   return (events || []).map(function (e) {
     var out = Object.assign({}, e);
-    var id = e.subject && valid[e.subject] ? e.subject : matchSubject(e.title, matchers);
+    // D28: a subject chosen by hand (per iCalUID, `chosen` from the tab termin_faecher) wins.
+    var pick = chosen ? chosen[eventKey(e.id)] : "";
+    if (pick === NO_SUBJECT) {
+      delete out.subject;
+      return out;
+    }
+    var id = pick && valid[pick] ? pick : e.subject && valid[e.subject] ? e.subject : matchSubject(e.title, matchers);
     if (id) out.subject = id;
     else delete out.subject;
     return out;
@@ -234,21 +240,10 @@ function applySubjectPatch(rec, payload, nowIso, stampLabel) {
   var conflict = false;
   ["info", "notes"].forEach(function (f) {
     if (patch[f] === undefined) return;
-    var incoming = patch[f];
     var max = f === "info" ? SUBJECT_LIMITS.info : SUBJECT_LIMITS.notes;
-    var mark = "\n\n--- Auch auf einem anderen Gerät geändert (";
-    var at = r[f].lastIndexOf(mark);
-    var tail = at >= 0 ? r[f].indexOf(") ---\n", at) : -1;
-    var stale = base[f] && base[f] !== textHash(r[f]);
-    if (stale && tail >= 0 && textHash(r[f].slice(tail + 6)) === base[f]) {
-      // After a merge the other device keeps editing its own part: replace it, never append again.
-      r[f] = (r[f].slice(0, tail + 6) + incoming).slice(0, max);
-    } else if (stale && incoming !== r[f] && r[f] !== "") {
-      conflict = true;
-      r[f] = (r[f] + mark + stampLabel + ") ---\n" + incoming).slice(0, max);
-    } else {
-      r[f] = incoming;
-    }
+    var m = mergeEdit(r[f], patch[f], base[f], stampLabel, max, false);
+    r[f] = m.text;
+    if (m.conflict) conflict = true;
   });
   if (patch.keywords !== undefined) r.keywords = parseKeywords(patch.keywords.join(","));
   if (patch.links !== undefined) {

@@ -128,6 +128,27 @@ function apiHandlers_() {
     "subject.update": function (p) {
       return updateSubject_(p);
     },
+    "event.update": function (p) {
+      return updateEvent_(p);
+    },
+    "event.delete": function (p) {
+      return deleteEvent_(p);
+    },
+    "note.add": function (p) {
+      return addNote_(p);
+    },
+    "note.update": function (p) {
+      return updateNote_(p);
+    },
+    "note.delete": function (p) {
+      return deleteNote_(p);
+    },
+    "image.add": function (p) {
+      return addImage_(p);
+    },
+    "image.get": function (p) {
+      return getImage_(p);
+    },
     "settings.update": function (p) {
       settingsToConfigPairs(p).forEach(function (kv) {
         setConfigValue_(kv[0], kv[1]);
@@ -197,6 +218,8 @@ function buildCurrentState_() {
     briefing: briefing,
     settings: settingsFromConfig(config),
     subjects: readSubjectRecords_(),
+    eventSubjects: readEventSubjects_(),
+    notes: readNotes_(),
   });
 }
 

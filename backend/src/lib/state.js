@@ -283,7 +283,10 @@ function selectMails(entries, now) {
     .slice(0, 50);
 }
 
-/** input.subjects = stored subject records (D27); State.subjects has one entry per school category. */
+/**
+ * input.subjects = stored subject records (D27); State.subjects has one entry per school category.
+ * D28: input.eventSubjects = {iCalUID: subject chosen by hand}, input.notes = note pages.
+ */
 function buildState(input) {
   var cats = input.settings ? input.settings.categories : [];
   var matchers = subjectMatchers(cats, input.subjects || []);
@@ -291,13 +294,14 @@ function buildState(input) {
     schema: 1,
     generatedAt: toZurichIso(input.now),
     health: input.health,
-    events: sortEvents(assignEventSubjects(input.events, matchers)),
-    exams: sortEvents(assignEventSubjects(input.exams, matchers)),
+    events: sortEvents(assignEventSubjects(input.events, matchers, input.eventSubjects)),
+    exams: sortEvents(assignEventSubjects(input.exams, matchers, input.eventSubjects)),
     todos: selectTodos(input.todos, input.now),
     mails: selectMails(input.mails, input.now),
     briefing: input.briefing || null,
     settings: input.settings,
     subjects: subjectsForState(cats, input.subjects || []),
+    notes: notesForState(input.notes, cats), // D28
   };
 }
 

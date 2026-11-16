@@ -53,16 +53,26 @@ check "getState: no todo left over" "$S" "!r.data.todos.some(t=>t.id==='$ID')"
 check "getState: subjects" "$S" "Array.isArray(r.data.subjects) && r.data.subjects.every(x=>typeof x.notes===\"string\")"
 check "subject.update unknown -> not_found" "$(post "$(req subject.update '{"id":"does-not-exist","patch":{"notes":"x"}}')")" '!r.ok && r.error.code==="not_found"'
 check "subject.update javascript link -> bad_request" "$(post "$(req subject.update '{"id":"x","patch":{"links":[{"label":"x","url":"javascript:alert(1)"}]}}')")" '!r.ok && r.error.code==="bad_request"'
-SID=$(R="$S" node -e "const s=(JSON.parse(process.env.R).data.subjects||[]).find(x=>!x.notes&&!x.info);console.log(s?s.id:\"\")")
+SID=$(R="$S" node -e "const s=(JSON.parse(process.env.R).data.subjects||[])[0];console.log(s?s.id:\"\")")
+# D28 note pages: a test page with formula-like text, edited and deleted again.
 if [ -n "$SID" ]; then
-  NOTE='"=1+1\n- 2026-11-20\n+41 Test"'   # JSON string literal
-  UP=$(printf '{"id":"%s","patch":{"notes":%s},"base":{"notes":"811c9dc5"}}' "$SID" "$NOTE")
-  check "subject.update keeps formula-like text" "$(post "$(req subject.update "$UP")")" "r.ok && r.data.notes===$NOTE"
-  check "getState shows the note as text" "$(post "$(req getState)")" "r.ok && r.data.subjects.find(x=>x.id==='$SID').notes===$NOTE"
-  check "subject.update restores empty note" "$(post "$(req subject.update "{\"id\":\"$SID\",\"patch\":{\"notes\":\"\"}}")")" 'r.ok && r.data.notes===""'
-else
-  echo "skip subject round trip (all subjects have notes)"
+  NID="e2e-note-$(date +%s)"
+  check "note.add (formula-like title)" "$(post "$(req note.add "{\"id\":\"$NID\",\"subject\":\"$SID\",\"title\":\"=1+1 Test\",\"html\":\"<p>+41 Test</p>\"}")")" 'r.ok && r.data.title==="=1+1 Test" && r.data.html==="<p>+41 Test</p>"'
+  check "note.update (base of the old text)" "$(post "$(req note.update "{\"id\":\"$NID\",\"patch\":{\"html\":\"<p>neu</p>\"},\"base\":{\"html\":\"$(node -e 'let h=0x811c9dc5;for(const c of "<p>+41 Test</p>"){h^=c.charCodeAt(0);h=Math.imul(h,0x01000193)>>>0}console.log(h.toString(16).padStart(8,"0"))')\"}}")")" 'r.ok && r.data.html==="<p>neu</p>"'
+  check "getState: note page" "$(post "$(req getState)")" "r.ok && r.data.notes.some(n=>n.id==='$NID' && n.subject==='$SID')"
+  check "note.delete" "$(post "$(req note.delete "{\"id\":\"$NID\"}")")" 'r.ok'
+  check "note.update deleted -> not_found" "$(post "$(req note.update "{\"id\":\"$NID\",\"patch\":{\"title\":\"x\"}}")")" '!r.ok && r.error.code==="not_found"'
 fi
+check "image.add svg -> bad_request" "$(post "$(req image.add '{"id":"x","subject":"x","type":"image/svg+xml","data":"QQ=="}')")" '!r.ok && r.error.code==="bad_request"'
+# D28 event edit: subject chosen by hand on the test exam, title change, both reverted.
+TEV=$(R="$S" node -e "const e=JSON.parse(process.env.R).data.exams.find(e=>e.title.startsWith('Cockpit-Test'));console.log(e?JSON.stringify({id:e.id,calendar:e.calendar}):'')")
+if [ -n "$TEV" ] && [ -n "$SID" ]; then
+  REF=${TEV%?}
+  check "test exam is editable" "$S" "r.data.exams.find(e=>e.title.startsWith('Cockpit-Test')).editable===true"
+  check "event.update subject + title" "$(post "$(req event.update "$REF,\"patch\":{\"subject\":\"$SID\",\"title\":\"Cockpit-Test Pruefung (geaendert)\"}}")")" "r.ok && r.data.subject==='$SID' && r.data.title==='Cockpit-Test Pruefung (geaendert)'"
+  check "event.update back (automatic subject)" "$(post "$(req event.update "$REF,\"patch\":{\"subject\":null,\"title\":\"Cockpit-Test Pruefung (bitte loeschen)\"}}")")" "r.ok && r.data.title==='Cockpit-Test Pruefung (bitte loeschen)'"
+fi
+check "event.update unknown -> not_found" "$(post "$(req event.update '{"id":"nope@x_1","calendar":"Prüfungen","patch":{"title":"x"}}')")" '!r.ok && r.error.code==="not_found"'
 
 check "getWidget" "$(post "$(req getWidget)")" 'r.ok && r.data.schema===1 && Array.isArray(r.data.today) && r.data.todos.length<=5'
 

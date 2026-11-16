@@ -38,9 +38,16 @@ export interface CalEvent {
   routine?: boolean;
   /**
    * Subject (id of a category with group "schule", D27): explicit tag of events created by Cockpit,
-   * else matched by the subject keywords in the title. Missing = no subject.
+   * else matched by the subject keywords in the title. Missing = no subject. D28: a subject chosen
+   * by hand (event.update) wins and covers every instance of a series.
    */
   subject?: string;
+  /**
+   * D28: title, time, place (and for exams the kind) can be changed with event.update and the
+   * event can be deleted. Missing for lectures, recurring series and read-only calendars: these
+   * only take a subject choice.
+   */
+  editable?: boolean;
 }
 
 export interface Todo {
@@ -109,9 +116,39 @@ export interface Subject {
   info: string;
   /** At most 20. */
   links: SubjectLink[];
-  /** Plain text, at most 20 000 characters. */
+  /** Plain text notes before D28; moved to note pages by the schema update, then empty. */
   notes: string;
   updatedAt: ISODateTime | null;
+}
+
+/**
+ * Note page of a subject (D28). `html` comes from the PWA editor; it is always parsed through the
+ * editor schema, never inserted as raw HTML. Images are referenced as <img data-image="id">.
+ */
+export interface NotePage {
+  id: string;
+  subject: string;
+  /** One line, at most 100 characters. */
+  title: string;
+  /** At most 45 000 characters. */
+  html: string;
+  createdAt: ISODateTime | null;
+  updatedAt: ISODateTime | null;
+}
+
+/** event.update patch (D28). date/start/end set the time together: date alone = all-day. */
+export interface EventPatch {
+  title?: string;
+  date?: ISODate;
+  /** HH:MM, Europe/Zurich. */
+  start?: string;
+  /** HH:MM, needs start; default start + 60 min. */
+  end?: string;
+  location?: string;
+  /** Exams calendar only. */
+  kind?: "exam" | "deadline";
+  /** Subject id, "-" = no subject, null = automatic (keywords). Allowed on every event. */
+  subject?: string | null;
 }
 
 export interface SubjectPatch {
@@ -150,6 +187,8 @@ export interface State {
   settings: Settings;
   /** One per school category (D27). Optional: missing in states cached before 2026-11-16. */
   subjects?: Subject[];
+  /** Note pages of all subjects, newest first (D28). Optional: missing in older cached states. */
+  notes?: NotePage[];
 }
 
 /** Compact state for Scriptable widgets (action `getWidget`). */
@@ -278,6 +317,21 @@ export interface ApiActions {
     payload: { id: string; patch: SubjectPatch; base?: { info?: string; notes?: string } };
     data: Subject;
   };
+  /**
+   * D28. `id`/`calendar` as in CalEvent. The answer is the changed event; its id changes when
+   * the start changes. Fields other than `subject` need `editable`, else bad_request.
+   */
+  "event.update": { payload: { id: string; calendar: string; patch: EventPatch }; data: CalEvent };
+  /** D28. Only editable events; idempotent. */
+  "event.delete": { payload: { id: string; calendar: string }; data: { id: string } };
+  /** D28. Idempotent per id. */
+  "note.add": { payload: { id: string; subject: string; title: string; html?: string }; data: NotePage };
+  /** D28. base.html = textHash of the html the edit started from (both versions kept on conflict). */
+  "note.update": { payload: { id: string; patch: { title?: string; html?: string }; base?: { html: string } }; data: NotePage };
+  "note.delete": { payload: { id: string }; data: { id: string } };
+  /** D28. Picture for a note page, stored in Google Drive; data = base64, at most about 2 MB. */
+  "image.add": { payload: { id: string; subject: string; type: "image/jpeg" | "image/png" | "image/webp"; data: string }; data: { id: string } };
+  "image.get": { payload: { id: string }; data: { id: string; type: string; data: string } };
   /**
    * Sent by the iOS shortcut (D20). Stores only the latest location, rounded to ~1 km; it is used
    * for the briefing weather while it is at most 12 h old and never appears in `getState`.

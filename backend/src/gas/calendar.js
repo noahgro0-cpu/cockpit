@@ -4,7 +4,7 @@ var EVENT_KIND_TAG = "cockpitKind";
 // D27: subject (school category id) of events created by Cockpit; other events match by keywords.
 var EVENT_SUBJECT_TAG = "cockpitSubject";
 
-function toCalEvent_(ev, calendarName, config, withTag, subjects) {
+function toCalEvent_(ev, calendarName, config, withTag, subjects, writable) {
   var allDay = ev.isAllDayEvent();
   var title = ev.getTitle();
   var tag = withTag ? ev.getTag(EVENT_KIND_TAG) || "" : "";
@@ -29,6 +29,9 @@ function toCalEvent_(ev, calendarName, config, withTag, subjects) {
     recurring = false;
   }
   if (isRoutineEvent(e.kind, calendarName, recurring, config)) e.routine = true;
+  // D28: title and time can be changed in Cockpit for single events in an own calendar. Lectures
+  // (mapped titles), series and subscribed calendars keep only the subject choice.
+  if (writable && !recurring && kind !== "lecture") e.editable = true;
   var subject = withTag ? ev.getTag(EVENT_SUBJECT_TAG) || "" : "";
   if (subject) e.subject = subject;
   return e;
@@ -51,12 +54,13 @@ function readCalendarEvents_(config, now) {
     var isExams = name === config.calExams;
     // Tags exist only on events Cockpit created: read them only in its own calendars.
     var tagged = isExams || cal.getId() === captureId;
+    var writable = name !== config.calLectures && calendarWritable_(cal);
     cal.getEvents(from, to).forEach(function (ev) {
-      events.push(toCalEvent_(ev, name, config, tagged, subjects));
+      events.push(toCalEvent_(ev, name, config, tagged, subjects, writable));
     });
     if (isExams) {
       cal.getEvents(zurichMidnight(today), zurichMidnight(addDaysIso(today, 121))).forEach(function (ev) {
-        exams.push(toCalEvent_(ev, name, config, true));
+        exams.push(toCalEvent_(ev, name, config, true, null, writable));
       });
     }
   });
@@ -106,7 +110,7 @@ function addEvent_(p) {
   }
   if (p.calendar === "exams") ev.setTag(EVENT_KIND_TAG, p.kind);
   if (p.subject) ev.setTag(EVENT_SUBJECT_TAG, p.subject);
-  return toCalEvent_(ev, cal.getName(), config, true, readSubjectNames_());
+  return toCalEvent_(ev, cal.getName(), config, true, readSubjectNames_(), true);
 }
 
 function captureCalendar_(config) {
@@ -132,5 +136,77 @@ function createCaptureEvent_(ev, config) {
     created = cal.createEvent(ev.title, ev.start, ev.end, opts);
   }
   if (ev.subject) created.setTag(EVENT_SUBJECT_TAG, ev.subject);
-  return toCalEvent_(created, cal.getName(), config, true);
+  return toCalEvent_(created, cal.getName(), config, true, null, true);
+}
+
+/** Own calendars are writable; subscribed and read-only shared ones are not (D28). */
+function calendarWritable_(cal) {
+  try {
+    return cal.isOwnedByMe();
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * The calendar event behind a Cockpit event id (iCalUID + "_" + start ms) in the named calendar,
+ * or null. Searches around the start, so it finds a single instance of a series too.
+ */
+function findEvent_(calendarName, id) {
+  var cals = CalendarApp.getCalendarsByName(calendarName);
+  if (!cals.length) return null;
+  var uid = eventKey(id);
+  var ms = Number(id.slice(id.lastIndexOf("_") + 1));
+  var hits = cals[0].getEvents(new Date(ms - 1000), new Date(ms + 60000)).filter(function (ev) {
+    return ev.getId() === uid && ev.getStartTime().getTime() === ms;
+  });
+  return hits.length ? { cal: cals[0], ev: hits[0] } : null;
+}
+
+/** The event as getState shows it, after an edit (with the subject chosen by hand applied). */
+function eventView_(cal, ev, config) {
+  var tagged = cal.getName() === config.calExams || cal.getId() === captureCalendar_(config).getId();
+  var e = toCalEvent_(ev, cal.getName(), config, tagged, readSubjectNames_(), cal.getName() !== config.calLectures && calendarWritable_(cal));
+  return assignEventSubjects([e], subjectMatchers_(config), readEventSubjects_())[0];
+}
+
+/** event.update (D28, caller holds the write lock). */
+function updateEvent_(p) {
+  var config = readConfig_();
+  var found = findEvent_(p.calendar, p.id);
+  if (!found) throw apiError("not_found", "Termin nicht gefunden (inzwischen geändert oder gelöscht?)");
+  var patch = p.patch;
+  if (patch.subject !== undefined) setEventSubject_(eventKey(p.id), patch.subject);
+  var changes = Object.keys(patch).filter(function (k) {
+    return k !== "subject";
+  });
+  if (changes.length) {
+    var view = eventView_(found.cal, found.ev, config);
+    if (!view.editable) throw apiError("bad_request", "Dieser Termin kann nur im Kalender selbst geändert werden.");
+    var ev = found.ev;
+    if (patch.title !== undefined) ev.setTitle(patch.title.trim());
+    if (patch.location !== undefined) ev.setLocation(patch.location.trim());
+    var span = eventPatchSpan(patch);
+    if (span && view.calendar === config.calExams && !span.allDay) throw apiError("bad_request", "Prüfungen und Abgaben sind ganztägig.");
+    if (span) {
+      var parts = patch.date.split("-");
+      if (span.allDay) ev.setAllDayDate(new Date(+parts[0], +parts[1] - 1, +parts[2])); // script time zone = Europe/Zurich
+      else ev.setTime(span.start, span.end);
+    }
+    if (patch.kind !== undefined && view.calendar === config.calExams) ev.setTag(EVENT_KIND_TAG, patch.kind);
+  }
+  return eventView_(found.cal, found.ev, config);
+}
+
+/** event.delete (D28): only events Cockpit may edit; idempotent (gone = done). */
+function deleteEvent_(p) {
+  var config = readConfig_();
+  var found = findEvent_(p.calendar, p.id);
+  if (!found) return { id: p.id };
+  if (!eventView_(found.cal, found.ev, config).editable) {
+    throw apiError("bad_request", "Dieser Termin kann nur im Kalender selbst gelöscht werden.");
+  }
+  found.ev.deleteEvent();
+  setEventSubject_(eventKey(p.id), null);
+  return { id: p.id };
 }
