@@ -25,7 +25,12 @@ const esc = s => String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", 
 const GLYPH = { checklist: "☰", calendar: "▦", "envelope.fill": "✉", circle: "○" };
 
 function host(theme) {
-  const pick = c => (c && c.light ? (theme === "dark" ? c.dark : c.light) : c)?.hex;
+  // "tinted" imitates the tinted Home Screen: every view becomes a white silhouette of its alpha.
+  const pick = c => {
+    const v = c && c.light ? (theme === "light" ? c.light : c.dark) : c;
+    if (!v) return undefined;
+    return theme === "tinted" ? `rgba(255,255,255,${v.alpha})` : v.css;
+  };
   class Node {
     constructor(tag) { this.tag = tag; this.children = []; this.vertical = false; this.align = null; }
     addStack() { const s = new Node("stack"); this.children.push(s); return s; }
@@ -43,8 +48,8 @@ function host(theme) {
         : `<div style="flex:none;${vertical ? "height" : "width"}:${node.n}px"></div>`;
     }
     if (node.tag === "text") {
-      const color = pick(node.textColor) ?? (theme === "dark" ? "#fff" : "#000");
-      return `<span style="font-size:${node.font.size}px;font-weight:${node.font.weight};color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;line-height:1.2">${esc(node.text)}</span>`;
+      const color = pick(node.textColor) ?? (theme === "light" ? "#000" : "#fff");
+      return `<span style="font-size:${node.font.size}px;font-weight:${node.font.weight};color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;line-height:1.2">${esc(node.text)}</span>`;
     }
     if (node.tag === "image") {
       const color = pick(node.tintColor) ?? "#888";
@@ -54,10 +59,11 @@ function host(theme) {
     const st = [`display:flex`, `flex-direction:${node.vertical ? "column" : "row"}`, `box-sizing:border-box`, `min-width:0`];
     st.push(`align-items:${node.align ?? (node.vertical ? "flex-start" : "center")}`);
     if (node.size?.width) st.push(`width:${node.size.width}px;flex:none`);
-    else if (!vertical) st.push("flex:1 1 0");
+    else if (!vertical) st.push("flex:0 1 auto");
     else st.push("align-self:stretch");
     if (node.size?.height) st.push(`height:${node.size.height}px`);
-    if (node.backgroundColor) st.push(`background:${pick(node.backgroundColor)}`);
+    if (node.tag === "widget" && theme === "tinted") st.push("background:rgba(30,40,60,.55)");
+    else if (node.backgroundColor) st.push(`background:${pick(node.backgroundColor)}`);
     if (node.cornerRadius) st.push(`border-radius:${node.cornerRadius}px`);
     if (node.padding) st.push(`padding:${node.padding.map(p => p + "px").join(" ")}`);
     return `<div style="${st.join(";")}">${node.children.map(c => html(c, node.vertical)).join("")}</div>`;
@@ -68,7 +74,11 @@ function host(theme) {
       ListWidget: class extends Node { constructor() { super("widget"); this.vertical = true; } },
       Size: class { constructor(width, height) { this.width = width; this.height = height; } },
       Color: class {
-        constructor(hex) { this.hex = hex; }
+        constructor(hex, alpha = 1) {
+          const n = parseInt(hex.slice(1), 16);
+          this.alpha = alpha;
+          this.css = `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alpha})`;
+        }
         static dynamic(light, dark) { return { light, dark }; }
         static white() { return new this("#ffffff"); }
       },
@@ -84,7 +94,7 @@ const source = readFileSync(new URL("./Cockpit.js", import.meta.url), "utf8");
 const browser = await chromium.launch();
 const page = await browser.newPage({ deviceScaleFactor: 2 });
 const variants = [["", "Standard"], ["termine", "termine"]];
-for (const theme of ["light", "dark"]) {
+for (const theme of ["light", "dark", "tinted"]) {
   const h = host(theme);
   const api = await new Script(`(async () => { ${source}\n return { widgetModel, renderWidget }; })()`).runInNewContext(h.context);
   let body = "";
@@ -95,11 +105,11 @@ for (const theme of ["light", "dark"]) {
       body += `<figure><figcaption>${family} · ${label}</figcaption><div style="width:${w}px;height:${hgt}px;border-radius:${lock ? 12 : 22}px;overflow:hidden;background:${lock ? "#555" : h.context.Color ? "" : ""};${lock ? "color:#fff" : ""}">${h.html(widget, true).replace("<div style=\"", `<div style="height:100%;`)}</div></figure>`;
     }
   }
-  const bg = theme === "dark" ? "#000" : "linear-gradient(135deg,#a9c4ef,#b7b0e8)";
-  writeFileSync(new URL(`widget-${theme}.html`, out), `<!doctype html><meta charset="utf-8"><body style="margin:0;padding:20px;background:${bg};font-family:-apple-system,system-ui,'Segoe UI',sans-serif;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">${body}<style>figure{margin:0}figcaption{font:12px system-ui;color:${theme === "dark" ? "#ccc" : "#222"};margin-bottom:6px}</style>`);
+  const bg = theme === "dark" ? "#000" : theme === "tinted" ? "linear-gradient(135deg,#1d3b2a,#2d2d4a)" : "linear-gradient(135deg,#a9c4ef,#b7b0e8)";
+  writeFileSync(new URL(`widget-${theme}.html`, out), `<!doctype html><meta charset="utf-8"><body style="margin:0;padding:20px;background:${bg};font-family:-apple-system,system-ui,'Segoe UI',sans-serif;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">${body}<style>figure{margin:0}figcaption{font:12px system-ui;color:${theme === "light" ? "#222" : "#ccc"};margin-bottom:6px}</style>`);
   await page.goto(new URL(`widget-${theme}.html`, out).href);
   await page.setViewportSize({ width: 1180, height: 820 });
   await page.screenshot({ path: new URL(`widget-${theme}.png`, out).pathname.slice(1), fullPage: true });
 }
 await browser.close();
-console.log("written to private/previews/widget-{light,dark}.png");
+console.log("written to private/previews/widget-{light,dark,tinted}.png");

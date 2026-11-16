@@ -33,23 +33,30 @@ const METRICS = {
   separator: 6.5, // 3 + 0.5 + 3
   status: 13,
 };
-// Widget heights in points by portrait screen size (Apple HIG, Widgets → Specifications; iPad =
-// layout canvas). [screen width, screen height, small/medium height, large height]
-const WIDGET_HEIGHTS = [
-  [430, 932, 170, 382], [428, 926, 170, 382], [414, 896, 169, 379], [414, 736, 157, 357],
-  [393, 852, 158, 354], [390, 844, 158, 354], [375, 812, 155, 345], [375, 667, 148, 324],
-  [360, 780, 155, 345], [320, 568, 141, 311],
-  [768, 1024, 141, 305.5], [744, 1133, 141, 305.5], [810, 1080, 146, 320.5], [820, 1180, 155, 342],
-  [834, 1112, 150, 327.5], [834, 1194, 155, 342], [1024, 1366, 170, 378.5],
+// Widget sizes in points by portrait screen size (Apple HIG, Widgets → Specifications; iPad =
+// layout canvas). [screen width, screen height, small side, medium/large width, large height]
+const WIDGET_SIZES = [
+  [430, 932, 170, 364, 382], [428, 926, 170, 364, 382], [414, 896, 169, 360, 379], [414, 736, 157, 348, 357],
+  [393, 852, 158, 338, 354], [390, 844, 158, 338, 354], [375, 812, 155, 329, 345], [375, 667, 148, 321, 324],
+  [360, 780, 155, 329, 345], [320, 568, 141, 292, 311],
+  [768, 1024, 141, 305.5, 305.5], [744, 1133, 141, 305.5, 305.5], [810, 1080, 146, 320.5, 320.5],
+  [820, 1180, 155, 342, 342], [834, 1112, 150, 327.5, 327.5], [834, 1194, 155, 342, 342],
+  [1024, 1366, 170, 378.5, 378.5],
 ];
-/** Usable heights inside the widget padding for a screen; unknown screens get the smallest listed size. */
+/**
+ * Usable sizes inside the widget padding for a screen; unknown screens get the smallest listed
+ * size. Heights bound the rows, widths pin every card so a long text never widens it (D28).
+ */
 function heightsFor(screen) {
   const w = Math.min(screen?.width ?? 0, screen?.height ?? 0);
   const h = Math.max(screen?.width ?? 0, screen?.height ?? 0);
-  const row = WIDGET_HEIGHTS.find(([sw, sh]) => sw === w && sh === h);
-  const [, , box, large] = row ?? [0, 0, 141, 305.5];
+  const row = WIDGET_SIZES.find(([sw, sh]) => sw === w && sh === h);
+  const [, , box, wide, large] = row ?? [0, 0, 141, 292, 305.5];
   const inner = v => Math.floor(v - 2 * METRICS.pad);
-  return { small: inner(box), medium: inner(box), large: inner(large) };
+  return {
+    small: inner(box), medium: inner(box), large: inner(large),
+    width: { small: inner(box), medium: inner(wide), large: inner(wide) },
+  };
 }
 // Default (iPhone 390x844); the widget uses heightsFor(Device.screenSize()).
 const HEIGHT = heightsFor({ width: 390, height: 844 });
@@ -374,24 +381,28 @@ async function loadState(connection) {
 // --- Rendering (Scriptable only) ---------------------------------------------------------
 
 function colors() {
-  const dynamic = (light, dark) => Color.dynamic(new Color(light), new Color(dark));
-  // iOS system colours, light/dark (D27, template widgets/… in private/): tinted cards on white.
+  const dynamic = (light, dark) => Color.dynamic(light, dark);
+  const hex = (value, alpha = 1) => new Color(value, alpha);
+  // D28: iOS system colours. Cards, tiles and separators are translucent tints, never opaque
+  // fills: the tinted and clear Home Screen styles draw every view as a one-colour silhouette of
+  // its alpha, so an opaque card would cover its own (equally tinted) text.
+  const tint = (light, dark, alpha) => dynamic(hex(light, alpha), hex(dark, alpha * 1.8));
   return {
-    background: dynamic("#ffffff", "#1c1c1e"),
-    ink: dynamic("#000000", "#ffffff"),
-    muted: dynamic("#6e6e73", "#aeaeb2"),
-    separator: dynamic("#d8d8dd", "#3a3a3c"),
-    danger: dynamic("#d70015", "#ff6961"),
-    circle: dynamic("#a1a1a6", "#8e8e93"),
-    todos: { card: dynamic("#f2f2f7", "#2c2c2e"), tile: dynamic("#8e8e93", "#636366") },
-    events: { card: dynamic("#e9f1fe", "#13253d"), tile: dynamic("#0a7aff", "#0a84ff") },
-    mails: { card: dynamic("#fff2e6", "#3a2a19"), tile: dynamic("#ff9500", "#ff9f0a") },
+    background: dynamic(hex("#ffffff"), hex("#1c1c1e")),
+    ink: dynamic(hex("#000000"), hex("#ffffff")),
+    muted: dynamic(hex("#3c3c43", 0.62), hex("#ebebf5", 0.62)),
+    separator: dynamic(hex("#3c3c43", 0.16), hex("#ebebf5", 0.16)),
+    danger: dynamic(hex("#d70015"), hex("#ff6961")),
+    circle: dynamic(hex("#3c3c43", 0.42), hex("#ebebf5", 0.42)),
+    todos: { card: tint("#787880", "#787880", 0.1), tile: dynamic(hex("#636366"), hex("#c7c7cc")) },
+    events: { card: tint("#007aff", "#0a84ff", 0.09), tile: dynamic(hex("#007aff"), hex("#409cff")) },
+    mails: { card: tint("#ff9500", "#ff9f0a", 0.11), tile: dynamic(hex("#c93400"), hex("#ffb340")) },
     mark: {
-      event: dynamic("#0a7aff", "#0a84ff"),
-      lecture: dynamic("#8fb9f5", "#4f7fbf"),
-      exam: dynamic("#af52de", "#bf5af2"),
-      mail: dynamic("#ff9500", "#ff9f0a"),
-      urgent: dynamic("#ff3b30", "#ff453a"),
+      event: dynamic(hex("#007aff"), hex("#0a84ff")),
+      lecture: dynamic(hex("#007aff", 0.4), hex("#0a84ff", 0.55)),
+      exam: dynamic(hex("#af52de"), hex("#bf5af2")),
+      mail: dynamic(hex("#ff9500"), hex("#ff9f0a")),
+      urgent: dynamic(hex("#ff3b30"), hex("#ff453a")),
     },
   };
 }
@@ -407,6 +418,28 @@ function symbol(name, font) {
   return s.image;
 }
 
+/** Fits an image into a square box keeping its aspect ratio (symbols are rarely square). */
+function fitted(image, box) {
+  const w = image?.size?.width || box;
+  const h = image?.size?.height || box;
+  const k = Math.min(box / w, box / h);
+  return new Size(Math.round(w * k * 2) / 2, Math.round(h * k * 2) / 2);
+}
+
+/** Adds an image centred in both axes of a fixed-size stack (D28: centerAlignContent alone
+ * centres only across the stack's axis). */
+function centredImage(stack, image, box, color) {
+  stack.layoutVertically();
+  stack.addSpacer();
+  const row = stack.addStack();
+  row.addSpacer();
+  const icon = row.addImage(image);
+  icon.imageSize = fitted(image, box);
+  icon.tintColor = color;
+  row.addSpacer();
+  stack.addSpacer();
+}
+
 function renderText(stack, text, font, color, lines = 1) {
   const label = stack.addText(text);
   label.font = font;
@@ -420,21 +453,20 @@ function renderHeader(stack, card, palette) {
   const row = stack.addStack();
   row.centerAlignContent();
   row.size = new Size(0, METRICS.header);
+  // D28: coloured glyph on a translucent tile of the same colour (stays readable when tinted).
   const tile = row.addStack();
   tile.size = new Size(METRICS.header, METRICS.header);
   tile.cornerRadius = 6;
-  tile.backgroundColor = palette[card.kind].tile;
-  tile.centerAlignContent();
+  tile.backgroundColor = palette[card.kind].card;
   const image = symbol(ICONS[card.kind], Font.semiboldSystemFont(12));
-  if (image) {
-    const icon = tile.addImage(image);
-    icon.imageSize = new Size(13, 13);
-    icon.tintColor = Color.white();
-  }
-  row.addSpacer(8);
+  if (image) centredImage(tile, image, 13, palette[card.kind].tile);
+  row.addSpacer(7);
   renderText(row, card.title, Font.boldSystemFont(15), palette.ink);
   row.addSpacer();
-  if (card.count) renderText(row, card.count, Font.systemFont(12), palette.muted);
+  if (card.count) {
+    row.addSpacer(4);
+    renderText(row, card.count, Font.systemFont(12), palette.muted);
+  }
   stack.addSpacer(METRICS.headerGap);
 }
 
@@ -456,9 +488,9 @@ function renderTodoRow(stack, row, palette) {
   line.size = new Size(0, METRICS.line);
   const image = symbol("circle", Font.regularSystemFont(13));
   if (image) {
-    const icon = line.addImage(image);
-    icon.imageSize = new Size(14, 14);
-    icon.tintColor = palette.circle;
+    const slot = line.addStack();
+    slot.size = new Size(14, METRICS.line);
+    centredImage(slot, image, 14, palette.circle);
   }
   line.addSpacer(8);
   renderText(line, row.text, Font.systemFont(13), palette[row.tone ?? "ink"]);
@@ -473,7 +505,11 @@ function renderTwoLineRow(stack, row, palette, kind) {
   const line = stack.addStack();
   line.size = new Size(0, ROW_HEIGHT[kind]);
   line.centerAlignContent();
-  const mark = line.addStack();
+  const slot = line.addStack();
+  slot.size = new Size(8, ROW_HEIGHT[kind]);
+  slot.layoutVertically();
+  slot.addSpacer();
+  const mark = slot.addStack();
   if (kind === "events") {
     mark.size = new Size(3, ROW_HEIGHT[kind] - 3);
     mark.cornerRadius = 1.5;
@@ -482,7 +518,8 @@ function renderTwoLineRow(stack, row, palette, kind) {
     mark.cornerRadius = 4;
   }
   mark.backgroundColor = palette.mark[row.mark] ?? palette.mark.event;
-  line.addSpacer(kind === "events" ? 9 : 8);
+  slot.addSpacer();
+  line.addSpacer(kind === "events" ? 4 : 6);
   const text = line.addStack();
   text.layoutVertically();
   renderText(text, row.text, Font.semiboldSystemFont(13), palette[row.tone ?? "ink"]);
@@ -491,9 +528,11 @@ function renderTwoLineRow(stack, row, palette, kind) {
   line.addSpacer();
 }
 
-function renderCard(parent, card, palette) {
+function renderCard(parent, card, palette, width) {
   const box = parent.addStack();
   box.layoutVertically();
+  // A fixed width: text truncates inside the card instead of pushing it past the widget edge.
+  if (width) box.size = new Size(width, 0);
   box.backgroundColor = palette[card.kind]?.card ?? palette.todos.card;
   box.cornerRadius = 14;
   box.setPadding(METRICS.cardPad, 10, METRICS.cardPad, 10);
@@ -544,14 +583,15 @@ function renderWidget(model, pwaUrl, now) {
     columns.topAlignContent();
     for (const [index, card] of model.cards.entries()) {
       if (index > 0) columns.addSpacer(METRICS.gap);
-      const box = renderCard(columns, card, palette);
-      box.size = new Size(0, model.heights.medium - (model.status ? METRICS.status : 0));
+      const width = Math.floor((model.heights.width.medium - METRICS.gap) / 2);
+      const box = renderCard(columns, card, palette, width);
+      box.size = new Size(width, model.heights.medium - (model.status ? METRICS.status : 0));
       box.addSpacer();
     }
   } else {
     for (const [index, card] of model.cards.entries()) {
       if (index > 0) widget.addSpacer(METRICS.gap);
-      renderCard(widget, card, palette);
+      renderCard(widget, card, palette, model.heights.width?.[model.family]);
     }
   }
   widget.addSpacer();
