@@ -490,3 +490,45 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
   4. Web Push (Phase 5): Tippen öffnet die App direkt bei «Dein Morgen».
   Nachtrag 16.11. (Wunsch: Briefing im Stil des SBB-EasyRide-Panels auf dem Sperrbildschirm): Das SBB-Panel ist eine Live-Aktivität (nur native Apps; Scriptable kann das nicht). Vorschlag A (0 CHF): Sperrbildschirm-Widgets aus Scriptable (rechteckig, rund, Zeile über der Uhr) + Fokus «Morgen» mit Zeitplan und verknüpftem Sperrbildschirm. Vorschlag B (Versuch): Live-Aktivität mit der App «Scripting» (Gratis-Download, In-App-Käufe; ob Live-Aktivitäten gratis sind, ist ungeprüft). Wartet auf Entscheid des Nutzers und Screenshot als PNG/JPG.
   Ungeprüft: ob ein Tippen auf eine ntfy-Mitteilung auf dem iPhone die Home-Bildschirm-App oder Safari öffnet.
+
+  Nachtrag 2, 16.11. abends: Vorschlag C, das **Briefing als generiertes Sperrbildschirm-Hintergrundbild**. Der Nutzer will Telegram nie öffnen müssen. Ohne Gerätetest wird nichts gebaut.
+
+  **Ablauf:**
+  - Eine Kurzbefehl-Automation startet zur Tageszeit oder beim Einschalten des Fokus «Morgen» und läuft sofort, ohne Nachfrage.
+  - Sie führt ein Scriptable-Skript im Hintergrund aus. Das Skript zeichnet mit `DrawContext` das Briefing-Panel (Lektionen, Abfahrt, Wetter, To-dos, Fristen), speichert es mit `FileManager.iCloud().writeImage` als PNG und übergibt den Pfad mit `Script.setShortcutOutput`. Laut Doku gibt Scriptable nur Text, Zahlen, Dictionaries und Dateipfade weiter, keine Bilder.
+  - Danach holt «Datei aus Ordner abrufen» das Bild, und «Hintergrundbild festlegen» setzt es: nur Sperrbildschirm, «Vorschau anzeigen» aus.
+
+  **Ungeprüft, darum der Gerätetest:**
+  1. Läuft die Kette unbeaufsichtigt auf dem gesperrten iPhone?
+  2. Kommt das Bild beim Kurzbefehl an?
+  3. Welcher Sperrbildschirm wird überschrieben? Das persönliche Foto darf nicht verloren gehen.
+  4. Lässt sich ein Fokus mit einem Sperrbildschirm verknüpfen?
+
+  **Gerätetest (ca. 10 Min.):**
+  1. Einen zusätzlichen Sperrbildschirm mit einem beliebigen Foto anlegen und aktiv lassen.
+  2. In Scriptable das Skript «Briefing Test» anlegen. Es füllt den Bildschirm mit `#1b3a4b` und schreibt in der Mitte «Test HH:MM» in Weiss, 90 pt fett. Das Bild speichert es als `briefing-test.png` in den iCloud-Dokumenten, gibt den Pfad mit `Script.setShortcutOutput` weiter und endet mit `Script.complete()`. Der Code steht im Chatverlauf vom 16.11.
+  3. Kurzbefehle → **Automation** → **+** → **Tageszeit**, etwa 5 Minuten später → **Sofort ausführen**. Dann diese drei Aktionen:
+     1. **Scriptable: Skript ausführen** «Briefing Test», «In App ausführen» aus.
+     2. **Datei aus Ordner abrufen**: iCloud Drive/Scriptable, Pfad `briefing-test.png`.
+     3. **Hintergrundbild festlegen**: Sperrbildschirm, «Vorschau anzeigen» aus.
+  4. iPhone sperren und warten. Melden:
+     - Steht «Test …» auf dem Sperrbildschirm?
+     - Welcher Sperrbildschirm wurde geändert?
+     - Kam eine Nachfrage?
+  5. Prüfen, ob der Sperrbildschirm im Bearbeiten-Modus einen Knopf **Fokus** hat.
+
+  **Wenn der Test klappt, gilt beim Bau:**
+  - Das Datum steht gross im Bild, alle Zeiten absolut. Es gibt keinen Live-Status, denn das Bild ist ein Standbild.
+  - Mails erscheinen nur als Anzahl, sensible Kategorien nie.
+  - Das Panel liegt im mittleren Band unter der Uhr. Mitteilungen stapeln sich von unten, darum die Mitteilungsanzeige «Anzahl» empfehlen.
+  - Das Inhaltsmodell ist reine, getestete Logik und vom Zeichnen getrennt.
+  - Zuerst Entwürfe auf schlichtem Hintergrund.
+
+  **Wenn er scheitert:** Schöner formatierte Telegram-Nachricht. Das Limit liegt bei 4096 Zeichen pro Nachricht. Heute sendet der Bot reinen Text ohne `parse_mode`. Ob der Sperrbildschirm die Mitteilung kürzt und ob Fett erscheint, ist ungeprüft. Eine Testnachricht (ca. 12 Zeilen, Emoji und Fett) geht nur mit OK des Nutzers hinaus, danach Screenshots zugeklappt und lang gedrückt.
+
+  **Offene Fragen an den Nutzer:**
+  1. Testergebnis.
+  2. OK für die Telegram-Testnachricht.
+  3. Dürfen To-do-Titel auf dem Sperrbildschirm stehen?
+  4. Soll die Briefing-Mitteilung wegfallen? Sie würde über dem Bild liegen.
+  5. Gilt das fürs iPhone oder fürs iPad?
