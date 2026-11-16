@@ -469,3 +469,17 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 - Eine Notizseite fasst höchstens 45 000 Zeichen HTML (Hinweis ab 85 %). Für eine neue Lektion eine neue Seite beginnen.
 - Gelöschte Bilder und Seiten: Die Bilddateien bleiben im Drive-Ordner (Aufräumen von Hand möglich).
 - HIG-Auditor-Skill ist seit dem Neustart am 16.11. aktiv; Widget-Symbole damit nachkorrigiert (feste Abstände statt flexibler).
+
+## D29 – HIG-Audit Web-App, Widget, Bilder freigeschaltet (2026-11-16, Claude Code)
+
+### Erledigt
+- Widget: Symbole und To-do-Kreis zentriert (auf dem iPad bestätigt).
+- Bilder: Drive-API eingeschaltet, Zustimmung erteilt, Backend @35, e2e 40/40 inkl. Bild speichern/laden.
+- Web-App nach HIG-Skill überarbeitet (Details DECISIONS D29). Tests: Web 71, browser-check und notes-check grün.
+
+### Manuelle Schritte für den Nutzer
+1. Cockpit auf iPhone und iPad einmal schliessen und neu öffnen (lädt die neue Version), dann Ansichten To-dos und Mails ansehen.
+
+### Bekannte Mängel / nicht prüfbar
+- Sichere Bereiche, Kopfband unter der Statusleiste und die Schriftgrössen-Einstellung von iOS lassen sich nur auf dem Gerät prüfen.
+- «Dein Morgen» (Briefing) ist weiterhin ein Fliesstext; Vorschläge für eine schönere Darstellung siehe Antwort vom 16.11.

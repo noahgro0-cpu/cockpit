@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import type { State, Todo, TodoPatch } from "../../shared/api-types";
 import { capture } from "./model";
 import {
@@ -149,24 +149,29 @@ export function TodoRow({
         </button>
         <div className="grow">
           <strong>{todo.title}</strong>
-          <p className="small">
+          <p className="small todo-meta">
             {/* D27: one tap to fix a subject the AI or the keywords got wrong */}
             <button
               type="button"
               className="category-chip"
               aria-label={`Fach oder Kategorie von «${todo.title}» ändern: ${category?.label || "Allgemein"}`}
               onClick={() => setTagging(true)}
+              // D29: the category colour as a dot (like the Fächer chips), not a side bar
               style={
                 category && /^#[0-9a-f]{6}$/i.test(category.color)
-                  ? { borderInlineStart: `4px solid ${category.color}` }
+                  ? ({ "--cat": category.color } as CSSProperties)
                   : undefined
               }
             >
               {category?.label || "Allgemein"}
             </button>
-            {todo.due &&
-              ` · ${dateLabel(todo.due, "d. MMM")}${todo.dueHasTime ? " " + time(todo.due) : ""}`}
-            {todo.priority === 2 ? " · Hohe Priorität" : ""}
+            {todo.due && (
+              <span className="meta-item">
+                {dateLabel(todo.due, "d. MMM")}
+                {todo.dueHasTime ? " " + time(todo.due) : ""}
+              </span>
+            )}
+            {todo.priority === 2 && <span className="badge urgent">Hohe Priorität</span>}
           </p>
           {todo.notes && <p>{todo.notes}</p>}
           {todo.mailId && (
@@ -418,17 +423,21 @@ export function Todos({
         </span>
       </div>
       {!compact && (
-        <label>
-          Kategorie
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">Alle Kategorien</option>
-            {state.settings.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        // D29: filter as scrollable chips (same pattern as the Fächer tabs) instead of a form field
+        <div className="subject-tabs filter-chips" role="group" aria-label="Nach Kategorie filtern">
+          {[{ id: "", label: "Alle", color: "" }, ...state.settings.categories].map((c) => (
+            <button
+              key={c.id || "all"}
+              type="button"
+              aria-pressed={filter === c.id}
+              className={filter === c.id ? "active" : ""}
+              onClick={() => setFilter(c.id)}
+            >
+              {c.color && <span className="swatch" style={{ background: c.color }} aria-hidden="true" />}
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
       )}
       {Object.entries(groups).map(
         ([label, todos]) =>

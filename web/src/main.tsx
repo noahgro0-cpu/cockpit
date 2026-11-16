@@ -4,6 +4,7 @@ import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./style.css";
 import "./d28.css";
+import "./d29.css";
 registerSW({ immediate: true });
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

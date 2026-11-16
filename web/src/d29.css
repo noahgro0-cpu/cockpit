@@ -1,0 +1,219 @@
+/*
+ * D29 polish pass after a HIG audit (Apple Human Interface Guidelines, applied to the web app).
+ * Loaded last on purpose: style.css carries several historical layers (D24–D27), so the final
+ * word for these components lives here instead of yet another override deep in style.css.
+ */
+
+/* Mails: importance as a capsule badge instead of a heading-sized uppercase label. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.badge.urgent {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.badge.important {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.mail-card .eyebrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mail actions: one wrapping row of tinted capsules, a finished state reads as text. */
+.mail-card .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.mail-card .actions button:not(.primary),
+.mail-card .actions .button-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.mail-card .actions button:not(.primary):hover,
+.mail-card .actions .button-link:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+.done-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 4px;
+  font-size: var(--text-subhead);
+  font-weight: 600;
+  color: var(--muted);
+}
+@media (pointer: coarse) {
+  .mail-card .actions button:not(.primary),
+  .mail-card .actions .button-link,
+  .done-state {
+    min-height: 44px;
+  }
+}
+
+/* To-do meta line: category capsule with a colour dot; date and priority never split. */
+.todo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.todo-meta .meta-item {
+  white-space: nowrap;
+}
+.todo-meta .meta-item::before {
+  content: "·";
+  margin-inline-end: 8px;
+}
+button.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border-inline-start: 0;
+  background: var(--surface-2);
+  color: var(--ink);
+  line-height: 1.5;
+}
+/* ::before is the enlarged touch area on touch screens (style.css), so the dot uses ::after. */
+button.category-chip::after {
+  content: "";
+  order: -1;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cat, var(--muted));
+}
+.mail-origin {
+  white-space: nowrap;
+}
+
+/* To-do rows on phones: the check circle and trailing buttons sit on the card edge (iOS
+   Reminders), giving the title about 30 % more width; touch areas stay 44 x 44 pt. */
+@media (max-width: 599px) {
+  .card:has(> .task-item) {
+    padding-inline: 16px;
+  }
+  .task-item .todo-row {
+    column-gap: 2px;
+  }
+  .task-item .todo-row > .check {
+    margin-inline-start: -10px;
+  }
+  .task-item .todo-row > button:not(.check):last-of-type {
+    margin-inline-end: -10px;
+  }
+}
+
+/* To-do filter chips (same look as the Fächer tabs). */
+.filter-chips {
+  margin-bottom: 4px;
+}
+.filter-chips button {
+  font-size: var(--text-subhead);
+}
+
+/* Disclosure rows (7-Tage-Vorschau, Erledigte To-dos): chevron instead of the browser triangle. */
+summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  font-size: var(--text-subhead);
+  font-weight: 600;
+  color: var(--accent);
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+summary::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-inline-end: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 0.2s ease;
+}
+details[open] > summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+/* Weather and transit: secondary text in the footnote style, the status capsule visible on the card. */
+.temperature small {
+  font-size: var(--text-footnote);
+  color: var(--muted);
+}
+.travel .pill,
+.weather-card .pill {
+  display: inline-flex;
+  margin-top: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: var(--text-caption);
+  font-weight: 500;
+}
+
+/* Calendar rows: at least 44 pt tall on touch screens. */
+@media (pointer: coarse) {
+  :is(.calendar, .month-sheet) :is(button.event, button.todo-chip) {
+    min-height: 44px;
+    align-items: center;
+    align-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  summary::after {
+    transition: none;
+  }
+}
+
+/* "In Gmail öffnen" navigates away: plain link weight, not one of the action capsules. */
+.mail-card .actions .button-link {
+  background: transparent;
+  padding-inline: 8px;
+}
+
+/* Large titles: one iOS large-title size on iPhone and iPad (style.css had 22 px on phones). */
+.shell:not(.dashboard-shell) .page-heading h1 {
+  font-size: var(--text-large-title);
+  line-height: 1.15;
+  letter-spacing: -0.8px;
+}
+.shell:not(.dashboard-shell) .page-heading {
+  align-items: baseline;
+  row-gap: 2px;
+}
+.todo-meta .badge {
+  padding-block: 1px;
+}

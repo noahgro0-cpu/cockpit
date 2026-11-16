@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon } from "./Icon";
 import type { MailItem, State } from "../../shared/api-types";
 import type { Mutation } from "./outbox";
 import { dateLabel } from "./date";
@@ -24,12 +25,9 @@ export function Mails({
         <article className={`card mail-card${m.importance < 2 ? " info" : ""}`} key={m.id}>
           <div className="eyebrow">
             <span>{m.fromName || m.fromEmail}</span>
-            <span className={m.importance === 3 ? "danger" : ""}>
-              {m.importance === 3
-                ? "DRINGEND"
-                : m.importance === 2
-                  ? "WICHTIG"
-                  : "INFO"}
+            {/* D29: importance as a small capsule, not a shouted heading-sized label */}
+            <span className={`badge ${m.importance === 3 ? "urgent" : m.importance === 2 ? "important" : "info"}`}>
+              {m.importance === 3 ? "Dringend" : m.importance === 2 ? "Wichtig" : "Info"}
             </span>
           </div>
           <h2 className="mail-title">{m.subject}</h2>
@@ -44,16 +42,20 @@ export function Mails({
             <p className="small">Folge: {m.consequence}</p>
           )}
           <div className="actions">
-            <button
-              disabled={
-                !!m.todoId || state.todos.some((t) => t.mailId === m.id)
-              }
-              onClick={() =>
-                void mutate({ action: "mail.toTodo", payload: { id: m.id } })
-              }
-            >
-              To-do daraus
-            </button>
+            {!!m.todoId || state.todos.some((t) => t.mailId === m.id) ? (
+              // D29: a finished state reads as such instead of a greyed-out button
+              <span className="done-state">
+                <Icon name="todos" size={16} /> To-do erstellt
+              </span>
+            ) : (
+              <button
+                onClick={() =>
+                  void mutate({ action: "mail.toTodo", payload: { id: m.id } })
+                }
+              >
+                To-do daraus
+              </button>
+            )}
             <button
               onClick={() =>
                 void mutate({ action: "mail.dismiss", payload: { id: m.id } })
