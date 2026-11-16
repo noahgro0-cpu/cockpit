@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, it, expect, vi } from "vitest";
-import { drain, makeJob, optimistic, storage, type Job } from "./outbox";
+import { coalesce, drain, eventKey, makeJob, optimistic, storage, type Job } from "./outbox";
 import { ApiFailure } from "./api";
 import type { State } from "../../shared/api-types";
 import mock from "../../docs/mock-state.json";
@@ -260,5 +260,57 @@ describe("subject notes (D27)", () => {
     expect(Date.parse(ev.start)).toBe(Date.parse("2026-11-19T17:00:00+01:00"));
     expect(Date.parse(ev.end) - Date.parse(ev.start)).toBe(3600000);
     expect(next.exams.some((e) => e.title === "Lerngruppe")).toBe(false);
+  });
+});
+
+describe("event edits and note pages (D28)", () => {
+  const base = () => structuredClone(mock) as unknown as State;
+  it("a subject choice covers the series, title and time only the event", () => {
+    const s = base();
+    s.events[0].id = "series@x_1";
+    s.events[1].id = "series@x_2";
+    const job = makeJob({ action: "event.update", payload: { id: "series@x_1", calendar: "Privat", patch: { subject: "physik", title: "Neu", date: "2026-11-20", start: "10:00" } } });
+    const next = optimistic(s, job);
+    expect(next.events[0].subject).toBe("physik");
+    expect(next.events[1].subject).toBe("physik");
+    expect(next.events[0].title).toBe("Neu");
+    expect(next.events[1].title).toBe(s.events[1].title);
+    expect(next.events[0].allDay).toBe(false);
+    expect(Date.parse(next.events[0].start)).toBe(Date.parse("2026-11-20T10:00:00+01:00"));
+    const none = optimistic(next, makeJob({ action: "event.update", payload: { id: "series@x_2", calendar: "Privat", patch: { subject: "-" } } }));
+    expect(none.events[0].subject).toBeUndefined();
+    expect(eventKey("a_b_17")).toBe("a_b");
+  });
+  it("event.delete removes it from events and exams", () => {
+    const s = base();
+    const id = s.exams[0].id;
+    const next = optimistic(s, makeJob({ action: "event.delete", payload: { id, calendar: "Prüfungen" } }));
+    expect(next.exams.some((e) => e.id === id)).toBe(false);
+    expect(next.events.some((e) => e.id === id)).toBe(false);
+  });
+  it("note pages: add, update, delete; autosaves of one page merge into one job", () => {
+    let s = base();
+    s = optimistic(s, makeJob({ action: "note.add", payload: { id: "n9", subject: "physik", title: "Lektion" } }));
+    expect(s.notes![0]).toMatchObject({ id: "n9", html: "", title: "Lektion" });
+    s = optimistic(s, makeJob({ action: "note.update", payload: { id: "n9", patch: { html: "<p>x</p>" } } }));
+    expect(s.notes![0].html).toBe("<p>x</p>");
+    s = optimistic(s, makeJob({ action: "note.delete", payload: { id: "n9" } }));
+    expect(s.notes!.some((n) => n.id === "n9")).toBe(false);
+    const first = makeJob({ action: "note.update", payload: { id: "n9", patch: { html: "<p>1</p>" }, base: { html: "00000001" } } });
+    const merged = coalesce(first, { action: "note.update", payload: { id: "n9", patch: { html: "<p>2</p>" }, base: { html: "00000002" } } });
+    expect(merged?.id).toBe(first.id);
+    expect(merged?.payload).toMatchObject({ patch: { html: "<p>2</p>" }, base: { html: "00000001" } });
+    expect(coalesce({ ...first, attempts: 1 }, first)).toBeNull(); // already sent once: keep separate
+    expect(coalesce(first, { action: "note.update", payload: { id: "other", patch: { html: "" } } })).toBeNull();
+  });
+  it("a rejected note edit is kept, not dropped", async () => {
+    const job = makeJob({ action: "note.update", payload: { id: "n9", patch: { html: "<p>Text</p>" } } });
+    await storage.put(job);
+    await drain(storage, async () => {
+      throw new ApiFailure("bad_request", "zu lang");
+    });
+    const kept = (await storage.jobs()).find((j) => j.id === job.id);
+    expect(kept?.blocked).toBe("zu lang");
+    await storage.remove(job.id);
   });
 });

@@ -168,6 +168,15 @@ export function Settings({
                     <textarea readOnly value={j.payload.patch.notes ?? j.payload.patch.info} />
                   </label>
                 )}
+              {(j.action === "note.update" || j.action === "note.add") && (j.payload as { html?: string }).html && (
+                <label>
+                  Gespeicherter Text (Notizseite)
+                  <textarea
+                    readOnly
+                    value={new DOMParser().parseFromString((j.payload as { html: string }).html, "text/html").body.textContent ?? ""}
+                  />
+                </label>
+              )}
               <button disabled={busy} onClick={() => void discard(j.id)}>
                 Änderung verwerfen
               </button>

@@ -304,10 +304,10 @@ export default function App() {
                 </p>
               )}
             </div>
-            <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} jobs={cockpit.jobs} />
+            <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} jobs={cockpit.jobs} images={cockpit.images} />
           </>
         ) : view === "Fächer" && !dashboard ? (
-          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} jobs={cockpit.jobs} />
+          <Subjects state={state} categories={cockpit.serverCategories} now={now} mutate={cockpit.mutate} jobs={cockpit.jobs} images={cockpit.images} />
         ) : dashboard ? (
           <div className="board">
             {/* D26: slim next-appointment bar, capture and its feedback on top */}

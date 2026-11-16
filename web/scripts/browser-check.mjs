@@ -66,7 +66,7 @@ try {
         }
         if(view==='Fächer') {
           // D27: subject tabs, info/links, to-dos, events and notes
-          await page.locator('.subject-panel .notes-area').waitFor();
+          await page.locator('.subject-panel .note-content, .subject-panel .note-empty').first().waitFor();
           assert(await page.getByRole('tab',{name:'Physik'}).count());
           assert.equal(await page.locator('.quick-capture:not(.docked)').count(),0,'no floating capture over the notes');
         }
@@ -81,7 +81,7 @@ try {
       await page.getByRole('button',{name:'Zurück zur Übersicht'}).click();
       if(width>=1100) {
         await page.getByRole('tab',{name:'Fächer'}).click();
-        await page.locator('.subject-panel .notes-area').waitFor();
+        await page.locator('.subject-panel .note-content, .subject-panel .note-empty').first().waitFor();
         const side=await page.locator('.subject-tabs').boundingBox();
         assert(side.width<=240,'PC: subject list as a sidebar');
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'overflow Fächer 1440');

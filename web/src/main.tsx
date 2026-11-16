@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import "./style.css";
+import "./d28.css";
 registerSW({ immediate: true });
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

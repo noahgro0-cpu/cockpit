@@ -1,11 +1,13 @@
 // Subject pages ("Fächer", D27): basic info and links on top, the subject's to-dos and
 // appointments below, then free notes that save themselves. Quick entry for a to-do or an event.
-import { useEffect, useRef, useState } from "react";
-import type { CalEvent, State, SubjectLink } from "../../shared/api-types";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import type { CalEvent, NotePage, State, SubjectLink } from "../../shared/api-types";
+import type { ImageStore } from "./NoteEditor";
 import type { Job, Mutation } from "./outbox";
 import { BottomSheet } from "./BottomSheet";
 import { Icon } from "./Icon";
 import { TodoRow } from "./Todos";
+import { EventSheet } from "./EventSheet";
 import { dateLabel, day, localDateTime, time } from "./date";
 import { stored } from "./useCockpit";
 import {
@@ -24,7 +26,7 @@ import {
 
 type Mutate = (m: Mutation) => Promise<void>;
 const SAVE_DELAY_MS = 1200;
-const NOTES_MAX = 20000;
+const NOTE_MAX = 45000;
 const INFO_MAX = 2000;
 
 function eventWhen(e: CalEvent) {
@@ -91,47 +93,177 @@ function useAutosave(server: string, save: (text: string, baseHash: string) => v
   };
 }
 
-function Notes({ subject, mutate, jobs }: { subject: SubjectView; mutate: Mutate; jobs: Job[] }) {
-  const notes = useAutosave(subject.notes, (text, base) =>
-    void mutate({ action: "subject.update", payload: { id: subject.id, patch: { notes: text }, base: { notes: base } } }),
+const NoteEditor = lazy(() => import("./NoteEditor"));
+
+function noteDate(iso: string | null) {
+  return iso ? dateLabel(iso, "d. MMM") : "";
+}
+
+/** One note page: title and rich content, both saving themselves (D28). */
+function NotePageView({
+  note,
+  subject,
+  mutate,
+  jobs,
+  images,
+  onDelete,
+}: {
+  note: NotePage;
+  subject: SubjectView;
+  mutate: Mutate;
+  jobs: Job[];
+  images: ImageStore;
+  onDelete: () => void;
+}) {
+  const content = useAutosave(note.html, (html, base) =>
+    void mutate({ action: "note.update", payload: { id: note.id, patch: { html }, base: { html: base } } }),
   );
-  // Honest status: "Gespeichert" only once the backend confirmed (no job left for this subject).
-  const mine = jobs.filter((j) => j.action === "subject.update" && j.payload.id === subject.id);
-  const blocked = mine.some((j) => j.blocked);
-  const queued = mine.length > 0;
+  const [title, setTitle] = useState(note.title);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => setTitle(note.title), [note.title]);
+  // Honest status: "Gespeichert" only once the backend confirmed (no job left for this page).
+  const mine = jobs.filter((j) => (j.action === "note.update" || j.action === "note.add") && j.payload.id === note.id);
+  const blocked = mine.find((j) => j.blocked);
+  const long = content.draft.length > NOTE_MAX * 0.85;
+  return (
+    <article className="note-page" aria-label={`Notizseite ${note.title}`}>
+      <div className="note-page-head">
+        <label className="sr-only" htmlFor={`note-title-${note.id}`}>
+          Titel der Seite
+        </label>
+        <input
+          id={`note-title-${note.id}`}
+          className="note-title"
+          value={title}
+          maxLength={100}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={() => {
+            const t = title.trim() || "Ohne Titel";
+            if (t !== note.title) void mutate({ action: "note.update", payload: { id: note.id, patch: { title: t } } });
+          }}
+          onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        />
+        <span className={blocked ? "small danger" : "small muted"} role="status">
+          {blocked
+            ? `Nicht gespeichert: ${blocked.blocked}`
+            : content.pending
+              ? "Wird gespeichert …"
+              : mine.length
+                ? "Auf diesem Gerät gespeichert · wird synchronisiert"
+                : note.updatedAt
+                  ? `Gespeichert · ${noteDate(note.updatedAt)}`
+                  : ""}
+        </span>
+      </div>
+      <Suspense fallback={<div className="note-loading">Editor wird geladen …</div>}>
+        <NoteEditor
+          html={content.draft}
+          onChange={content.onChange}
+          onFocus={content.onFocus}
+          onBlur={content.onBlur}
+          images={images}
+          label={`Notizen ${subject.label}: ${note.title}`}
+          placeholder={`Notizen zu ${subject.label} …  Tipp: «[ ] » beginnt eine Checkliste, «# » eine Überschrift, «$x^2$» eine Formel.`}
+        />
+      </Suspense>
+      <div className="note-page-foot">
+        <span className={long ? "small danger" : "small muted"}>
+          {long ? `Seite fast voll (${Math.round((content.draft.length / NOTE_MAX) * 100)} %): für die nächste Lektion eine neue Seite beginnen.` : ""}
+        </span>
+        {!confirmDelete ? (
+          <button type="button" className="quiet" onClick={() => setConfirmDelete(true)}>
+            <Icon name="trash" size={16} /> Seite löschen
+          </button>
+        ) : (
+          <button type="button" className="danger-button" onClick={onDelete}>
+            Wirklich löschen
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** Note pages of a subject, newest first; e.g. one per lesson (D28). */
+function NotePages({
+  subject,
+  state,
+  mutate,
+  jobs,
+  images,
+}: {
+  subject: SubjectView;
+  state: State;
+  mutate: Mutate;
+  jobs: Job[];
+  images: ImageStore;
+}) {
+  const pages = (state.notes ?? []).filter((n) => n.subject === subject.id);
+  const key = `cockpit.note.${subject.id}`;
+  const [open, setOpen] = useState<string>(() => stored<string>(key, ""));
+  const current = pages.find((p) => p.id === open) ?? pages[0];
+  const choose = (id: string) => {
+    setOpen(id);
+    try {
+      localStorage.setItem(key, JSON.stringify(id));
+    } catch {
+      // per-device convenience only
+    }
+  };
+  const newPage = () => {
+    const id = crypto.randomUUID();
+    const today = new Intl.DateTimeFormat("de-CH", { day: "numeric", month: "numeric", timeZone: "Europe/Zurich" }).format(new Date());
+    void mutate({ action: "note.add", payload: { id, subject: subject.id, title: `Lektion ${today}` } });
+    choose(id);
+  };
   return (
     <section className="card subject-notes">
       <div className="section-title">
         <h3>Notizen</h3>
-        <span className={blocked ? "small danger" : "small"} role="status">
-          {blocked
-            ? "Nicht gespeichert · Einstellungen → Synchronisierung"
-            : notes.pending
-              ? "Wird gespeichert …"
-              : queued
-                ? "Auf diesem Gerät gespeichert · wird synchronisiert"
-                : subject.updatedAt
-                  ? "Gespeichert"
-                  : ""}
-        </span>
+        <button type="button" onClick={newPage}>
+          <Icon name="plus" size={16} /> Neue Seite
+        </button>
       </div>
-      <label className="sr-only" htmlFor={`notes-${subject.id}`}>
-        Notizen zu {subject.label}
-      </label>
-      <textarea
-        id={`notes-${subject.id}`}
-        className="notes-area"
-        value={notes.draft}
-        maxLength={NOTES_MAX}
-        placeholder={`Alles zu ${subject.label}: Zusammenfassungen, offene Fragen, Prüfungsstoff …`}
-        onChange={(e) => notes.onChange(e.target.value)}
-        onFocus={notes.onFocus}
-        onBlur={notes.onBlur}
-      />
-      {notes.draft.length > NOTES_MAX * 0.9 && (
-        <p className="small">
-          {notes.draft.length} von {NOTES_MAX} Zeichen
-        </p>
+      {pages.length > 1 && (
+        <div className="note-tabs" role="list" aria-label={`Notizseiten ${subject.label}`}>
+          {pages.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              role="listitem"
+              aria-current={p.id === current?.id ? "page" : undefined}
+              className={p.id === current?.id ? "active" : ""}
+              onClick={() => choose(p.id)}
+            >
+              <span>{p.title || "Ohne Titel"}</span>
+              <small>{noteDate(p.createdAt)}</small>
+            </button>
+          ))}
+        </div>
+      )}
+      {current ? (
+        <NotePageView
+          key={current.id}
+          note={current}
+          subject={subject}
+          mutate={mutate}
+          jobs={jobs}
+          images={images}
+          onDelete={() => {
+            void mutate({ action: "note.delete", payload: { id: current.id } });
+            choose("");
+          }}
+        />
+      ) : (
+        <div className="empty note-empty">
+          <p>Noch keine Notizen zu {subject.label}.</p>
+          <p className="small">
+            Pro Lektion eine Seite: mit Überschriften, Checklisten, Tabellen, Bildern aus der Fotomediathek und Formeln.
+          </p>
+          <button type="button" className="primary" onClick={newPage}>
+            Erste Seite anlegen
+          </button>
+        </div>
       )}
     </section>
   );
@@ -465,9 +597,12 @@ export function Subjects({
   now,
   mutate,
   jobs,
+  images,
 }: {
   state: State;
   jobs: Job[];
+  /** D28: pictures of note pages, per subject. */
+  images: (subject: string) => ImageStore;
   /** Server categories (D27): the subject list must not follow a per-device settings copy. */
   categories: State["settings"]["categories"];
   now: Date;
@@ -476,6 +611,7 @@ export function Subjects({
   const subjects = subjectList(categories.length ? categories : state.settings.categories, state.subjects);
   const [selected, setSelected] = useState(() => stored<string>("cockpit.subject", ""));
   const [entry, setEntry] = useState(false);
+  const [openEvent, setOpenEvent] = useState<CalEvent | null>(null);
   const subject = subjects.find((s) => s.id === selected) ?? subjects[0];
   useEffect(() => {
     try {
@@ -555,11 +691,13 @@ export function Subjects({
               <ul className="subject-event-list">
                 {events.map((e) => (
                   <li key={e.id} className={`kind-${e.kind}`}>
-                    <strong>{e.title}</strong>
-                    <span className="small">
-                      {kindLabel(e)} · {eventWhen(e)}
-                      {e.location ? ` · ${e.location}` : ""}
-                    </span>
+                    <button type="button" aria-haspopup="dialog" onClick={() => setOpenEvent(e)}>
+                      <strong>{e.title}</strong>
+                      <span className="small">
+                        {kindLabel(e)} · {eventWhen(e)}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -567,9 +705,10 @@ export function Subjects({
               <p className="empty">Keine Termine, Prüfungen oder Abgaben in den nächsten Wochen.</p>
             )}
           </section>
-          <Notes subject={subject} mutate={mutate} jobs={jobs} />
+          <NotePages subject={subject} state={state} mutate={mutate} jobs={jobs} images={images(subject.id)} />
         </div>
       </div>
+      {openEvent && <EventSheet event={openEvent} state={state} mutate={mutate} onClose={() => setOpenEvent(null)} />}
       {entry && (
         <EntrySheet
           state={state}

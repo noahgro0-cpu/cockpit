@@ -11,9 +11,19 @@
     "format": "prettier --write src vite.config.ts vitest.config.ts tsconfig.json package.json"
   },
   "dependencies": {
+    "@tiptap/extension-highlight": "3.32.2",
+    "@tiptap/extension-list": "3.32.2",
+    "@tiptap/extension-mathematics": "3.32.2",
+    "@tiptap/extension-table": "3.32.2",
+    "@tiptap/extension-text-style": "3.32.2",
+    "@tiptap/extensions": "3.32.2",
+    "@tiptap/pm": "3.32.2",
+    "@tiptap/react": "3.32.2",
+    "@tiptap/starter-kit": "3.32.2",
     "chrono-node": "^2.8.0",
     "date-fns": "^4.1.0",
     "idb": "^8.0.0",
+    "katex": "0.18.11",
     "lucide-react": "^1.73.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

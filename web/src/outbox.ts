@@ -18,7 +18,13 @@ export type WriteAction =
   | "mail.dismiss"
   | "mail.feedback"
   | "event.add"
-  | "subject.update";
+  | "subject.update"
+  | "event.update"
+  | "event.delete"
+  | "note.add"
+  | "note.update"
+  | "note.delete"
+  | "image.add";
 export type Mutation = {
   [A in WriteAction]: { action: A; payload: ApiActions[A]["payload"] };
 }[WriteAction];
@@ -39,11 +45,15 @@ export interface Snapshot {
 const db = () =>
   openDB(
     import.meta.env.VITE_MOCK === "1" ? "cockpit-demo" : "cockpit-local",
-    1,
+    2,
     {
-      upgrade(db) {
-        db.createObjectStore("outbox", { keyPath: "id" });
-        db.createObjectStore("cache");
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          db.createObjectStore("outbox", { keyPath: "id" });
+          db.createObjectStore("cache");
+        }
+        // D28: note pictures (Blob by image id), also those not uploaded yet.
+        if (oldVersion < 2) db.createObjectStore("images");
       },
     },
   );
@@ -69,12 +79,19 @@ export const storage = {
   },
   async clear() {
     const database = await db();
-    const tx = database.transaction(["cache", "outbox"], "readwrite");
+    const tx = database.transaction(["cache", "outbox", "images"], "readwrite");
     await Promise.all([
       tx.objectStore("cache").clear(),
       tx.objectStore("outbox").clear(),
+      tx.objectStore("images").clear(),
     ]);
     await tx.done;
+  },
+  async image(id: string): Promise<Blob | undefined> {
+    return (await db()).get("images", id);
+  },
+  async putImage(id: string, blob: Blob) {
+    await (await db()).put("images", blob, id);
   },
 };
 let sequence = 0;
@@ -88,6 +105,35 @@ export function makeJob(mutation: Mutation): Job {
     order: sequence++,
   };
 }
+/** "abc@google.com_1700000000000" -> "abc@google.com" (iCalUID, shared by a series; D28). */
+export function eventKey(id: string) {
+  const at = id.lastIndexOf("_");
+  return at > 0 ? id.slice(0, at) : id;
+}
+
+/** Local projection of a new event time (all-day without start; end default start + 60 min). */
+export function eventSpan(date: string, start?: string, end?: string): Pick<CalEvent, "start" | "end" | "allDay"> {
+  const nextDay = new Date(Date.parse(date) + 86400000).toISOString().slice(0, 10);
+  if (start) {
+    try {
+      const from = localDateTime(date, start);
+      const to = end && end > start ? localDateTime(date, end) : new Date(Date.parse(from) + 3600000).toISOString();
+      return { start: from, end: to, allDay: false };
+    } catch {
+      // nonexistent local time: shown as all-day until the server answers
+    }
+  }
+  return { start: date, end: nextDay, allDay: true };
+}
+
+/** Pending autosaves of the same text merge into one job (fewer requests, same base hash). */
+export function coalesce(pending: Job | undefined, mutation: Mutation): Job | null {
+  if (!pending || pending.blocked || pending.attempts > 0 || pending.action !== mutation.action) return null;
+  if (mutation.action === "note.update" && pending.action === "note.update" && pending.payload.id === mutation.payload.id)
+    return { ...pending, payload: { ...pending.payload, patch: { ...pending.payload.patch, ...mutation.payload.patch } } };
+  return null;
+}
+
 export function optimistic(state: State, job: Job): State {
   const next = structuredClone(state);
   if (job.action === "todo.add") {
@@ -144,32 +190,12 @@ export function optimistic(state: State, job: Job): State {
     if (mail) mail.importance = job.payload.verdict === "wichtig" ? 2 : 1;
   } else if (job.action === "event.add") {
     const payload = job.payload;
-    const nextDay = new Date(Date.parse(payload.date) + 86400000)
-      .toISOString()
-      .slice(0, 10);
-    let start: string = payload.date;
-    let end: string = nextDay;
-    let allDay = true;
-    if (payload.calendar === "default" && payload.start) {
-      try {
-        start = localDateTime(payload.date, payload.start);
-        end =
-          payload.end && payload.end > payload.start
-            ? localDateTime(payload.date, payload.end)
-            : new Date(Date.parse(start) + 3600000).toISOString();
-        allDay = false;
-      } catch {
-        // nonexistent local time: shown as all-day until the server answers
-      }
-    }
     const event: CalEvent = {
       id: job.id,
       calendar: payload.calendar,
       kind: payload.calendar === "exams" ? payload.kind : "private",
       title: payload.title,
-      start,
-      end,
-      allDay,
+      ...eventSpan(payload.date, payload.calendar === "default" ? payload.start : undefined, payload.calendar === "default" ? payload.end : undefined),
     };
     if (payload.subject) event.subject = payload.subject;
     if (payload.calendar === "default" && payload.location) event.location = payload.location;
@@ -184,6 +210,38 @@ export function optimistic(state: State, job: Job): State {
       next.events.push(event);
       if (payload.calendar === "exams") next.exams.push(event);
     }
+  } else if (job.action === "event.update") {
+    const { id, patch } = job.payload;
+    const key = eventKey(id);
+    for (const list of [next.events, next.exams])
+      for (const e of list) {
+        // A subject choice covers the whole series (same iCalUID), the rest only this event.
+        if (patch.subject !== undefined && eventKey(e.id) === key) {
+          if (patch.subject && patch.subject !== "-") e.subject = patch.subject;
+          else delete e.subject;
+        }
+        if (e.id !== id) continue;
+        if (patch.title !== undefined) e.title = patch.title;
+        if (patch.location !== undefined) {
+          if (patch.location) e.location = patch.location;
+          else delete e.location;
+        }
+        if (patch.kind !== undefined && (e.kind === "exam" || e.kind === "deadline")) e.kind = patch.kind;
+        if (patch.date !== undefined) Object.assign(e, eventSpan(patch.date, patch.start, patch.end));
+      }
+  } else if (job.action === "event.delete") {
+    next.events = next.events.filter((e) => e.id !== job.payload.id);
+    next.exams = next.exams.filter((e) => e.id !== job.payload.id);
+  } else if (job.action === "note.add") {
+    const p = job.payload;
+    next.notes = next.notes ?? [];
+    if (!next.notes.some((n) => n.id === p.id))
+      next.notes.unshift({ id: p.id, subject: p.subject, title: p.title, html: p.html ?? "", createdAt: job.createdAt, updatedAt: job.createdAt });
+  } else if (job.action === "note.update") {
+    const n = next.notes?.find((x) => x.id === job.payload.id);
+    if (n) Object.assign(n, job.payload.patch, { updatedAt: job.createdAt });
+  } else if (job.action === "note.delete") {
+    next.notes = (next.notes ?? []).filter((n) => n.id !== job.payload.id);
   } else if (job.action === "subject.update") {
     const { id, patch } = job.payload;
     next.subjects = next.subjects ?? [];
@@ -201,6 +259,10 @@ export interface QueueStore {
   put(job: Job): Promise<void>;
   remove(id: string): Promise<void>;
 }
+/** Jobs carrying text the user typed: a rejection keeps them (blocked) instead of dropping them. */
+function keepsText(job: Job) {
+  return ["capture", "subject.update", "note.add", "note.update", "image.add"].includes(job.action);
+}
 export async function drain(
   store: QueueStore,
   send: (job: Job) => Promise<unknown>,
@@ -209,7 +271,7 @@ export async function drain(
   rejected?: (job: Job, error: ApiFailure) => void,
 ) {
   for (let job of await store.jobs()) {
-    if ((job.action === "capture" || job.action === "subject.update") && job.blocked) continue;
+    if (keepsText(job) && job.blocked) continue;
     if (job.blocked || job.nextAttempt > now) break;
     if (
       job.action === "capture" &&
@@ -250,8 +312,7 @@ export async function drain(
         ["bad_request", "not_found"].includes(error.code)
       ) {
         // Rejected captures and notes keep their text for the user instead of vanishing (D27).
-        if (job.action === "capture" || job.action === "subject.update")
-          await store.put({ ...job, blocked: error.message });
+        if (keepsText(job)) await store.put({ ...job, blocked: error.message });
         else await store.remove(job.id);
         rejected?.(job, error);
         continue;

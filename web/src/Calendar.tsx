@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { stored } from "./useCockpit";
-import type { State, Todo } from "../../shared/api-types";
+import type { CalEvent, State, Todo } from "../../shared/api-types";
 import {
   dateLabel,
   day,
@@ -15,6 +15,8 @@ import {
 import type { Mutation } from "./outbox";
 import { BottomSheet } from "./BottomSheet";
 import { Icon } from "./Icon";
+import { EventSheet } from "./EventSheet";
+import { TodoEditor } from "./Todos";
 export function Calendar({
   state,
   now,
@@ -35,6 +37,8 @@ export function Calendar({
   // D25: tapping a to-do in the week view opens quick actions.
   const [openTodo, setOpenTodo] = useState<Todo | null>(null);
   const [otherDate, setOtherDate] = useState("");
+  const [openEvent, setOpenEvent] = useState<CalEvent | null>(null);
+  const [editTodo, setEditTodo] = useState(false);
   const moveTodo = async (todo: Todo, date: string) => {
     await mutate({
       action: "todo.update",
@@ -88,21 +92,37 @@ export function Calendar({
             <small>{events.length + todos.length || "–"}</small>
           </button>
         )}
-        {events.map((e) => (
-          <div
-            key={e.id}
-            className={`event ${e.kind}${e.routine ? " routine" : ""}`}
-            title={[e.title, e.location].filter(Boolean).join(" · ")}
-          >
-            <span className="event-time">
-              {e.allDay ? "ganzt." : time(e.start)}
-            </span>
-            <span className="event-title">{e.title}</span>
-            {e.location && !e.routine && (
-              <span className="event-place">{e.location}</span>
-            )}
-          </div>
-        ))}
+        {events.map((e) => {
+          const inner = (
+            <>
+              <span className="event-time">
+                {e.allDay ? "ganzt." : time(e.start)}
+              </span>
+              <span className="event-title">{e.title}</span>
+              {e.location && !e.routine && (
+                <span className="event-place">{e.location}</span>
+              )}
+            </>
+          );
+          const className = `event ${e.kind}${e.routine ? " routine" : ""}`;
+          // D28: tap opens the appointment (edit, subject, delete); not inside the month sheet.
+          return monthly || inSheet ? (
+            <div key={e.id} className={className} title={[e.title, e.location].filter(Boolean).join(" · ")}>
+              {inner}
+            </div>
+          ) : (
+            <button
+              type="button"
+              key={e.id}
+              className={className}
+              aria-haspopup="dialog"
+              aria-label={`${e.title}, ${e.allDay ? "ganztägig" : time(e.start)}`}
+              onClick={() => setOpenEvent(e)}
+            >
+              {inner}
+            </button>
+          );
+        })}
         {todos.map((t) => {
           const inner = (
             <>
@@ -212,7 +232,28 @@ export function Calendar({
         </BottomSheet>
       )}
       <div className="week-grid">{nextDays(now).map((d) => renderDay(d))}</div>
-      {openTodo && (
+      {openEvent && (
+        <EventSheet event={openEvent} state={state} mutate={mutate} onClose={() => setOpenEvent(null)} />
+      )}
+      {openTodo && editTodo && (
+        <BottomSheet title="To-do bearbeiten" onClose={() => { setEditTodo(false); setOpenTodo(null); }}>
+          <TodoEditor
+            todo={openTodo}
+            state={state}
+            save={async (patch) => {
+              await mutate({ action: "todo.update", payload: { id: openTodo.id, patch } });
+              setEditTodo(false);
+              setOpenTodo(null);
+            }}
+            remove={async () => {
+              await mutate({ action: "todo.delete", payload: { id: openTodo.id } });
+              setEditTodo(false);
+              setOpenTodo(null);
+            }}
+          />
+        </BottomSheet>
+      )}
+      {openTodo && !editTodo && (
         <BottomSheet title="To-do" onClose={() => setOpenTodo(null)}>
           <div className="card todo-sheet">
             <h3>{openTodo.title}</h3>
@@ -242,6 +283,7 @@ export function Calendar({
               >
                 Nächste Woche
               </button>
+              <button onClick={() => setEditTodo(true)}>Bearbeiten</button>
             </div>
             <form
               className="form-grid"

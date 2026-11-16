@@ -271,7 +271,7 @@ export function TodoRow({
     </article>
   );
 }
-function TodoEditor({
+export function TodoEditor({
   todo,
   state,
   save,

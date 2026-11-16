@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { State, Settings, CaptureResult } from "../../shared/api-types";
 import { ApiFailure, parseSetup, request, type Connection } from "./api";
 import {
+  coalesce,
   drain,
   makeJob,
   optimistic,
@@ -11,6 +12,11 @@ import {
   type Snapshot,
 } from "./outbox";
 import { loadMock, MOCK, validState } from "./model";
+import { base64ToBlob, blobToBase64, shrinkImage } from "./images";
+import type { ImageStore } from "./NoteEditor";
+
+// Object URLs of note pictures, kept for the session (D28).
+const imageUrls = new Map<string, string>();
 const SETTINGS_KEY = MOCK ? "cockpit.demo.settings" : "cockpit.settings";
 export function stored<T>(key: string, fallback: T): T {
   try {
@@ -117,6 +123,27 @@ export function useCockpit() {
                 ...state,
                 subjects: [...(state.subjects ?? []).filter((s) => s.id !== subject.id), subject],
               };
+            }
+            if (
+              (job.action === "note.add" || job.action === "note.update") &&
+              result &&
+              typeof result === "object" &&
+              "html" in result
+            ) {
+              const note = result as NonNullable<State["notes"]>[number];
+              state = { ...state, notes: (state.notes ?? []).map((n) => (n.id === note.id ? note : n)) };
+            }
+            if (job.action === "event.update" && result && typeof result === "object" && "start" in result) {
+              // D28: the id changes with the start; later jobs for the same event follow it.
+              const event = result as State["events"][number];
+              const old = job.payload.id;
+              const swap = (list: State["events"]) =>
+                list.some((e) => e.id === old) ? [...list.filter((e) => e.id !== old && e.id !== event.id), event] : list;
+              state = { ...state, events: swap(state.events), exams: swap(state.exams) };
+              if (event.id !== old)
+                for (const later of await storage.jobs())
+                  if ((later.action === "event.update" || later.action === "event.delete") && later.payload.id === old)
+                    await storage.put({ ...later, payload: { ...later.payload, id: event.id } } as Job);
             }
             if (
               job.action === "event.add" &&
@@ -232,7 +259,9 @@ export function useCockpit() {
   }, [refresh, jobs.length]);
   async function mutate(mutation: Mutation) {
     try {
-      const job = makeJob(mutation);
+      const queued = await storage.jobs();
+      const merged = running.current ? null : coalesce(queued[queued.length - 1], mutation);
+      const job = merged ?? makeJob(mutation);
       await storage.put(job);
       setJobs(await storage.jobs());
       if (mutation.action === "capture")
@@ -246,6 +275,36 @@ export function useCockpit() {
       setError(message);
       if (mutation.action === "capture") throw new Error(message);
     }
+  }
+  /** D28: pictures of a subject's note pages (device cache first, then the backend). */
+  function images(subject: string): ImageStore {
+    return {
+      async url(id) {
+        const known = imageUrls.get(id);
+        if (known) return known;
+        let blob = await storage.image(id).catch(() => undefined);
+        if (!blob && connectionRef.current && !MOCK && navigator.onLine) {
+          try {
+            const r = await request(connectionRef.current, "image.get", { id });
+            blob = base64ToBlob(r.data, r.type);
+            await storage.putImage(id, blob).catch(() => undefined);
+          } catch {
+            return null;
+          }
+        }
+        if (!blob) return null;
+        const url = URL.createObjectURL(blob);
+        imageUrls.set(id, url);
+        return url;
+      },
+      async add(file) {
+        const blob = await shrinkImage(file);
+        const id = crypto.randomUUID();
+        await storage.putImage(id, blob);
+        await mutate({ action: "image.add", payload: { id, subject, type: "image/jpeg", data: await blobToBase64(blob) } });
+        return id;
+      },
+    };
   }
   async function setup(code: string) {
     const next = parseSetup(code);
@@ -302,6 +361,7 @@ export function useCockpit() {
     serverCategories: snapshot?.state.settings.categories ?? [],
     refresh,
     mutate,
+    images,
     setup,
     disconnect,
     retry,
