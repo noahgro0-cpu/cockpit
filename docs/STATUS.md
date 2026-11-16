@@ -462,7 +462,7 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 1. **Widget-Skript ersetzen (iPhone und iPad):** In Scriptable das Skript **Cockpit** öffnen → die zwei Zeilen `const SETUP_CODE = …` und `const PWA_URL = …` kopieren und in einer Notiz sichern → den ganzen Inhalt durch `widgets/Cockpit.js` aus dem Repo ersetzen → die zwei gesicherten Zeilen wieder oben einsetzen → **Fertig**. Das Widget aktualisiert sich innert 15 Min.; sofort: Widget lange drücken → **Widget bearbeiten** → ausserhalb tippen.
 2. **Screenshot «getönt»:** Auf dem iPad einen Screenshot vom grossen Widget machen und in den Chat einfügen (in Claude Code: Bild in das Terminalfenster ziehen) oder unter `private/screenshots/` ablegen.
 3. **Web-App neu laden** (auf dem iPad die App schliessen und neu öffnen) → **Fächer** → ein Fach → **Notizen** → «Neue Seite». Einen Termin im Kalender antippen und z. B. den Ort ändern.
-4. **Bilder freischalten** (erst zusammen mit Claude Code, sonst laufen Automatik und Briefing bis zur Freigabe nicht): Claude Code schreiben «Bilder freischalten». Claude Code ergänzt die Berechtigung und meldet sich. Dann:
+4. **Bilder freischalten** (Berechtigung ist seit 16.11. hochgeladen, aber noch nicht veröffentlicht – bis zur Zustimmung laufen Automatik und Briefing nicht, darum bald erledigen):
    1. Am PC https://script.google.com öffnen → Projekt **Cockpit**.
    2. Links **Editor** (Symbol `< >`) → Datei **gas/notes.gs** anklicken.
    3. Oben im Auswahlfeld neben **Ausführen** die Funktion **authorizeDrive** wählen → **Ausführen**.
@@ -475,4 +475,4 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 - Titel und Zeit von Serienterminen und Lektionen nur im Kalender selbst änderbar (Cockpit: nur das Fach). Ebenso Einladungen anderer Personen und die Daten mehrtägiger Termine.
 - Eine Notizseite fasst höchstens 45 000 Zeichen HTML (Hinweis ab 85 %). Für eine neue Lektion eine neue Seite beginnen.
 - Gelöschte Bilder und Seiten: Die Bilddateien bleiben im Drive-Ordner (Aufräumen von Hand möglich).
-- HIG-Auditor-Skill war in dieser Sitzung nicht verfügbar (vermutlich erst nach einem Neustart von Claude Code); geprüft nach den offiziellen Apple-HIG.
+- HIG-Auditor-Skill ist seit dem Neustart am 16.11. aktiv; Widget-Symbole damit nachkorrigiert (feste Abstände statt flexibler).
