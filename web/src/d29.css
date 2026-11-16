@@ -112,19 +112,23 @@ button.category-chip::after {
   white-space: nowrap;
 }
 
-/* To-do rows on phones: the check circle and trailing buttons sit on the card edge (iOS
-   Reminders), giving the title about 30 % more width; touch areas stay 44 x 44 pt. */
+/* To-do rows on phones: the check circle and trailing buttons reach into the card padding (iOS
+   Reminders): the outer tracks are 10 px narrower than their 44 x 44 pt buttons. */
 @media (max-width: 599px) {
   .card:has(> .task-item) {
     padding-inline: 16px;
   }
-  .task-item .todo-row {
+  .card > .task-item .todo-row {
     column-gap: 2px;
+    grid-template-columns: 34px minmax(0, 1fr) 44px 34px;
   }
-  .task-item .todo-row > .check {
+  .card > .task-item .todo-row > button:not(.check) {
+    width: 44px;
+  }
+  .card > .task-item .todo-row > .check {
     margin-inline-start: -10px;
   }
-  .task-item .todo-row > button:not(.check):last-of-type {
+  .card > .task-item .todo-row > button:not(.check):last-of-type {
     margin-inline-end: -10px;
   }
 }

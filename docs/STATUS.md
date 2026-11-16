@@ -482,4 +482,10 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
 
 ### Bekannte Mängel / nicht prüfbar
 - Sichere Bereiche, Kopfband unter der Statusleiste und die Schriftgrössen-Einstellung von iOS lassen sich nur auf dem Gerät prüfen.
-- «Dein Morgen» (Briefing) ist weiterhin ein Fliesstext; Vorschläge für eine schönere Darstellung siehe Antwort vom 16.11.
+- `style.css` hat noch 34 feste px-Schriftgrössen aus älteren Schichten (Skill: rem bevorzugt); bei Gelegenheit auf die Tokens umstellen.
+- «Dein Morgen» (Briefing) ist weiterhin ein Fliesstext. Offene Wahl des Nutzers (16.11.):
+  1. Widget-Modus «Morgen» in Scriptable (Karten wie das bestehende Widget: erste Lektion, Abfahrt, Wetter, To-dos, Fristen, Mails); keine Backend-Änderung nötig.
+  2. Briefing-Karte in der App als Kacheln statt Text; braucht strukturierte Briefing-Felder im Backend (Vertragsänderung api-types, SPEC, Deploy).
+  3. Scriptable-Mitteilung am Morgen, die beim langen Drücken eine gestaltete Ansicht zeigt (`Notification.scriptName`, `preferredContentHeight`); noch zu prüfen, was dort angezeigt werden kann. Zeit wird pro Gerät festgelegt; ntfy-Briefing dann abschalten.
+  4. Web Push (Phase 5): Tippen öffnet die App direkt bei «Dein Morgen».
+  Ungeprüft: ob ein Tippen auf eine ntfy-Mitteilung auf dem iPhone die Home-Bildschirm-App oder Safari öffnet.
