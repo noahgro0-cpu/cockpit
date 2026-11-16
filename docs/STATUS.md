@@ -517,6 +517,8 @@ Weiteres Vorgehen: Der Nutzer testet eine Woche. Fehler oder Wünsche danach an 
      - Kam eine Nachfrage?
   5. Prüfen, ob der Sperrbildschirm im Bearbeiten-Modus einen Knopf **Fokus** hat.
 
+  **Erster Versuch, 16.11. um 20:40, gescheitert:** Kurzbefehle meldete: «"Run Script" konnte "Scriptable" nicht öffnen, da iPhone gesperrt ist». Ursache laut Screenshot: Im Schritt «Run Briefing Test» war **Run In App** eingeschaltet. Das öffnet die App, und das geht bei gesperrtem Gerät nicht. Bitte erneut testen, diesmal mit **Run In App aus**. Die Kette selbst ist damit noch nicht widerlegt.
+
   **Wenn der Test klappt, gilt beim Bau:**
   - Das Datum steht gross im Bild, alle Zeiten absolut. Es gibt keinen Live-Status, denn das Bild ist ein Standbild.
   - Mails erscheinen nur als Anzahl, sensible Kategorien nie.
