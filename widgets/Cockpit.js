@@ -432,18 +432,19 @@ function fitted(image, box) {
   return new Size(Math.round(w * k * 2) / 2, Math.round(h * k * 2) / 2);
 }
 
-/** Adds an image centred in both axes of a fixed-size stack (D28: centerAlignContent alone
- * centres only across the stack's axis). */
-function centredImage(stack, image, box, color) {
-  stack.layoutVertically();
-  stack.addSpacer();
-  const row = stack.addStack();
-  row.addSpacer();
-  const icon = row.addImage(image);
-  icon.imageSize = fitted(image, box);
+/** Adds an image centred in a fixed-size stack. Only fixed spacers: the stack's content adds up
+ * to exactly its width (on-device check 2026-11-16: flexible spacers let the inner row grow
+ * wider than the tile, so the glyph drifted right and the to-do circle was cut in half).
+ * The cross axis is centred by centerAlignContent. */
+function centredImage(stack, image, width, box, color) {
+  const size = fitted(image, box);
+  const side = Math.max(0, (width - (size.width ?? box)) / 2);
+  stack.centerAlignContent();
+  if (side) stack.addSpacer(side);
+  const icon = stack.addImage(image);
+  icon.imageSize = size;
   icon.tintColor = color;
-  row.addSpacer();
-  stack.addSpacer();
+  if (side) stack.addSpacer(side);
 }
 
 function renderText(stack, text, font, color, lines = 1) {
@@ -465,7 +466,7 @@ function renderHeader(stack, card, palette) {
   tile.cornerRadius = 6;
   tile.backgroundColor = palette[card.kind].card;
   const image = symbol(ICONS[card.kind], Font.semiboldSystemFont(12));
-  if (image) centredImage(tile, image, 13, palette[card.kind].tile);
+  if (image) centredImage(tile, image, METRICS.header, 13, palette[card.kind].tile);
   row.addSpacer(7);
   renderText(row, card.title, Font.boldSystemFont(15), palette.ink);
   row.addSpacer();
@@ -495,10 +496,10 @@ function renderTodoRow(stack, row, palette) {
   const image = symbol("circle", Font.regularSystemFont(13));
   if (image) {
     const slot = line.addStack();
-    slot.size = new Size(14, METRICS.line);
-    centredImage(slot, image, 14, palette.circle);
+    slot.size = new Size(16, METRICS.line);
+    centredImage(slot, image, 16, 14, palette.circle);
   }
-  line.addSpacer(8);
+  line.addSpacer(7);
   renderText(line, row.text, Font.systemFont(13), palette[row.tone ?? "ink"]);
   line.addSpacer();
   if (row.detail) {
