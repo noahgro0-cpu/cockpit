@@ -2,6 +2,10 @@
 const SETUP_CODE = "";
 const PWA_URL = "";
 
+// Widget parameter (long-press the widget → Edit Widget → Parameter), optional:
+//   heute (default) · todos · termine · mails  – which card comes first and gets the most room.
+//   Add "ohne lektionen" (e.g. "termine, ohne lektionen") to hide lectures under "Nächste Termine".
+
 const TIME_ZONE = "Europe/Zurich";
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})$/;
@@ -15,6 +19,25 @@ const dayFormat = new Intl.DateTimeFormat("de-CH", {
 const timeFormat = new Intl.DateTimeFormat("de-CH", {
   timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23",
 });
+
+// Layout metrics in points (D27). The model plans rows against these, the renderer uses the same
+// values, so a card never overflows the widget: Scriptable clips instead of scrolling.
+const METRICS = {
+  pad: 8, // widget padding
+  gap: 6, // between cards
+  cardPad: 7, // inside a card, top and bottom
+  header: 22, // icon tile and title line
+  headerGap: 4,
+  line: 16, // one 13 pt line
+  detail: 13.5, // one 11 pt line
+  separator: 6.5, // 3 + 0.5 + 3
+  status: 13,
+};
+// Usable height inside the widget padding (iPhone sizes; larger devices just get more air).
+const HEIGHT = { small: 142, medium: 142, large: 338 };
+const ROW_HEIGHT = { todos: METRICS.line, events: METRICS.line + METRICS.detail + 1, mails: METRICS.line + METRICS.detail + 1 };
+const MAX_ROWS = { todos: 6, events: 4, mails: 3 };
+const TARGET_ROWS = { todos: 3, events: 2, mails: 2 };
 
 function decodeSetup(code, decodeBase64) {
   const base64 = code.trim().replace(/-/g, "+").replace(/_/g, "/");
@@ -56,38 +79,47 @@ function singleLine(value, fallback = "") {
   return value?.replace(/\s+/g, " ").trim() || fallback;
 }
 
-function formatEvent(event, today, includeDate = false, firstDay = today) {
-  const startDay = day(event.start);
-  const shownDay = startDay < firstDay ? firstDay : startDay;
-  const date = includeDate || shownDay !== today ? dateLabel(shownDay) : "";
-  const time = event.allDay ? "Ganztägig" : shownDay !== startDay ? "Läuft" : clock(event.start);
-  return {
-    text: [date, time, singleLine(event.title, "Termin")].filter(Boolean).join(" · "),
-  };
+/** "Heute", "Morgen", "Fr" (this week) or "Mo 23.11." for a Zurich day. */
+function relativeDay(isoDay, today) {
+  if (isoDay === today) return "Heute";
+  if (isoDay === addDays(today, 1)) return "Morgen";
+  if (isoDay > today && isoDay < addDays(today, 7)) return WEEKDAYS[weekday(isoDay)];
+  return dateLabel(isoDay);
 }
 
-function formatTodo(todo, now, mode, compact = false) {
+function formatTodo(todo, now) {
   const today = day(now);
   const dueDay = todo.due ? day(todo.due) : "";
   const timed = todo.due && todo.dueHasTime && !DATE_ONLY.test(todo.due);
   const overdue = dueDay && (dueDay < today || (timed && Date.parse(todo.due) <= +now));
-  let when = "";
-  if (dueDay && (!compact || mode === "woche")) {
-    when = mode === "woche" || dueDay !== today ? dateLabel(dueDay) : "Heute";
-    if (timed) when += ` ${clock(todo.due)}`;
-  }
-  return {
-    text: [when, singleLine(todo.title, "To-do")].filter(Boolean).join(" · "),
-    tone: overdue ? "danger" : "ink",
-  };
+  let detail = "";
+  if (overdue) detail = dueDay < today ? "Überfällig" : `Fällig ${clock(todo.due)}`;
+  else if (dueDay) detail = relativeDay(dueDay, today) + (timed ? ` ${clock(todo.due)}` : "");
+  return { text: singleLine(todo.title, "To-do"), detail, tone: overdue ? "danger" : "ink" };
 }
 
+/** "Heute, 12:30", "Morgen · ganztägig", "Jetzt · bis 14:55". */
+function eventWhen(event, now) {
+  const today = day(now);
+  const startDay = day(event.start);
+  if (event.allDay) return `${relativeDay(startDay < today ? today : startDay, today)} · ganztägig`;
+  if (Date.parse(event.start) <= +now) return `Jetzt · bis ${clock(event.end)}`;
+  return `${relativeDay(startDay, today)}, ${clock(event.start)}`;
+}
+
+function formatEvent(event, now) {
+  const mark = event.kind === "exam" || event.kind === "deadline" ? "exam"
+    : event.kind === "lecture" || event.routine ? "lecture" : "event";
+  const room = event.kind === "lecture" && event.location ? ` · ${singleLine(event.location)}` : "";
+  return { text: singleLine(event.title, "Termin"), detail: eventWhen(event, now) + room, mark };
+}
+
+/** Sensitive mails stay generic in the widget (home and Lock Screen are visible to others, D25). */
 function formatMail(mail) {
-  return {
-    text: singleLine(mail.subject, "Ohne Betreff"),
-    detail: singleLine(mail.fromName) || singleLine(mail.fromEmail, "Unbekannter Absender"),
-    tone: mail.importance === 3 ? "danger" : "ink",
-  };
+  const sender = singleLine(mail.fromName) || singleLine(mail.fromEmail, "Unbekannter Absender");
+  return mail.sensitive
+    ? { text: "Vertrauliche Nachricht", detail: singleLine(mail.category, "Vertraulich"), tone: "ink", mark: "mail" }
+    : { text: sender, detail: singleLine(mail.subject, "Ohne Betreff"), tone: "ink", mark: mail.importance === 3 ? "urgent" : "mail" };
 }
 
 function validDate(value) {
@@ -132,7 +164,7 @@ function selectTodos(todos) {
 }
 
 function selectMails(mails) {
-  return mails.filter(mail => mail.importance >= 1)
+  return mails.filter(mail => mail.importance >= 2)
     .sort((a, b) => b.importance - a.importance || Date.parse(b.receivedAt) - Date.parse(a.receivedAt));
 }
 
@@ -141,99 +173,136 @@ function eventOrder(a, b) {
     Number(b.allDay) - Number(a.allDay) || Date.parse(a.start) - Date.parse(b.start);
 }
 
-function overlaps(event, firstDay, endDay) {
-  // Subtract a millisecond for timed events ending exactly at midnight.
-  const lastDay = event.allDay ? addDays(event.end, -1) : day(Date.parse(event.end) - 1);
-  return day(event.start) < endDay && lastDay >= firstDay;
+function eventEndMs(event) {
+  return event.allDay ? Date.parse(`${event.end}T00:00:00Z`) - 3600000 : Date.parse(event.end);
 }
 
-function selectCalendar(state, now) {
-  const today = day(now);
-  const firstDay = monday(today);
-  const stateDay = day(state.generatedAt);
-  const endDay = addDays(firstDay, 7);
-  // The current API has today/nextEvent only. See OPEN-QUESTIONS.md for week.
-  const week = monday(stateDay) === firstDay &&
-    Array.isArray(state.week) && state.week.every(validEvent)
-    ? state.week.filter(event => overlaps(event, firstDay, endDay)).sort(eventOrder)
-    : null;
-  const events = stateDay === today ? state.today : week;
-  const agenda = events
-    ? events.filter(event => overlaps(event, today, addDays(today, 1))).sort(eventOrder)
-    : null;
-  const next = [state.nextEvent, ...state.today, ...(week ?? [])]
-    .filter(event => event && !event.allDay && Date.parse(event.end) > +now)
-    .sort(eventOrder)[0] ?? null;
-  return { week, agenda, next, firstDay };
+/**
+ * Candidates for "Nächste Termine": `upcoming` from the backend (D27), else (older cached
+ * responses) today, the week and nextEvent. Not ended, deduplicated, chronological.
+ */
+function upcomingCandidates(state, now) {
+  const source = Array.isArray(state.upcoming) && state.upcoming.every(validEvent)
+    ? state.upcoming
+    : [state.nextEvent, ...state.today, ...(Array.isArray(state.week) ? state.week.filter(validEvent) : [])];
+  const seen = new Set();
+  return source.filter(event => {
+    if (!event || seen.has(event.id) || eventEndMs(event) <= +now) return false;
+    if (event.routine && event.kind !== "lecture") return false;
+    seen.add(event.id);
+    return true;
+  }).sort(eventOrder);
 }
 
-function modeFor(family, parameter) {
-  const mode = typeof parameter === "string" ? parameter.trim().toLowerCase() : "";
-  return ["heute", "todos", "woche"].includes(mode) ? mode : family === "large" ? "woche" : "heute";
+/** Appointments first, lectures fill the remaining rows; shown chronologically. */
+function pickEvents(candidates, count, withLectures) {
+  const isLecture = event => event.kind === "lecture";
+  const main = candidates.filter(event => !isLecture(event));
+  const lectures = withLectures ? candidates.filter(isLecture) : [];
+  return [...main.slice(0, count), ...lectures.slice(0, Math.max(0, count - main.length))].sort(eventOrder);
 }
 
-function section(title, rows, empty) {
-  return { title, rows: rows.length ? rows : [{ text: empty, tone: "muted" }] };
+function parseParameter(family, parameter) {
+  const text = typeof parameter === "string" ? parameter.trim().toLowerCase() : "";
+  const modes = { heute: "heute", todos: "todos", "to-dos": "todos", termine: "termine", woche: "termine", mails: "mails" };
+  const first = text.split(/[,;\s]+/).find(word => modes[word]);
+  return { mode: modes[first] ?? "heute", lectures: !/ohne\s*lektion/.test(text) };
 }
 
-function eventRows(events, limit, format) {
-  const rows = events.slice(0, limit).map(format);
-  if (events.length > limit) rows.push({ text: `+${events.length - limit} weitere`, tone: "muted" });
-  return rows;
+function cardHeight(card) {
+  const rows = Math.max(1, card.rows.length);
+  const rowHeight = card.rows.length ? ROW_HEIGHT[card.kind] : METRICS.line;
+  const header = card.compact ? 0 : METRICS.header + METRICS.headerGap;
+  return 2 * METRICS.cardPad + header + rows * rowHeight + (rows - 1) * METRICS.separator;
 }
 
-function widgetModel(state, family, parameter, now) {
-  const today = day(now);
-  const mode = modeFor(family, parameter);
+function plannedHeight(cards, horizontal) {
+  if (horizontal) return Math.max(...cards.map(cardHeight));
+  return cards.reduce((sum, card) => sum + cardHeight(card), 0) + (cards.length - 1) * METRICS.gap;
+}
+
+/**
+ * Fills each card with rows while the planned height fits: first up to the target counts of the
+ * template (3 to-dos, 2 appointments, 2 mails), then the first card up to its maximum.
+ */
+function fillCards(cards, budget, horizontal) {
+  for (const card of cards) card.rows = [];
+  const take = (card, limit) => {
+    while (card.rows.length < Math.min(limit, card.items.length)) {
+      card.rows.push(null); // only the count matters while planning
+      if (plannedHeight(cards, horizontal) > budget) {
+        card.rows.pop();
+        return;
+      }
+    }
+  };
+  for (const card of cards) take(card, 1);
+  for (const card of cards) take(card, card.target ?? TARGET_ROWS[card.kind]);
+  for (const card of cards) take(card, MAX_ROWS[card.kind]);
+  return cards.map(({ items, format, pick, target, ...card }) => ({
+    ...card,
+    rows: (pick ? pick(card.rows.length) : items.slice(0, card.rows.length)).map(format),
+    more: Math.max(0, items.length - card.rows.length),
+  }));
+}
+
+function widgetModel(state, family, parameter, now, status = null) {
+  const { mode, lectures } = parseParameter(family, parameter);
   const todos = selectTodos(state.todos);
   const mails = selectMails(state.mails);
-  const calendar = selectCalendar(state, now);
-  const next = calendar.next
-    ? formatEvent(calendar.next, today, mode === "woche")
-    : { text: "Kein nächster Termin", tone: "muted" };
-  const tasks = (limit, compact) => section("To-dos",
-    todos.slice(0, limit).map(todo => formatTodo(todo, now, mode, compact)), "Keine offenen To-dos");
-  const agenda = limit => section("Heute",
-    eventRows(calendar.agenda ?? [], limit, event => formatEvent(event, today, mode === "woche")),
-    calendar.agenda ? "Keine Termine" : "Agenda nicht geladen");
+  const candidates = upcomingCandidates(state, now);
+  const events = pickEvents(candidates, MAX_ROWS.events, lectures);
 
   if (family === "accessoryRectangular") {
-    const task = todos[0] ? formatTodo(todos[0], now, mode, true)
+    const task = todos[0] ? formatTodo(todos[0], now) : null;
+    const taskRow = task
+      ? { text: `To-do · ${task.text}`, tone: task.tone }
       : { text: "Kein offenes To-do", tone: "muted" };
-    const taskRow = { ...task, text: todos.length ? `To-do · ${task.text}` : task.text };
-    return { sections: [{ rows: mode === "todos" ? [taskRow, next] : [next, taskRow] }] };
+    const nextEvent = pickEvents(candidates, 1, false)[0];
+    const next = nextEvent
+      ? { text: `${eventWhen(nextEvent, now)} · ${singleLine(nextEvent.title, "Termin")}` }
+      : { text: "Kein nächster Termin", tone: "muted" };
+    return { family, sections: [{ rows: mode === "todos" ? [taskRow, next] : [next, taskRow] }], status };
   }
 
+  const count = Number.isInteger(state.todoCount) ? state.todoCount : todos.length;
+  const card = {
+    todos: () => ({
+      kind: "todos", title: "To-dos", items: todos, format: todo => formatTodo(todo, now),
+      count: family === "large" ? `${count} ${count === 1 ? "Aufgabe" : "Aufgaben"}` : "",
+      narrow: family !== "large", // no due label: it would crowd out the title (overdue stays red)
+      empty: "Keine offenen To-dos",
+    }),
+    events: () => ({
+      kind: "events", title: family === "large" ? "Nächste Termine" : "Termine", items: events, format: event => formatEvent(event, now),
+      pick: n => pickEvents(candidates, n, lectures),
+      empty: "Keine Termine in den nächsten 7 Tagen",
+    }),
+    mails: compact => ({
+      kind: "mails", title: family === "large" ? "Wichtige neue Mails" : "Wichtige Mails", items: mails, format: formatMail,
+      empty: "Keine wichtigen Mails", compact,
+    }),
+  };
+  const order = {
+    heute: ["todos", "events", "mails"],
+    todos: ["todos", "events", "mails"],
+    termine: ["events", "todos", "mails"],
+    mails: ["mails", "todos", "events"],
+  }[mode];
+
+  let cards;
   if (family === "small") {
-    const sections = [];
-    if (mails[0]) sections.push({ rows: [formatMail(mails[0])] });
-    if (todos.length) {
-      const todoSection = tasks(mails.length ? 2 : 3, true);
-      if (mode === "todos") sections.unshift(todoSection);
-      else sections.push(todoSection);
-    }
-    if (!sections.length) sections.push({ title: "Nächster Termin", rows: [next] });
-    return { title: "Cockpit", sections };
+    // One card; with the default mode the most important mail sits below as a compact strip (D21).
+    const main = mode === "heute" ? (todos.length || !events.length ? "todos" : "events") : order[0];
+    cards = [main === "mails" ? card.mails(false) : card[main]()];
+    if (mode === "heute" && main === "todos" && mails.length) cards.push({ ...card.mails(true), target: 1 });
+  } else if (family === "medium") {
+    cards = (mode === "heute" ? ["events", "todos"] : order.slice(0, 2)).map(kind => card[kind](false));
+  } else {
+    cards = order.map(kind => card[kind](false));
   }
-
-  if (family === "medium") {
-    const sections = [agenda(3), tasks(3, false)];
-    return { title: "Cockpit", sections: mode === "todos" ? sections.reverse() : sections };
-  }
-
-  const important = section("Wichtige Mails", mails.filter(mail => mail.importance >= 2).slice(0, 3)
-    .map(formatMail), "Keine wichtigen Mails");
-  const week = section("Diese Woche", calendar.week
-    ? eventRows(calendar.week, mode === "woche" ? 7 : 4,
-      event => formatEvent(event, today, true, calendar.firstDay))
-    : [{ text: "Wochenagenda nicht verfügbar", tone: "muted" }], "Keine Termine");
-  const sections = [week];
-  if (!calendar.week && calendar.next && day(calendar.next.start) !== today)
-    sections.push({ title: "Nächster Termin", rows: [next] });
-  sections.push(important);
-  if (mode === "todos") sections.unshift(tasks(3, false));
-  if (mode === "heute" || !calendar.week) sections.splice(mode === "todos" ? 1 : 0, 0, agenda(3));
-  return { title: "Cockpit", sections };
+  const budget = HEIGHT[family === "small" || family === "medium" ? family : "large"] - (status ? METRICS.status : 0);
+  return { family, cards: fillCards(cards, budget, family === "medium"), status };
 }
 
 function cacheEntry(text, url) {
@@ -284,81 +353,207 @@ async function loadState(connection) {
   return { message };
 }
 
+// --- Rendering (Scriptable only) ---------------------------------------------------------
+
 function colors() {
   const dynamic = (light, dark) => Color.dynamic(new Color(light), new Color(dark));
-  // Match the PWA tokens in web/src/tokens.css.
+  // iOS system colours, light/dark (D27, template widgets/… in private/): tinted cards on white.
   return {
-    background: dynamic("#f6f7f3", "#161e1a"),
-    ink: dynamic("#26382f", "#edf2e9"),
-    muted: dynamic("#58665e", "#b1beb3"),
-    accent: dynamic("#375c48", "#b5d4b8"),
-    danger: dynamic("#a1403b", "#ffb3a9"),
+    background: dynamic("#ffffff", "#1c1c1e"),
+    ink: dynamic("#000000", "#ffffff"),
+    muted: dynamic("#6e6e73", "#aeaeb2"),
+    separator: dynamic("#d8d8dd", "#3a3a3c"),
+    danger: dynamic("#d70015", "#ff6961"),
+    circle: dynamic("#a1a1a6", "#8e8e93"),
+    todos: { card: dynamic("#f2f2f7", "#2c2c2e"), tile: dynamic("#8e8e93", "#636366") },
+    events: { card: dynamic("#e9f1fe", "#13253d"), tile: dynamic("#0a7aff", "#0a84ff") },
+    mails: { card: dynamic("#fff2e6", "#3a2a19"), tile: dynamic("#ff9500", "#ff9f0a") },
+    mark: {
+      event: dynamic("#0a7aff", "#0a84ff"),
+      lecture: dynamic("#8fb9f5", "#4f7fbf"),
+      exam: dynamic("#af52de", "#bf5af2"),
+      mail: dynamic("#ff9500", "#ff9f0a"),
+      urgent: dynamic("#ff3b30", "#ff453a"),
+    },
   };
 }
 
-function renderText(stack, text, font, color) {
+const ICONS = { todos: "checklist", events: "calendar", mails: "envelope.fill" };
+
+function symbol(name, font) {
+  // Runtime system symbols: nothing is embedded in the repo (D27, AGENTS.md "Lizenz").
+  if (typeof SFSymbol === "undefined") return null;
+  const s = SFSymbol.named(name);
+  if (!s) return null;
+  s.applyFont(font);
+  return s.image;
+}
+
+function renderText(stack, text, font, color, lines = 1) {
   const label = stack.addText(text);
   label.font = font;
   if (color) label.textColor = color;
-  label.lineLimit = 1;
-  label.minimumScaleFactor = 0.85;
+  label.lineLimit = lines;
+  label.minimumScaleFactor = 0.8;
+  return label;
 }
 
-function renderSection(stack, section, palette, size, gap) {
-  if (section.title) {
-    renderText(stack, section.title, Font.semiboldSystemFont(11), palette.accent);
-    stack.addSpacer(2);
+function renderHeader(stack, card, palette) {
+  const row = stack.addStack();
+  row.centerAlignContent();
+  row.size = new Size(0, METRICS.header);
+  const tile = row.addStack();
+  tile.size = new Size(METRICS.header, METRICS.header);
+  tile.cornerRadius = 6;
+  tile.backgroundColor = palette[card.kind].tile;
+  tile.centerAlignContent();
+  const image = symbol(ICONS[card.kind], Font.semiboldSystemFont(12));
+  if (image) {
+    const icon = tile.addImage(image);
+    icon.imageSize = new Size(13, 13);
+    icon.tintColor = Color.white();
   }
-  for (const [index, row] of section.rows.entries()) {
-    if (index > 0) stack.addSpacer(gap);
-    if (row.detail) renderText(stack, row.detail, Font.systemFont(11), palette.muted);
-    renderText(stack, row.text, Font.systemFont(size), palette[row.tone ?? "ink"]);
+  row.addSpacer(8);
+  renderText(row, card.title, Font.boldSystemFont(15), palette.ink);
+  row.addSpacer();
+  if (card.count) renderText(row, card.count, Font.systemFont(12), palette.muted);
+  stack.addSpacer(METRICS.headerGap);
+}
+
+function renderSeparator(stack, palette, indent) {
+  stack.addSpacer(3);
+  const line = stack.addStack();
+  line.size = new Size(0, 0.5);
+  line.addSpacer(indent);
+  const rule = line.addStack();
+  rule.size = new Size(0, 0.5);
+  rule.backgroundColor = palette.separator;
+  rule.addSpacer();
+  stack.addSpacer(3);
+}
+
+function renderTodoRow(stack, row, palette) {
+  const line = stack.addStack();
+  line.centerAlignContent();
+  line.size = new Size(0, METRICS.line);
+  const image = symbol("circle", Font.regularSystemFont(13));
+  if (image) {
+    const icon = line.addImage(image);
+    icon.imageSize = new Size(14, 14);
+    icon.tintColor = palette.circle;
+  }
+  line.addSpacer(8);
+  renderText(line, row.text, Font.systemFont(13), palette[row.tone ?? "ink"]);
+  line.addSpacer();
+  if (row.detail) {
+    line.addSpacer(6);
+    renderText(line, row.detail, Font.systemFont(11), row.tone === "danger" ? palette.danger : palette.muted);
   }
 }
 
-function renderWidget(model, family, pwaUrl, now, status) {
+function renderTwoLineRow(stack, row, palette, kind) {
+  const line = stack.addStack();
+  line.size = new Size(0, ROW_HEIGHT[kind]);
+  line.centerAlignContent();
+  const mark = line.addStack();
+  if (kind === "events") {
+    mark.size = new Size(3, ROW_HEIGHT[kind] - 3);
+    mark.cornerRadius = 1.5;
+  } else {
+    mark.size = new Size(8, 8);
+    mark.cornerRadius = 4;
+  }
+  mark.backgroundColor = palette.mark[row.mark] ?? palette.mark.event;
+  line.addSpacer(kind === "events" ? 9 : 8);
+  const text = line.addStack();
+  text.layoutVertically();
+  renderText(text, row.text, Font.semiboldSystemFont(13), palette[row.tone ?? "ink"]);
+  text.addSpacer(1);
+  renderText(text, row.detail ?? "", Font.systemFont(11), palette.muted);
+  line.addSpacer();
+}
+
+function renderCard(parent, card, palette) {
+  const box = parent.addStack();
+  box.layoutVertically();
+  box.backgroundColor = palette[card.kind]?.card ?? palette.todos.card;
+  box.cornerRadius = 14;
+  box.setPadding(METRICS.cardPad, 10, METRICS.cardPad, 10);
+  if (!card.compact) renderHeader(box, card, palette);
+  if (!card.rows.length) {
+    const empty = box.addStack();
+    empty.size = new Size(0, METRICS.line);
+    empty.centerAlignContent();
+    renderText(empty, card.empty, Font.systemFont(13), palette.muted);
+    empty.addSpacer();
+  }
+  for (const [index, row] of card.rows.entries()) {
+    if (index > 0 && card.kind !== "message") renderSeparator(box, palette, card.kind === "events" ? 12 : 22);
+    else if (index > 0) box.addSpacer(4);
+    if (card.kind === "todos") renderTodoRow(box, card.narrow ? { ...row, detail: "" } : row, palette);
+    else if (card.kind === "message") renderText(box, row.text, Font.semiboldSystemFont(13), palette[row.tone]);
+    else renderTwoLineRow(box, row, palette, card.kind);
+  }
+  return box;
+}
+
+function renderLock(widget, model, status) {
+  widget.setPadding(0, 0, 0, 0);
+  // The Lock Screen supplies its own wallpaper-dependent tint.
+  for (const [index, row] of model.sections[0].rows.entries()) {
+    if (index > 0) widget.addSpacer(3);
+    renderText(widget, row.text, Font.systemFont(12));
+  }
+  if (status) {
+    widget.addSpacer(2);
+    renderText(widget, status, Font.systemFont(10));
+  }
+}
+
+function renderWidget(model, pwaUrl, now) {
   const widget = new ListWidget();
   widget.refreshAfterDate = new Date(+now + REFRESH_MS);
   if (pwaUrl) widget.url = pwaUrl;
-  const lock = family === "accessoryRectangular";
-  if (lock) {
-    widget.setPadding(0, 0, 0, 0);
-    // The Lock Screen supplies its own wallpaper-dependent tint.
-    renderSection(widget, model.sections[0], {}, 12, 3);
-    if (status) {
-      widget.addSpacer(2);
-      renderText(widget, status, Font.systemFont(10));
-    }
+  if (model.family === "accessoryRectangular") {
+    renderLock(widget, model, model.status);
     return widget;
   }
-
   const palette = colors();
-  const small = family === "small";
-  const padding = small ? 10 : 13;
   widget.backgroundColor = palette.background;
-  widget.setPadding(padding, padding, padding, padding);
-  renderText(widget, model.title, Font.semiboldSystemFont(14), palette.accent);
-  widget.addSpacer(small ? 5 : 8);
-  if (family === "medium" && model.sections.length === 2) {
+  widget.setPadding(METRICS.pad, METRICS.pad, METRICS.pad, METRICS.pad);
+  if (model.family === "medium") {
     const columns = widget.addStack();
     columns.topAlignContent();
-    const left = columns.addStack();
-    left.layoutVertically();
-    left.size = new Size(116, 0);
-    renderSection(left, model.sections[0], palette, 12, 3);
-    columns.addSpacer(12);
-    const right = columns.addStack();
-    right.layoutVertically();
-    renderSection(right, model.sections[1], palette, 12, 3);
+    for (const [index, card] of model.cards.entries()) {
+      if (index > 0) columns.addSpacer(METRICS.gap);
+      const box = renderCard(columns, card, palette);
+      box.size = new Size(0, HEIGHT.medium - (model.status ? METRICS.status : 0));
+      box.addSpacer();
+    }
   } else {
-    for (const [index, group] of model.sections.entries()) {
-      if (index > 0) widget.addSpacer(small ? 5 : 8);
-      renderSection(widget, group, palette, small ? 12 : 13, small ? 2 : 3);
+    for (const [index, card] of model.cards.entries()) {
+      if (index > 0) widget.addSpacer(METRICS.gap);
+      renderCard(widget, card, palette);
     }
   }
   widget.addSpacer();
-  if (status) renderText(widget, status, Font.systemFont(10), palette.muted);
+  if (model.status) {
+    const line = widget.addStack();
+    line.addSpacer();
+    renderText(line, model.status, Font.systemFont(10), palette.muted);
+  }
   return widget;
+}
+
+function messageModel(family, message) {
+  if (family === "accessoryRectangular")
+    return { family, sections: [{ rows: [{ text: message }, { text: "In Scriptable prüfen", tone: "muted" }] }] };
+  return {
+    family,
+    cards: [{ kind: "message", title: "Cockpit", compact: true, more: 0, empty: "",
+      rows: [{ text: "Cockpit", tone: "ink" }, { text: message, tone: "ink" }, { text: "In Scriptable öffnen und prüfen", tone: "muted" }] }],
+    status: null,
+  };
 }
 
 async function buildWidget(family, parameter, setupCode, pwaAddress) {
@@ -377,12 +572,9 @@ async function buildWidget(family, parameter, setupCode, pwaAddress) {
     if (connection) result = await loadState(connection);
   }
   const now = new Date();
-  const model = result.state ? widgetModel(result.state, family, parameter, now) : {
-    title: "Cockpit",
-    sections: [{ rows: [{ text: result.message }, { text: "In Scriptable prüfen", tone: "muted" }] }],
-  };
   const status = result.fetchedAt ? cacheLabel(result.fetchedAt, now) : null;
-  return renderWidget(model, family, validPwa ? pwaUrl : null, now, status);
+  const model = result.state ? widgetModel(result.state, family, parameter, now, status) : messageModel(family, result.message);
+  return renderWidget(model, validPwa ? pwaUrl : null, now);
 }
 
 async function runWidget() {

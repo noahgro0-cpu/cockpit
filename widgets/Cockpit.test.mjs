@@ -7,7 +7,7 @@ import { Script } from "node:vm";
 const source = readFileSync(new URL("./Cockpit.js", import.meta.url), "utf8");
 const script = new Script(`(async () => {
   ${source}
-  return { buildWidget, cacheLabel, clock, day, decodeSetup, formatTodo, selectCalendar, widgetModel };
+  return { buildWidget, cacheLabel, clock, day, decodeSetup, formatTodo, widgetModel, plannedHeight, HEIGHT, METRICS };
 })()`, { filename: "Cockpit.js" });
 const logic = await script.runInNewContext();
 const now = new Date("2026-11-16T08:00:00+01:00");
@@ -53,7 +53,8 @@ function state(overrides = {}) {
 }
 
 const rows = model => Array.from(model.sections, group => Array.from(group.rows, row => row.text));
-const headings = model => Array.from(model.sections, group => group.title);
+const kinds = model => Array.from(model.cards, card => card.kind);
+const texts = (model, kind) => Array.from(model.cards.find(card => card.kind === kind)?.rows ?? [], row => row.text);
 
 test("setup accepts both Base64 variants and restricts the Apps Script endpoint", () => {
   assert.equal(logic.decodeSetup(code, decode).url, endpoint);
@@ -78,78 +79,117 @@ test("Zurich formatting crosses midnight and both DST transitions", () => {
 
 test("date-only deadlines become overdue at Zurich midnight and timed ones at their exact instant", () => {
   const dateOnly = task("Abgabe", "2026-03-29");
-  assert.equal(logic.formatTodo(dateOnly, new Date("2026-03-29T21:59:59Z"), "heute").tone, "ink");
-  assert.equal(logic.formatTodo(dateOnly, new Date("2026-03-29T22:00:00Z"), "heute").tone, "danger");
+  assert.equal(logic.formatTodo(dateOnly, new Date("2026-03-29T21:59:59Z")).tone, "ink");
+  assert.equal(logic.formatTodo(dateOnly, new Date("2026-03-29T22:00:00Z")).tone, "danger");
+  assert.equal(logic.formatTodo(dateOnly, new Date("2026-03-29T22:00:00Z")).detail, "Überfällig");
   const timed = task("Abgabe", "2026-10-25T02:30:00+01:00", 2);
-  assert.equal(logic.formatTodo(timed, new Date("2026-10-25T00:45:00Z"), "heute").tone, "ink");
-  assert.equal(logic.formatTodo(timed, new Date("2026-10-25T01:30:00Z"), "heute").tone, "danger");
+  assert.equal(logic.formatTodo(timed, new Date("2026-10-25T00:45:00Z")).tone, "ink");
+  assert.equal(logic.formatTodo(timed, new Date("2026-10-25T01:30:00Z")).tone, "danger");
+  assert.equal(logic.formatTodo(task("x", "2026-11-17"), now).detail, "Morgen");
+  assert.equal(logic.formatTodo(task("x", "2026-11-20"), now).detail, "Fr");
+  assert.equal(logic.formatTodo(task("x", "2026-11-23"), now).detail, "Mo 23.11.");
 });
 
-test("small shows sender, subject, two open tasks and the specified fallbacks", () => {
-  const small = overrides => logic.widgetModel(state(overrides), "small", "heute", now);
-  assert.deepEqual(rows(small()), [["Dringende Mail"], ["Überfällig", "Mit Uhrzeit"]]);
-  assert.equal(small().sections[0].rows[0].detail, "Testabsender");
-  assert.deepEqual(rows(small({ mails: [] })), [["Überfällig", "Mit Uhrzeit", "Heute"]]);
-  assert.deepEqual(rows(small({ mails: [], todos: [] })), [["08:30 · Erster Termin"]]);
-  assert.deepEqual(rows(small({ mails: [], todos: [], today: [], nextEvent: null })), [["Kein nächster Termin"]]);
-  const focused = logic.widgetModel(state(), "small", " TODOS ", now);
-  assert.deepEqual(rows(focused), [["Überfällig", "Mit Uhrzeit"], ["Dringende Mail"]]);
+// D27: layout of the template (private/Vorlage Widget.PNG): tinted cards To-dos, Nächste Termine, Mails.
+const lecture = (title, start, end) => ({ ...event(title, start, end), kind: "lecture", routine: true, location: "R1" });
+const upcoming = [
+  event("Erster Termin", "2026-11-16T08:30:00+01:00", "2026-11-16T09:30:00+01:00"),
+  lecture("Vorlesung", "2026-11-16T12:30:00+01:00", "2026-11-16T14:55:00+01:00"),
+  event("Projektmeeting", "2026-11-17T09:00:00+01:00", "2026-11-17T10:00:00+01:00"),
+];
+
+test("large follows the template: 3 to-dos with count, 2 appointments, 2 important mails", () => {
+  const large = logic.widgetModel(state({ upcoming, todoCount: 4 }), "large", "", now);
+  assert.deepEqual(kinds(large), ["todos", "events", "mails"]);
+  assert.deepEqual(texts(large, "todos"), ["Überfällig", "Mit Uhrzeit", "Heute"]);
+  assert.equal(large.cards[0].count, "4 Aufgaben");
+  assert.equal(large.cards[0].rows[0].tone, "danger");
+  assert.deepEqual(texts(large, "events"), ["Erster Termin", "Projektmeeting"]);
+  assert.equal(large.cards[1].rows[0].detail, "Heute, 08:30");
+  assert.equal(large.cards[1].rows[1].detail, "Morgen, 09:00");
+  assert.deepEqual(texts(large, "mails"), ["Testabsender", "Testabsender"]);
+  assert.equal(large.cards[2].rows[0].detail, "Dringende Mail");
+  assert.equal(large.cards[2].rows[0].mark, "urgent");
+  assert.ok(!texts(large, "mails").includes("Info"));
 });
 
-test("medium displays an ordered agenda and three urgent tasks with weekday dates in week mode", () => {
-  const medium = logic.widgetModel(state(), "medium", "woche", now);
-  assert.deepEqual(headings(medium), ["Heute", "To-dos"]);
-  assert.deepEqual(rows(medium), [
-    ["Mo 16.11. · Ganztägig · Ganzer Tag", "Mo 16.11. · 08:30 · Erster Termin"],
-    ["So 15.11. · Überfällig", "Mo 16.11. 10:00 · Mit Uhrzeit", "Mo 16.11. · Heute"],
-  ]);
-  assert.deepEqual(headings(logic.widgetModel(state(), "medium", "todos", now)), ["To-dos", "Heute"]);
+test("lectures fill free appointment rows, never displace appointments; 'ohne Lektionen' hides them", () => {
+  const one = [upcoming[1], upcoming[2]];
+  const model = logic.widgetModel(state({ upcoming: one }), "large", "", now);
+  assert.deepEqual(texts(model, "events"), ["Vorlesung", "Projektmeeting"]);
+  assert.equal(model.cards[1].rows[0].detail, "Heute, 12:30 · R1");
+  assert.equal(model.cards[1].rows[0].mark, "lecture");
+  const hidden = logic.widgetModel(state({ upcoming: one }), "large", "termine, ohne Lektionen", now);
+  assert.deepEqual(texts(hidden, "events"), ["Projektmeeting"]);
+  assert.equal(hidden.cards[0].kind, "events");
 });
 
-test("large uses the API's partial calendar honestly and accepts a full week when supplied", () => {
+test("sensitive mails stay generic", () => {
+  const secret = { ...mail("Arztbericht", 3, "2026-11-16T06:00:00Z", "Praxis"), sensitive: true, category: "Gesundheit" };
+  const model = logic.widgetModel(state({ mails: [secret] }), "large", "", now);
+  assert.deepEqual(JSON.parse(JSON.stringify(model.cards[2].rows.map(r => [r.text, r.detail]))), [["Vertrauliche Nachricht", "Gesundheit"]]);
+});
+
+test("every size stays within its height budget, even with much data and a cache status", () => {
+  const many = Array.from({ length: 9 }, (_, i) => task(`Aufgabe ${i}`, "2026-11-18"));
+  const mails = Array.from({ length: 3 }, (_, i) => mail(`Mail ${i}`, 2, "2026-11-16T06:00:00Z"));
+  const busy = state({ todos: many, mails, upcoming: [...upcoming, event("Später", "2026-11-18T09:00:00+01:00", "2026-11-18T10:00:00+01:00")] });
+  for (const family of ["small", "medium", "large"])
+    for (const param of ["", "todos", "termine", "mails"])
+      for (const status of [null, "Stand 07:30"]) {
+        const model = logic.widgetModel(busy, family, param, now, status);
+        const height = logic.plannedHeight(model.cards, family === "medium") + (status ? logic.METRICS.status : 0);
+        assert.ok(height <= logic.HEIGHT[family], `${family}/${param}/${status}: ${height}`);
+        assert.ok(model.cards.every(card => card.rows.length >= 1), `${family}/${param}: empty card`);
+      }
+  const large = logic.widgetModel(busy, "large", "", now);
+  assert.deepEqual([...large.cards.map(card => card.rows.length)], [3, 2, 2]);
+  assert.equal(large.cards[0].more, 6);
+});
+
+test("medium shows two cards side by side; small one card plus the most important mail", () => {
+  const s = state({ upcoming });
+  assert.deepEqual(kinds(logic.widgetModel(s, "medium", "", now)), ["events", "todos"]);
+  assert.deepEqual(kinds(logic.widgetModel(s, "medium", "todos", now)), ["todos", "events"]);
+  assert.deepEqual(kinds(logic.widgetModel(s, "medium", "mails", now)), ["mails", "todos"]);
+  const small = logic.widgetModel(s, "small", "heute", now);
+  assert.deepEqual(kinds(small), ["todos", "mails"]);
+  assert.equal(small.cards[1].compact, true);
+  assert.deepEqual(texts(small, "todos"), ["Überfällig", "Mit Uhrzeit"]);
+  assert.deepEqual(kinds(logic.widgetModel(state({ upcoming, mails: [] }), "small", "", now)), ["todos"]);
+  assert.deepEqual(kinds(logic.widgetModel(state({ upcoming, todos: [] }), "small", "", now)), ["events"]);
+  assert.deepEqual(kinds(logic.widgetModel(s, "small", " TERMINE ", now)), ["events"]);
+  const empty = logic.widgetModel(state({ todos: [], mails: [], today: [], nextEvent: null, upcoming: [] }), "small", "", now);
+  assert.deepEqual(kinds(empty), ["todos"]);
+  assert.equal(empty.cards[0].rows.length, 0);
+  assert.equal(empty.cards[0].empty, "Keine offenen To-dos");
+});
+
+test("an older cached response without `upcoming` falls back to today, week and nextEvent", () => {
   const tomorrow = event("Morgen", "2026-11-17T09:00:00+01:00", "2026-11-17T10:00:00+01:00");
-  const fallback = logic.widgetModel(state({ nextEvent: tomorrow, today: [] }), "large", "", now);
-  assert.deepEqual(headings(fallback), ["Heute", "Diese Woche", "Nächster Termin", "Wichtige Mails"]);
-  assert.deepEqual(rows(fallback), [
-    ["Keine Termine"],
-    ["Wochenagenda nicht verfügbar"],
-    ["Di 17.11. · 09:00 · Morgen"],
-    ["Dringende Mail", "Ältere dringende Mail"],
-  ]);
-  const full = state({ week: [tomorrow, ...state().today] });
-  assert.deepEqual(headings(logic.widgetModel(full, "large", "", now)), ["Diese Woche", "Wichtige Mails"]);
-  assert.deepEqual(headings(logic.widgetModel(full, "large", "todos", now)), ["To-dos", "Diese Woche", "Wichtige Mails"]);
-  assert.deepEqual(headings(logic.widgetModel(full, "large", "heute", now)), ["Heute", "Diese Woche", "Wichtige Mails"]);
+  const model = logic.widgetModel(state({ week: [tomorrow] }), "large", "", now);
+  assert.deepEqual(texts(model, "events"), ["Ganzer Tag", "Erster Termin"]);
+  assert.equal(model.cards[1].rows[0].detail, "Heute · ganztägig");
+  const later = logic.widgetModel(state({ week: [tomorrow] }), "large", "", new Date("2026-11-16T09:00:00+01:00"));
+  assert.equal(later.cards[1].rows[1].detail, "Jetzt · bis 09:30");
 });
 
-test("week selection uses local Monday and exclusive ends across DST and cached dates", () => {
-  const endedSunday = event("Vorbei", "2026-10-25", "2026-10-26", true);
-  const ongoing = event("Mehrtägig", "2026-10-25", "2026-10-27", true);
-  const outside = event("Andere Woche", "2026-11-02", "2026-11-03", true);
-  const start = new Date("2026-10-25T23:20:00Z");
-  const full = state({ generatedAt: start.toISOString(), today: [], week: [outside, endedSunday, ongoing] });
-  const model = logic.widgetModel(full, "large", "woche", start);
-  assert.deepEqual(rows(model)[0], ["Mo 26.10. · Ganztägig · Mehrtägig"]);
-  assert.equal(logic.selectCalendar(full, new Date("2026-10-27T09:00:00Z")).agenda.length, 0);
-  const expired = logic.selectCalendar(full, new Date("2026-11-01T23:00:00Z"));
-  assert.equal(expired.week, null);
-  assert.equal(expired.agenda, null);
-  assert.equal(logic.selectCalendar(state(), new Date("2026-11-16T17:00:00Z")).next, null);
-});
-
-test("rectangular always shows the next timed event and open task", () => {
-  const rect = mode => logic.widgetModel(state(), "accessoryRectangular", mode, now);
-  assert.deepEqual(rows(rect("heute")), [["08:30 · Erster Termin", "To-do · Überfällig"]]);
-  assert.deepEqual(rows(rect("todos")), [["To-do · Überfällig", "08:30 · Erster Termin"]]);
+test("rectangular always shows the next appointment and open task", () => {
+  const rect = mode => logic.widgetModel(state({ upcoming }), "accessoryRectangular", mode, now);
+  assert.deepEqual(rows(rect("heute")), [["Heute, 08:30 · Erster Termin", "To-do · Überfällig"]]);
+  assert.deepEqual(rows(rect("todos")), [["To-do · Überfällig", "Heute, 08:30 · Erster Termin"]]);
 });
 
 class Stack {
   texts = [];
   addText(text) { this.texts.push(text); return {}; }
   addSpacer() {}
-  addStack() { return this; }
+  addImage() { return {}; }
+  addStack() { const child = new Stack(); child.texts = this.texts; return child; }
   layoutVertically() {}
   topAlignContent() {}
+  centerAlignContent() {}
+  setPadding() {}
 }
 
 async function withHost() {
@@ -187,8 +227,10 @@ async function withHost() {
     Color: class {
       constructor(hex) { this.hex = hex; }
       static dynamic(light, dark) { return { light, dark }; }
+      static white() { return new this("#ffffff"); }
     },
-    Font: { systemFont: size => size, semiboldSystemFont: size => size },
+    Font: { systemFont: size => size, semiboldSystemFont: size => size, boldSystemFont: size => size, regularSystemFont: size => size },
+    SFSymbol: { named: () => ({ applyFont() {}, image: {} }) },
   });
   return { ...host, build: (family, setup = code) => api.buildWidget(family, null, setup, pwa) };
 }
@@ -203,12 +245,13 @@ test("each size renders a fresh, cached and cache-miss state, linked to the PWA"
     assert(fresh.texts.some(text => text.includes("Überfällig") || text.includes("Dringende Mail")));
     if (family === "accessoryRectangular") assert.equal(fresh.backgroundColor, undefined);
     else {
-      assert.equal(fresh.backgroundColor.light.hex, "#f6f7f3");
-      assert.equal(fresh.backgroundColor.dark.hex, "#161e1a");
+      assert.equal(fresh.backgroundColor.light.hex, "#ffffff");
+      assert.equal(fresh.backgroundColor.dark.hex, "#1c1c1e");
     }
     host.reply(new Error("offline"));
     const saved = await host.build(family);
-    assert.deepEqual(saved.texts.slice(0, -1), fresh.texts);
+    // The status line takes room, so the cached view may distribute rows differently.
+    assert.equal(saved.texts[0], fresh.texts[0]);
     assert.match(saved.texts.at(-1), /^Stand \d\d:\d\d$/);
     host.setCache("{broken");
     assert((await host.build(family)).texts.includes("Verbindung prüfen"));
